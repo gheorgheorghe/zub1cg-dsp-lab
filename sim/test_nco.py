@@ -22,9 +22,9 @@ def unpack_iq(word: int) -> tuple[int, int]:
 
 
 @cocotb.test()
-async def test_nco_sfdr_and_accuracy(dut):
+async def tb_nco_sfdr_and_accuracy(dut):
     """Verify Q1.15 accuracy and SFDR > 90 dBc against Python golden sine/cosine."""
-    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())  # 100 MHz
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())  # 100 MHz
 
     dut.rst_n.value = 0
     dut.enable.value = 0
@@ -79,9 +79,9 @@ async def test_nco_sfdr_and_accuracy(dut):
 
 
 @cocotb.test()
-async def test_nco_backpressure(dut):
+async def tb_nco_backpressure(dut):
     """Ensure random AXI-Stream tready stalls drop or duplicate zero samples."""
-    cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
     rng = random.Random(42)
 
     dut.rst_n.value = 0

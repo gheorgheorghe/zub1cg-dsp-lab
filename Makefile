@@ -7,7 +7,7 @@ VIVADO ?= vivado
 BOARD_REPO ?=
 JOBS ?= 8
 
-.PHONY: help venv board-files lint sim sim-nco sim-slot test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
+.PHONY: help venv board-files lint sim sim-nco sim-slot sim-lockin sim-plant sim-closed-loop test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
 
 help:
 	@echo "Targets:"
@@ -41,12 +41,18 @@ board-files:
 	@echo "Installed ZUBoard 1CG board files in hw/board_files/zub1cg"
 
 lint:
-	verilator --lint-only -Wall --sv \
+	verilator --lint-only -Wall --sv --top-module axil_regfile rtl/common/axil_regfile.sv
+	verilator --lint-only -Wall --sv --top-module stage0_dsp_slot \
+		rtl/common/sv_nco_cordic.sv rtl/common/stage0_dsp_slot.sv
+	verilator --lint-only -Wall --sv --top-module mems_hil_top \
 		rtl/common/sv_nco_cordic.sv \
-		rtl/common/axil_regfile.sv \
-		rtl/common/stage0_dsp_slot.sv
+		rtl/common/sv_pi_ctrl.sv \
+		rtl/common/sv_lockin.sv \
+		rtl/mems_hil/mems_plant_2dof.sv \
+		rtl/mems_hil/mems_ctrl_top.sv \
+		rtl/mems_hil/mems_hil_top.sv
 
-sim: sim-nco sim-slot
+sim: sim-nco sim-slot sim-lockin sim-plant sim-closed-loop
 
 sim-nco:
 	@echo "=== Running cocotb: sv_nco_cordic ==="
@@ -55,6 +61,18 @@ sim-nco:
 sim-slot:
 	@echo "=== Running cocotb: stage0_dsp_slot ==="
 	$(PY) -m pytest -s sim/test_stage0_slot.py
+
+sim-lockin:
+	@echo "=== Running cocotb: sv_lockin & sv_pi_ctrl ==="
+	$(PY) -m pytest -s sim/test_lockin_pi.py
+
+sim-plant:
+	@echo "=== Running cocotb: mems_plant_2dof (DRG Q=100k & HRG Q=1M) ==="
+	$(PY) -m pytest -s sim/test_mems_plant.py
+
+sim-closed-loop:
+	@echo "=== Running cocotb: mems_hil_top closed-loop DRG ==="
+	$(PY) -m pytest -s sim/test_mems_closed_loop.py
 
 test-model:
 	@echo "=== Running Stage 1 DRG/HRG golden model & bit-width study ==="

@@ -522,70 +522,69 @@ def plot_cvg_dashboard(res: SimResult, params: GyroParams, out_path: Path) -> No
 
     t_ms = res.t_s * 1e3
 
-    # Row 0: Demodulated Drive & Sense (DX, DY, SX)
+    # Column 0 (Left): Demodulated Pickoffs — DX, DY, SX, SY
     axes[0, 0].plot(t_ms, res.dx, color="#1f77b4", label="DX (Drive Amp)")
     axes[0, 0].axhline(1.0, color="k", ls="--", lw=0.8, label="Setpoint")
     axes[0, 0].set_title("DX (Drive In-Phase)")
     axes[0, 0].set_ylabel("Norm")
     axes[0, 0].legend(fontsize=8)
 
-    axes[0, 1].plot(t_ms, res.dy, color="#ff7f0e", label="DY (Phase Err)")
-    axes[0, 1].axhline(0.0, color="k", ls="--", lw=0.8)
-    axes[0, 1].set_title("DY (Drive Quadrature)")
-    axes[0, 1].set_ylabel("Norm")
-
-    axes[0, 2].plot(t_ms, res.sx, color="#2ca02c", label="SX (Rate Err)")
-    axes[0, 2].axhline(0.0, color="k", ls="--", lw=0.8)
-    axes[0, 2].set_title("SX (Sense Rate Error)")
-    axes[0, 2].set_ylabel("Norm")
-
-    # Row 1: SY, PLLAdj, AGCAdj
-    axes[1, 0].plot(t_ms, res.sy, color="#d62728", label="SY (Quad Err)")
+    axes[1, 0].plot(t_ms, res.dy, color="#ff7f0e", label="DY (Phase Err)")
     axes[1, 0].axhline(0.0, color="k", ls="--", lw=0.8)
-    axes[1, 0].set_title("SY (Sense Quadrature Error)")
+    axes[1, 0].set_title("DY (Drive Quadrature)")
     axes[1, 0].set_ylabel("Norm")
 
-    axes[1, 1].plot(t_ms, res.freq_true_hz - params.f0_hz, "k--", lw=1.0, label="True Δf(T)")
-    axes[1, 1].plot(t_ms, res.pll_adj_hz, color="#9467bd", label="PLLAdj")
-    axes[1, 1].set_title("PLLAdj (Freq Offset from f0)")
-    axes[1, 1].set_ylabel("Hz")
-    axes[1, 1].legend(fontsize=8)
+    axes[2, 0].plot(t_ms, res.sx, color="#2ca02c", label="SX (Rate Err)")
+    axes[2, 0].axhline(0.0, color="k", ls="--", lw=0.8)
+    axes[2, 0].set_title("SX (Sense Rate Error)")
+    axes[2, 0].set_ylabel("Norm")
 
-    axes[1, 2].plot(t_ms, res.agc_adj, color="#8c564b")
-    axes[1, 2].set_title("AGCAdj (Drive Force Cmd)")
-    axes[1, 2].set_ylabel("Norm Acc")
+    axes[3, 0].plot(t_ms, res.sy, color="#d62728", label="SY (Quad Err)")
+    axes[3, 0].axhline(0.0, color="k", ls="--", lw=0.8)
+    axes[3, 0].set_title("SY (Sense Quadrature Error)")
+    axes[3, 0].set_ylabel("Norm")
+    axes[3, 0].set_xlabel("Time (ms)")
 
-    # Row 2: CLQAdj, FTRAdj, Temperature
-    axes[2, 0].plot(t_ms, res.clq_adj, color="#e377c2", label="CLQAdj")
-    axes[2, 0].set_title("CLQAdj (Quadrature Null Cmd)")
-    axes[2, 0].set_ylabel("Norm Acc")
+    # Column 1 (Middle): Loop Adjustments — PLLAdj, AGCAdj, CLQAdj, FTRAdj
+    axes[0, 1].plot(t_ms, res.freq_true_hz - params.f0_hz, "k--", lw=1.0, label="True Δf(T)")
+    axes[0, 1].plot(t_ms, res.pll_adj_hz, color="#9467bd", label="PLLAdj")
+    axes[0, 1].set_title("PLLAdj (Freq Offset from f0)")
+    axes[0, 1].set_ylabel("Hz")
+    axes[0, 1].legend(fontsize=8)
 
-    axes[2, 1].plot(t_ms, res.ftr_adj, color="#17becf", label="FTRAdj")
-    axes[2, 1].set_title("FTRAdj (Force-to-Rebalance Cmd)")
+    axes[1, 1].plot(t_ms, res.agc_adj, color="#8c564b")
+    axes[1, 1].set_title("AGCAdj (Drive Force Cmd)")
+    axes[1, 1].set_ylabel("Norm Acc")
+
+    axes[2, 1].plot(t_ms, res.clq_adj, color="#e377c2", label="CLQAdj")
+    axes[2, 1].set_title("CLQAdj (Quadrature Null Cmd)")
     axes[2, 1].set_ylabel("Norm Acc")
 
-    axes[2, 2].plot(t_ms, res.temp_true_c, "k--", lw=1.0, label="True Temp")
-    axes[2, 2].plot(t_ms, res.temp_est_c, color="#bcbd22", label="Est Temp (from PLLAdj)")
-    axes[2, 2].set_title("Temperature")
-    axes[2, 2].set_ylabel("°C")
-    axes[2, 2].legend(fontsize=8)
-
-    # Row 3: Feedforward Rate, Feedforward Integrated Angle, Integrated Angle Error Comparison
-    axes[3, 0].plot(t_ms, res.omega_true_dps, "k--", lw=1.2, label="True Rate")
-    axes[3, 0].plot(t_ms, res.omega_ftr_dps, color="#17becf", alpha=0.7, label="FTR Rate (Raw)")
-    axes[3, 0].plot(t_ms, res.omega_ff_dps, color="#1f77b4", lw=1.2, label="Feedforward Rate")
-    axes[3, 0].set_title("Feedforward Rate")
-    axes[3, 0].set_ylabel("deg/s")
-    axes[3, 0].set_xlabel("Time (ms)")
-    axes[3, 0].legend(fontsize=8)
-
-    axes[3, 1].plot(t_ms, res.angle_true_deg, "k--", lw=1.2, label="True Angle")
-    axes[3, 1].plot(t_ms, res.angle_ftr_deg, color="#17becf", alpha=0.7, label="FTR Int Angle")
-    axes[3, 1].plot(t_ms, res.angle_ff_deg, color="#2ca02c", lw=1.2, label="Feedforward Int Angle")
-    axes[3, 1].set_title("Feedforward Integrated Angle")
-    axes[3, 1].set_ylabel("deg")
+    axes[3, 1].plot(t_ms, res.ftr_adj, color="#17becf", label="FTRAdj")
+    axes[3, 1].set_title("FTRAdj (Force-to-Rebalance Cmd)")
+    axes[3, 1].set_ylabel("Norm Acc")
     axes[3, 1].set_xlabel("Time (ms)")
-    axes[3, 1].legend(fontsize=8)
+
+    # Column 2 (Right): Temperature, Feedforward Rate, Feedforward Integrated Angle, Angle Error
+    axes[0, 2].plot(t_ms, res.temp_true_c, "k--", lw=1.0, label="True Temp")
+    axes[0, 2].plot(t_ms, res.temp_est_c, color="#bcbd22", label="Est Temp (from PLLAdj)")
+    axes[0, 2].set_title("Temperature")
+    axes[0, 2].set_ylabel("°C")
+    axes[0, 2].legend(fontsize=8)
+
+    axes[1, 2].plot(t_ms, res.omega_true_dps, "k--", lw=1.2, label="True Rate")
+    axes[1, 2].plot(t_ms, res.omega_ftr_dps, color="#17becf", alpha=0.7, label="FTR Rate (Raw)")
+    axes[1, 2].plot(t_ms, res.omega_ff_dps, color="#1f77b4", lw=1.2, label="Feedforward Rate")
+    axes[1, 2].set_title("Feedforward Rate")
+    axes[1, 2].set_ylabel("deg/s")
+    axes[1, 2].legend(fontsize=8)
+
+    axes[2, 2].plot(t_ms, res.angle_true_deg, "k--", lw=1.2, label="True Angle")
+    axes[2, 2].plot(t_ms, res.angle_ftr_deg, color="#17becf", alpha=0.7, label="FTR Int Angle")
+    axes[2, 2].plot(t_ms, res.angle_ff_deg, color="#2ca02c", lw=1.2, label="Feedforward Int Angle")
+    axes[2, 2].set_title("Feedforward Integrated Angle")
+    axes[2, 2].set_ylabel("deg")
+    axes[2, 2].legend(fontsize=8)
 
     # Zero-reference angle errors at t = 140 ms (after initial startup transient settles)
     ref_idx = int(np.argmin(np.abs(res.t_s - 0.14)))

@@ -12,9 +12,9 @@ except ImportError:
 
 
 @cocotb.test()
-async def test_nco_tlast_framing(dut):
+async def tb_nco_tlast_framing(dut):
     """Verify TLAST pulses at exact pkt_len boundaries for AXI-DMA S2MM."""
-    cocotb.start_soon(Clock(dut.aclk, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.aclk, 10, units="ns").start())
 
     dut.aresetn.value = 0
     dut.ctrl_enable.value = 0
@@ -43,13 +43,14 @@ async def test_nco_tlast_framing(dut):
             seen += 1
 
     assert tlast_positions == [63, 127, 191], f"Unexpected TLAST indices: {tlast_positions}"
+    await RisingEdge(dut.aclk)
     assert int(dut.sample_cnt_out.value) >= 192
 
 
 @cocotb.test()
-async def test_mm2s_loopback_mode(dut):
+async def tb_mm2s_loopback_mode(dut):
     """Verify bit-exact AXI-Stream loopback with random backpressure."""
-    cocotb.start_soon(Clock(dut.aclk, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.aclk, 10, units="ns").start())
     rng = random.Random(7)
 
     dut.aresetn.value = 0
