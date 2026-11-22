@@ -5,9 +5,10 @@ PIP   := $(VENV)/bin/pip
 SIM   ?= verilator
 VIVADO ?= vivado
 BOARD_REPO ?=
+PROJECT ?= stage1_mems
 JOBS ?= 8
 
-.PHONY: help venv board-files lint sim sim-nco sim-slot sim-lockin sim-plant sim-closed-loop test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
+.PHONY: help venv board-files lint sim sim-nco sim-slot sim-lockin sim-plant sim-closed-loop sim-stage1-axis test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
 
 help:
 	@echo "Targets:"
@@ -18,11 +19,11 @@ help:
 	@echo "  make plot-hrg      Plot Micro-HRG (11 kHz, Q=1M) closed-loop simulation"
 	@echo "  make plot-space-hrg Plot Space HRG (4.2 kHz, Q=5M) closed-loop simulation"
 	@echo "  make lint          Run Verilator lint on all SystemVerilog RTL"
-	@echo "  make sim         Run all cocotb + Verilator RTL testbenches"
-	@echo "  make bd          Generate Vivado 2024.2 Block Design project (hw/build)"
-	@echo "  make bit         Full Vivado synth/impl/bitstream + export zub1cg_stage0.xsa"
-	@echo "  make mock-host   Run host UDP client in offline --mock mode"
-	@echo "  make clean       Remove simulation and Vivado build outputs"
+	@echo "  make sim           Run all cocotb + Verilator RTL testbenches"
+	@echo "  make bd            Generate Vivado 2024.2 BD (PROJECT=stage0|stage1_mems)"
+	@echo "  make bit           Full Vivado synth/impl/bitstream + .xsa (PROJECT=$(PROJECT))"
+	@echo "  make mock-host     Run host UDP client in offline --mock mode"
+	@echo "  make clean         Remove simulation and Vivado build outputs"
 
 venv:
 	python3 -m venv $(VENV)
@@ -44,15 +45,16 @@ lint:
 	verilator --lint-only -Wall --sv --top-module axil_regfile rtl/common/axil_regfile.sv
 	verilator --lint-only -Wall --sv --top-module stage0_dsp_slot \
 		rtl/common/sv_nco_cordic.sv rtl/common/stage0_dsp_slot.sv
-	verilator --lint-only -Wall --sv --top-module mems_hil_top \
+	verilator --lint-only -Wall --sv --top-module mems_hil_axis_wrap \
 		rtl/common/sv_nco_cordic.sv \
 		rtl/common/sv_pi_ctrl.sv \
 		rtl/common/sv_lockin.sv \
 		rtl/mems_hil/mems_plant_2dof.sv \
 		rtl/mems_hil/mems_ctrl_top.sv \
-		rtl/mems_hil/mems_hil_top.sv
+		rtl/mems_hil/mems_hil_top.sv \
+		rtl/mems_hil/mems_hil_axis_wrap.sv
 
-sim: sim-nco sim-slot sim-lockin sim-plant sim-closed-loop
+sim: sim-nco sim-slot sim-lockin sim-plant sim-closed-loop sim-stage1-axis
 
 sim-nco:
 	@echo "=== Running cocotb: sv_nco_cordic ==="
@@ -74,6 +76,10 @@ sim-closed-loop:
 	@echo "=== Running cocotb: mems_hil_top closed-loop DRG ==="
 	$(PY) -m pytest -s sim/test_mems_closed_loop.py
 
+sim-stage1-axis:
+	@echo "=== Running cocotb: mems_hil_axis_wrap (AXI-Lite + 8-word AXI-Stream) ==="
+	$(PY) -m pytest -s sim/test_stage1_axis.py
+
 test-model:
 	@echo "=== Running Stage 1 DRG/HRG golden model & bit-width study ==="
 	PYTHONPATH=. $(PY) model/fixed_point.py
@@ -90,13 +96,13 @@ plot-space-hrg:
 
 bd:
 	mkdir -p hw/build
-	BOARD_REPO=$(BOARD_REPO) $(VIVADO) -mode batch -source hw/scripts/create_bd.tcl \
-		-log hw/build/create_bd.log -journal hw/build/create_bd.jou
+	PROJECT=$(PROJECT) BOARD_REPO=$(BOARD_REPO) $(VIVADO) -mode batch -source hw/scripts/create_bd.tcl \
+		-log hw/build/create_bd_$(PROJECT).log -journal hw/build/create_bd_$(PROJECT).jou
 
 bit:
 	mkdir -p hw/build
-	BOARD_REPO=$(BOARD_REPO) JOBS=$(JOBS) $(VIVADO) -mode batch -source hw/scripts/build_bit.tcl \
-		-log hw/build/build_bit.log -journal hw/build/build_bit.jou
+	PROJECT=$(PROJECT) BOARD_REPO=$(BOARD_REPO) JOBS=$(JOBS) $(VIVADO) -mode batch -source hw/scripts/build_bit.tcl \
+		-log hw/build/build_bit_$(PROJECT).log -journal hw/build/build_bit_$(PROJECT).jou
 
 mock-host:
 	$(PY) host/zuboard_client.py --mock --freq-hz 16000 --samples 2048 --no-plot

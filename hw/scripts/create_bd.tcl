@@ -1,11 +1,45 @@
 # ============================================================================
 # Vivado 2024.2 Reproducible Block Design Script for Avnet ZUBoard 1CG
-# Stage 0 Base Shell: ZynqMP PS + AXI-DMA (32-bit) + AXI-Lite + DSP Slot
+# Supports monorepo PROJECT selection:
+#   PROJECT=stage0       -> Stage 0 NCO + Loopback Shell (zub1cg_stage0)
+#   PROJECT=stage1_mems  -> Stage 1 48-bit DRG/HRG HIL   (zub1cg_stage1_mems)
 # ============================================================================
 set script_dir [file dirname [file normalize [info script]]]
 set repo_root  [file normalize "$script_dir/../.."]
 set build_dir  "$repo_root/hw/build"
-set proj_name  "zub1cg_stage0"
+
+set project_sel "stage0"
+if {[info exists ::env(PROJECT)] && $::env(PROJECT) ne ""} {
+    set project_sel $::env(PROJECT)
+}
+
+if {$project_sel eq "stage0"} {
+    set proj_name   "zub1cg_stage0"
+    set slot_module "stage0_bd_wrap"
+    set rtl_files [list \
+        "$repo_root/rtl/common/sv_nco_cordic.sv" \
+        "$repo_root/rtl/common/axil_regfile.sv" \
+        "$repo_root/rtl/common/stage0_dsp_slot.sv" \
+        "$repo_root/rtl/common/stage0_bd_wrap.v" \
+    ]
+} elseif {$project_sel eq "stage1_mems"} {
+    set proj_name   "zub1cg_stage1_mems"
+    set slot_module "stage1_bd_wrap"
+    set rtl_files [list \
+        "$repo_root/rtl/common/sv_nco_cordic.sv" \
+        "$repo_root/rtl/common/sv_lockin.sv" \
+        "$repo_root/rtl/common/sv_pi_ctrl.sv" \
+        "$repo_root/rtl/mems_hil/mems_plant_2dof.sv" \
+        "$repo_root/rtl/mems_hil/mems_ctrl_top.sv" \
+        "$repo_root/rtl/mems_hil/mems_hil_top.sv" \
+        "$repo_root/rtl/mems_hil/mems_hil_axis_wrap.sv" \
+        "$repo_root/rtl/mems_hil/stage1_bd_wrap.v" \
+    ]
+} else {
+    error "Unknown PROJECT='$project_sel'. Valid options: stage0, stage1_mems"
+}
+
+puts "INFO: Building ZUBoard 1CG Block Design for PROJECT=$project_sel ($proj_name)"
 
 # Locate Avnet ZUBoard 1CG board files automatically (BOARD_REPO, local hw/board_files, or XHub)
 set repo_paths {}
@@ -36,12 +70,7 @@ if {[llength $zub_boards] > 0} {
 }
 
 # Add RTL sources & constraints
-add_files -norecurse [list \
-    "$repo_root/rtl/common/sv_nco_cordic.sv" \
-    "$repo_root/rtl/common/axil_regfile.sv" \
-    "$repo_root/rtl/common/stage0_dsp_slot.sv" \
-    "$repo_root/rtl/common/stage0_bd_wrap.v" \
-]
+add_files -norecurse $rtl_files
 add_files -fileset constrs_1 -norecurse "$repo_root/hw/constraints/zub1cg_base.xdc"
 update_compile_order -fileset sources_1
 
@@ -84,8 +113,8 @@ set_property -dict [list \
     CONFIG.c_include_s2mm {1} \
 ] [get_bd_cells axi_dma_0]
 
-# 4. Stage 0 Swappable DSP Slot + AXI-Lite Register File
-create_bd_cell -type module -reference stage0_bd_wrap dsp_slot_0
+# 4. Swappable Project DSP Slot (stage0_bd_wrap or stage1_bd_wrap)
+create_bd_cell -type module -reference $slot_module dsp_slot_0
 
 # 5. Interconnects (SmartConnect for AXI-Lite control and HP0 DDR data)
 create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smc_ctrl
@@ -156,4 +185,4 @@ add_files -norecurse "$build_dir/$proj_name/$proj_name.gen/sources_1/bd/zub1cg_b
 set_property top zub1cg_bd_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 
-puts "SUCCESS: ZUBoard 1CG Stage 0 Block Design created at $build_dir/$proj_name"
+puts "SUCCESS: ZUBoard 1CG Block Design ($proj_name) created at $build_dir/$proj_name"

@@ -78,49 +78,57 @@ static void udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
     uint32_t cmd = req[0];
 
     if (cmd == CMD_REG_READ) {
-        uint32_t offset = req[1] & 0x3CU;
+        uint32_t offset = req[1] & 0xFCU;
         uint32_t rsp[2] = {0x81U, Xil_In32(DSP_SLOT_BASEADDR + offset)};
         send_udp_words(pcb, addr, port, rsp, 2);
 
     } else if (cmd == CMD_REG_WRITE && copy_len >= 12) {
-        uint32_t offset = req[1] & 0x3CU;
+        uint32_t offset = req[1] & 0xFCU;
         uint32_t val    = req[2];
         Xil_Out32(DSP_SLOT_BASEADDR + offset, val);
         uint32_t rsp[2] = {0x82U, Xil_In32(DSP_SLOT_BASEADDR + offset)};
         send_udp_words(pcb, addr, port, rsp, 2);
 
     } else if (cmd == CMD_DMA_CAP) {
-        uint32_t n_samples = req[1];
-        if (n_samples == 0) n_samples = 1024;
-        if (n_samples > MAX_CAPTURE_SAMPLES) n_samples = MAX_CAPTURE_SAMPLES;
+        uint32_t n_words = req[1];
+        if (n_words == 0) n_words = 1024;
+        if (n_words > MAX_CAPTURE_SAMPLES) n_words = MAX_CAPTURE_SAMPLES;
 
-        /* Program PKT_LEN register (0x08) to match capture length, pulse soft reset */
+        uint32_t ver_stage = (Xil_In32(DSP_SLOT_BASEADDR + 0xECU) >> 8) & 0xFFU;
         uint32_t ctrl = Xil_In32(DSP_SLOT_BASEADDR + 0x00U);
-        Xil_Out32(DSP_SLOT_BASEADDR + 0x08U, n_samples);
-        Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, (ctrl | 0x4U) & ~0x1U); /* soft_rst=1, enable=0 */
-        Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, ctrl & ~0x5U);          /* release rst */
 
-        /* Flush/invalidate RX buffer before DMA writes to DDR4 */
-        uint32_t nbytes = n_samples * sizeof(uint32_t);
+        /* Stage 0: 1 word/sample; Stage 1: 8 words/telemetry frame */
+        if (ver_stage == 0x01U) {
+            uint32_t n_frames = (n_words + 7U) / 8U;
+            n_words = n_frames * 8U;
+            Xil_Out32(DSP_SLOT_BASEADDR + 0x08U, n_frames);
+        } else {
+            Xil_Out32(DSP_SLOT_BASEADDR + 0x08U, n_words);
+            Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, (ctrl | 0x4U) & ~0x1U);
+            Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, ctrl & ~0x5U);
+        }
+
+        /* Invalidate RX buffer before DMA writes to DDR4 */
+        uint32_t nbytes = n_words * sizeof(uint32_t);
         Xil_DCacheInvalidateRange((INTPTR)dma_rx_buf, nbytes);
 
         int st = XAxiDma_SimpleTransfer(&axi_dma, (UINTPTR)dma_rx_buf, nbytes,
                                         XAXIDMA_DEVICE_TO_DMA);
         if (st == XST_SUCCESS) {
-            /* Enable streaming slot and wait for S2MM completion */
-            Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, ctrl | 0x1U);
+            if (ver_stage != 0x01U) {
+                Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, ctrl | 0x1U);
+            }
             while (XAxiDma_Busy(&axi_dma, XAXIDMA_DEVICE_TO_DMA)) {
                 /* Poll S2MM */
             }
-            /* Mandatory ZynqMP cache invalidate before CPU reads DMA data */
             Xil_DCacheInvalidateRange((INTPTR)dma_rx_buf, nbytes);
 
             /* Stream captured buffer back over UDP in MTU-safe chunks */
             uint32_t pkt[2 + SAMPLES_PER_UDP_PKT];
             uint32_t sent = 0;
             uint32_t seq  = 0;
-            while (sent < n_samples) {
-                uint32_t chunk = n_samples - sent;
+            while (sent < n_words) {
+                uint32_t chunk = n_words - sent;
                 if (chunk > SAMPLES_PER_UDP_PKT) chunk = SAMPLES_PER_UDP_PKT;
                 pkt[0] = 0x83U;
                 pkt[1] = seq++;

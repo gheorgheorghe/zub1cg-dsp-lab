@@ -4,7 +4,6 @@
 set script_dir [file dirname [file normalize [info script]]]
 set repo_root  [file normalize "$script_dir/../.."]
 set build_dir  "$repo_root/hw/build"
-set proj_name  "zub1cg_stage0"
 
 source "$script_dir/create_bd.tcl"
 
@@ -29,8 +28,8 @@ if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} {
 
 # Open implemented design for reports and timing signoff
 open_run impl_1
-report_timing_summary -file "$build_dir/timing_summary.rpt"
-report_utilization    -file "$build_dir/utilization.rpt"
+report_timing_summary -file "$build_dir/${proj_name}_timing_summary.rpt"
+report_utilization    -file "$build_dir/${proj_name}_utilization.rpt"
 
 set wns [get_property STATS.WNS [get_runs impl_1]]
 puts "INFO: Final Worst Negative Slack (WNS) = $wns ns"
