@@ -1,0 +1,29 @@
+# Python & virtualenvs
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# cocotb & Verilator build outputs
+sim/sim_build/
+sim/results.xml
+sim/*.vcd
+sim/*.fst
+sim/*.ghw
+
+# Vivado & Vitis build artifacts
+hw/build/
+hw/*.jou
+hw/*.log
+hw/*.str
+*.jou
+*.log
+*.str
+.Xil/
+sw/build/
+sw/vitis_ws/
+
+# OS & editor junk
+.DS_Store
+*.swp
+.vscode/
