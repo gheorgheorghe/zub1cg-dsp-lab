@@ -7,14 +7,17 @@ VIVADO ?= vivado
 BOARD_REPO ?=
 JOBS ?= 8
 
-.PHONY: help venv board-files lint sim sim-nco sim-slot test-model bd bit mock-host clean
+.PHONY: help venv board-files lint sim sim-nco sim-slot test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
 
 help:
 	@echo "Targets:"
-	@echo "  make venv        Create Python venv and install cocotb/numpy/scipy/pytest"
-	@echo "  make board-files Download Avnet ZUBoard 1CG board files for Vivado 2024.2"
-	@echo "  make test-model  Run Stage 1 DRG/HRG golden model & bit-width pytest suite"
-	@echo "  make lint        Run Verilator lint on all SystemVerilog RTL"
+	@echo "  make venv          Create Python venv and install cocotb/numpy/scipy/pytest"
+	@echo "  make board-files   Download Avnet ZUBoard 1CG board files for Vivado 2024.2"
+	@echo "  make test-model    Run Stage 1 DRG/HRG golden model & bit-width pytest suite"
+	@echo "  make plot-drg      Plot DRG (11 kHz, Q=100k) closed-loop simulation"
+	@echo "  make plot-hrg      Plot Micro-HRG (11 kHz, Q=1M) closed-loop simulation"
+	@echo "  make plot-space-hrg Plot Space HRG (4.2 kHz, Q=5M) closed-loop simulation"
+	@echo "  make lint          Run Verilator lint on all SystemVerilog RTL"
 	@echo "  make sim         Run all cocotb + Verilator RTL testbenches"
 	@echo "  make bd          Generate Vivado 2024.2 Block Design project (hw/build)"
 	@echo "  make bit         Full Vivado synth/impl/bitstream + export zub1cg_stage0.xsa"
@@ -57,6 +60,15 @@ test-model:
 	@echo "=== Running Stage 1 DRG/HRG golden model & bit-width study ==="
 	PYTHONPATH=. $(PY) model/fixed_point.py
 	PYTHONPATH=. $(PY) -m pytest -v model/test_mems_model.py
+
+plot-drg:
+	PYTHONPATH=. $(PY) model/mems_gyro_model.py --preset drg_11khz_q100k
+
+plot-hrg:
+	PYTHONPATH=. $(PY) model/mems_gyro_model.py --preset hrg_micro_11khz_q1m
+
+plot-space-hrg:
+	PYTHONPATH=. $(PY) model/mems_gyro_model.py --preset hrg_space_4khz_q5m
 
 bd:
 	mkdir -p hw/build

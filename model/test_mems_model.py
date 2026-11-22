@@ -73,6 +73,14 @@ def test_closed_loop_ftr_pll_agc_quad(preset_key: str):
     # 5. Sense displacement is actively nulled (|y| < 1e-3 of drive amplitude)
     assert float(np.mean(res.sense_amp[m])) < 1e-3
 
+    # 6. Feedforward integrated angle reduces peak transient lag error vs raw FTR by >= 5x
+    ref_idx = int(np.argmin(np.abs(res.t_s - 0.14)))
+    m_post = res.t_s >= 0.14
+    d_true = res.angle_true_deg[m_post] - res.angle_true_deg[ref_idx]
+    err_ftr = float(np.max(np.abs((res.angle_ftr_deg[m_post] - res.angle_ftr_deg[ref_idx]) - d_true)))
+    err_ff = float(np.max(np.abs((res.angle_ff_deg[m_post] - res.angle_ff_deg[ref_idx]) - d_true)))
+    assert err_ff < err_ftr / 5.0, f"{preset_key}: FF err {err_ff:.5f} deg not << FTR err {err_ftr:.5f} deg"
+
 
 def test_allan_deviation_helper():
     rng = np.random.default_rng(0)

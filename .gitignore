@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+model/plots/
 
 # cocotb & Verilator build outputs
 sim/sim_build/
