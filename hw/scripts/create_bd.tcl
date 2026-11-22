@@ -7,22 +7,32 @@ set repo_root  [file normalize "$script_dir/../.."]
 set build_dir  "$repo_root/hw/build"
 set proj_name  "zub1cg_stage0"
 
-# Optional custom board repo path (e.g., cloned XilinxBoardStore 2024.2)
+# Locate Avnet ZUBoard 1CG board files automatically (BOARD_REPO, local hw/board_files, or XHub)
+set repo_paths {}
 if {[info exists ::env(BOARD_REPO)] && $::env(BOARD_REPO) ne ""} {
-    set_param board.repoPaths [list $::env(BOARD_REPO)]
+    lappend repo_paths $::env(BOARD_REPO)
+}
+if {[file isdirectory "$repo_root/hw/board_files"]} {
+    lappend repo_paths "$repo_root/hw/board_files"
+}
+if {[llength $repo_paths] > 0} {
+    set_param board.repoPaths $repo_paths
 }
 
 file mkdir $build_dir
 create_project -force $proj_name "$build_dir/$proj_name" -part xczu1cg-sbva484-1-e
 
-# Attach Avnet ZUBoard 1CG board part if installed in XHub or BOARD_REPO
+# Attach Avnet ZUBoard 1CG board part (required for LPDDR4, GbE GEM3, UART1, SD presets)
 set zub_boards [get_board_parts -quiet *zub1cg*]
 if {[llength $zub_boards] > 0} {
     set board_part [lindex $zub_boards 0]
     puts "INFO: Selecting board part: $board_part"
     set_property board_part $board_part [current_project]
 } else {
-    puts "WARNING: Avnet ZUBoard 1CG board files not found! Install via Vivado Store or set BOARD_REPO."
+    puts "WARNING: Avnet ZUBoard 1CG board files not found! Run 'make board-files' or install via Vivado Store."
+    if {![info exists ::env(ALLOW_NO_BOARD)]} {
+        error "Aborting because ZUBoard 1CG PS presets (LPDDR4/GbE/UART) require board files. Run 'make board-files' first (or set ALLOW_NO_BOARD=1)."
+    }
 }
 
 # Add RTL sources & constraints

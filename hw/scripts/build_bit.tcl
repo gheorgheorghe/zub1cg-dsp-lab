@@ -8,15 +8,20 @@ set proj_name  "zub1cg_stage0"
 
 source "$script_dir/create_bd.tcl"
 
+set jobs 8
+if {[info exists ::env(JOBS)] && $::env(JOBS) ne ""} {
+    set jobs $::env(JOBS)
+}
+
 # Run Synthesis
-launch_runs synth_1 -jobs 4
+launch_runs synth_1 -jobs $jobs
 wait_on_run synth_1
 if {[get_property PROGRESS [get_runs synth_1]] ne "100%"} {
     error "ERROR: Synthesis failed!"
 }
 
 # Run Implementation & Bitstream
-launch_runs impl_1 -to_step write_bitstream -jobs 4
+launch_runs impl_1 -to_step write_bitstream -jobs $jobs
 wait_on_run impl_1
 if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} {
     error "ERROR: Implementation / write_bitstream failed!"

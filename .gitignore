@@ -13,6 +13,7 @@ sim/*.ghw
 
 # Vivado & Vitis build artifacts
 hw/build/
+hw/board_files/
 hw/*.jou
 hw/*.log
 hw/*.str
