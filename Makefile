@@ -7,12 +7,13 @@ VIVADO ?= vivado
 BOARD_REPO ?=
 JOBS ?= 8
 
-.PHONY: help venv board-files lint sim sim-nco sim-slot bd bit mock-host clean
+.PHONY: help venv board-files lint sim sim-nco sim-slot test-model bd bit mock-host clean
 
 help:
 	@echo "Targets:"
 	@echo "  make venv        Create Python venv and install cocotb/numpy/scipy/pytest"
 	@echo "  make board-files Download Avnet ZUBoard 1CG board files for Vivado 2024.2"
+	@echo "  make test-model  Run Stage 1 DRG/HRG golden model & bit-width pytest suite"
 	@echo "  make lint        Run Verilator lint on all SystemVerilog RTL"
 	@echo "  make sim         Run all cocotb + Verilator RTL testbenches"
 	@echo "  make bd          Generate Vivado 2024.2 Block Design project (hw/build)"
@@ -51,6 +52,11 @@ sim-nco:
 sim-slot:
 	@echo "=== Running cocotb: stage0_dsp_slot ==="
 	$(PY) -m pytest -s sim/test_stage0_slot.py
+
+test-model:
+	@echo "=== Running Stage 1 DRG/HRG golden model & bit-width study ==="
+	PYTHONPATH=. $(PY) model/fixed_point.py
+	PYTHONPATH=. $(PY) -m pytest -v model/test_mems_model.py
 
 bd:
 	mkdir -p hw/build

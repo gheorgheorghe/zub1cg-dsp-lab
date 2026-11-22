@@ -5,13 +5,16 @@ import random
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
-from cocotb.runner import get_runner
+try:
+    from cocotb_tools.runner import get_runner
+except ImportError:
+    from cocotb.runner import get_runner
 
 
 @cocotb.test()
 async def test_nco_tlast_framing(dut):
     """Verify TLAST pulses at exact pkt_len boundaries for AXI-DMA S2MM."""
-    cocotb.start_soon(Clock(dut.aclk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.aclk, 10, unit="ns").start())
 
     dut.aresetn.value = 0
     dut.ctrl_enable.value = 0
@@ -46,7 +49,7 @@ async def test_nco_tlast_framing(dut):
 @cocotb.test()
 async def test_mm2s_loopback_mode(dut):
     """Verify bit-exact AXI-Stream loopback with random backpressure."""
-    cocotb.start_soon(Clock(dut.aclk, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.aclk, 10, unit="ns").start())
     rng = random.Random(7)
 
     dut.aresetn.value = 0
