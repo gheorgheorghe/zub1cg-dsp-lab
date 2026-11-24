@@ -57,7 +57,11 @@ file mkdir $build_dir
 create_project -force $proj_name "$build_dir/$proj_name" -part xczu1cg-sbva484-1-e
 
 # Attach Avnet ZUBoard 1CG board part (required for LPDDR4, GbE GEM3, UART1, SD presets)
-set zub_boards [get_board_parts -quiet *zub1cg*]
+# Note: Avnet's board.xml uses name="ZUBoard_1CG" (VLNV avnet.com:zuboard_1cg:part0:1.0).
+set zub_boards [lsort -unique [concat \
+    [get_board_parts -quiet *zuboard_1cg*] \
+    [get_board_parts -quiet *ZUBoard_1CG*] \
+    [get_board_parts -quiet *zub1cg*]]]
 if {[llength $zub_boards] > 0} {
     set board_part [lindex $zub_boards 0]
     puts "INFO: Selecting board part: $board_part"
@@ -179,8 +183,14 @@ set_property range  4K         [get_bd_addr_segs {zynq_ps/Data/*dsp_slot_0*}]
 validate_bd_design
 save_bd_design
 
+# Synthesize BD globally so SystemVerilog module-reference slots (dsp_slot_0)
+# cannot silently drop to unresolved OOC black boxes during opt_design (DRC INBB-3).
+set bd_file "$build_dir/$proj_name/$proj_name.srcs/sources_1/bd/zub1cg_bd/zub1cg_bd.bd"
+set_property synth_checkpoint_mode None [get_files $bd_file]
+generate_target all [get_files $bd_file]
+
 # Generate HDL top wrapper
-make_wrapper -files [get_files "$build_dir/$proj_name/$proj_name.srcs/sources_1/bd/zub1cg_bd/zub1cg_bd.bd"] -top
+make_wrapper -files [get_files $bd_file] -top
 add_files -norecurse "$build_dir/$proj_name/$proj_name.gen/sources_1/bd/zub1cg_bd/hdl/zub1cg_bd_wrapper.v"
 set_property top zub1cg_bd_wrapper [current_fileset]
 update_compile_order -fileset sources_1

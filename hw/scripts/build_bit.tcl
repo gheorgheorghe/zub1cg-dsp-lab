@@ -15,15 +15,17 @@ if {[info exists ::env(JOBS)] && $::env(JOBS) ne ""} {
 # Run Synthesis
 launch_runs synth_1 -jobs $jobs
 wait_on_run synth_1
-if {[get_property PROGRESS [get_runs synth_1]] ne "100%"} {
-    error "ERROR: Synthesis failed!"
+set synth_status [get_property STATUS [get_runs synth_1]]
+if {[get_property PROGRESS [get_runs synth_1]] ne "100%" || ![string match "*Complete!*" $synth_status]} {
+    error "ERROR: Synthesis failed! (STATUS=$synth_status)"
 }
 
 # Run Implementation & Bitstream
 launch_runs impl_1 -to_step write_bitstream -jobs $jobs
 wait_on_run impl_1
-if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} {
-    error "ERROR: Implementation / write_bitstream failed!"
+set impl_status [get_property STATUS [get_runs impl_1]]
+if {[get_property PROGRESS [get_runs impl_1]] ne "100%" || ![string match "*Complete!*" $impl_status]} {
+    error "ERROR: Implementation / write_bitstream failed! (STATUS=$impl_status)"
 }
 
 # Open implemented design for reports and timing signoff

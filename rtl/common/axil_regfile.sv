@@ -53,7 +53,7 @@ module axil_regfile #(
     output logic [31:0]       nco_freq_word,
     output logic [31:0]       pkt_len,
     output logic [31:0]       nco_phase_off,
-    output logic [31:0]       user_cfg [0:7],
+    output logic [255:0]      user_cfg,
 
     // Status Inputs from DSP Slot
     input  logic [31:0]       status_in,
@@ -171,7 +171,7 @@ module axil_regfile #(
 
     always_comb begin
         for (int i = 0; i < 8; i++) begin
-            user_cfg[i] = rw_regs[4 + i];
+            user_cfg[i*32 +: 32] = rw_regs[4 + i];
         end
     end
 

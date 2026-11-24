@@ -144,8 +144,13 @@ int main(void) {
     ip_addr_t ipaddr, netmask, gw;
     unsigned char mac_addr[] = {0x00, 0x0A, 0x35, 0x01, 0x02, 0x03};
 
-    xil_printf("\r\n=== ZUBoard 1CG Stage 0 A53 UDP-DMA Bridge ===\r\n");
-    xil_printf("DSP Slot Version: 0x%08X\r\n", Xil_In32(DSP_SLOT_BASEADDR + 0x38U));
+    uint32_t ver_s1 = Xil_In32(DSP_SLOT_BASEADDR + 0xECU);
+    uint32_t ver_s0 = Xil_In32(DSP_SLOT_BASEADDR + 0x38U);
+    uint32_t ver    = (((ver_s1 >> 16) & 0xFFFFU) == 0x5A55U) ? ver_s1 : ver_s0;
+    uint32_t stage  = (ver >> 8) & 0xFFU;
+
+    xil_printf("\r\n=== ZUBoard 1CG A53 UDP-DMA Bridge (Stage %u) ===\r\n", stage);
+    xil_printf("DSP Slot Version: 0x%08X\r\n", ver);
 
     if (init_dma() != XST_SUCCESS) {
         return -1;
