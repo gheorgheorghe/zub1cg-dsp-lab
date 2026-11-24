@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZUBoard 1CG · Interactive Study Notes</title>
+<style>
+  body {
+    margin: 0;
+    background: #0b0f17;
+    color: #e6edf7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 20px 16px;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  p.sub { color: #93a4be; margin: 0 0 20px; font-size: 14.5px; }
+  a.card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: #131a26;
+    border: 1px solid #26334a;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  a.card:hover { border-color: #38bdf8; }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #38bdf8;
+    margin-bottom: 6px;
+  }
+  .tag.gold { color: #fbbf24; }
+  h2 { margin: 0 0 6px; font-size: 18px; color: #fff; }
+  .desc { margin: 0; color: #93a4be; font-size: 14px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ZUBoard 1CG Study Notes</h1>
+  <p class="sub">Interactive offline engineering explainers for Stage 1 CVG / DRG / HRG.</p>
+
+  <a class="card" href="pi_vs_pid_cvg_explainer.html">
+    <div class="tag">Control Theory · Interactive Lab</div>
+    <h2>Wait: PI, but no D?</h2>
+    <p class="desc">Why demodulation turns a 2nd-order 11 kHz resonator into a 1st-order plant, live PI vs. PID noise blowup simulator, Feedforward rate/angle cancellation, and noise-gain Bode plot.</p>
+  </a>
+
+  <a class="card" href="drg_quadrature_and_vacuum_explainer.html">
+    <div class="tag gold">MEMS Physics &amp; Packaging · Animated</div>
+    <h2>100+ °/s Quadrature &amp; Gold Getter Vacuum Packages</h2>
+    <p class="desc">Animated n=2 wineglass DRG with DC quad-trim &amp; FPGA CLQ toggles, I/Q phase-leakage vs. anisodamping phasor diagram, and LCC NEG getter Q(P) vacuum curve.</p>
+  </a>
+</div>
+</body>
+</html>

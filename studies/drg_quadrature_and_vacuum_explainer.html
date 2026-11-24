@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DRG Quadrature Leakage, Anisodamping &amp; Vacuum Packaging</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --accent: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 18px 14px 56px;
+  }
+  header {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #1b172c 0%, #122136 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+  .kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(23px, 5.8vw, 33px);
+    line-height: 1.15;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    margin: 0 0 10px;
+    font-size: 19.5px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(245,158,11,0.16);
+    color: var(--gold);
+    border: 1px solid rgba(245,158,11,0.38);
+    flex-shrink: 0;
+  }
+  .eq {
+    background: #0d1320;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    overflow-x: auto;
+    color: #fef3c7;
+  }
+  .eq.blue { border-left-color: var(--accent); color: #dbeafe; }
+  .eq.green { border-left-color: var(--green); color: #d1fae5; }
+  .eq.red { border-left-color: var(--red); color: #fee2e2; }
+
+  .callout {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 14.5px;
+  }
+  .callout strong { color: #fff; }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+    margin: 10px 0 12px;
+  }
+  .ctrl {
+    background: #0e1420;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 11px;
+  }
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .ctrl label span.val {
+    color: #fff;
+    font-weight: 700;
+    font-family: monospace;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--gold);
+    height: 6px;
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+  button.chip {
+    flex: 1 1 135px;
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.chip.active {
+    background: rgba(245,158,11,0.2);
+    border-color: var(--gold);
+    color: #fff;
+  }
+  button.chip.green.active {
+    background: rgba(52,211,153,0.18);
+    border-color: var(--green);
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+    background: #090d14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .metric {
+    background: #0d1320;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .metric .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric .num { font-size: 17.5px; font-weight: 800; font-family: monospace; margin-top: 2px; }
+  .c-blue { color: var(--accent); }
+  .c-green { color: var(--green); }
+  .c-amber { color: var(--amber); }
+  .c-red { color: var(--red); }
+  .c-purple { color: var(--purple); }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .mini {
+    background: #0e1420;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+  }
+  .mini h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    color: #fff;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-top: 8px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 9px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--gold); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 18px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">ZUBoard 1CG · Silicon DRG Physics &amp; Packaging Study Note</div>
+    <h1>100+ °/s of Quadrature &amp; Gold Getter Vacuum Packages</h1>
+    <p>Why high-aspect-ratio DRIE silicon Disk Resonator Gyroscopes naturally have huge mechanical quadrature, how tiny phase drift turns it into massive rate bias, and what happens inside hermetic ceramic LCC getter packages.</p>
+  </header>
+
+  <!-- SECTION 1: Animated n=2 Wineglass Mode DRG -->
+  <section>
+    <h2><span class="badge">1</span> Live n = 2 Wineglass Mode: Why Quadrature Happens</h2>
+    <p>A Silicon DRG vibrates in an <strong>n = 2 wineglass mode</strong>: the drive mode flexes along <strong>0° / 90°</strong>, while Coriolis rotation transfers energy into the degenerate sense mode at <strong>45° / 135°</strong>. Because DRIE etch taper, footing, and mask-to-crystal misalignment tilt the principal stiffness axes slightly, the drive force directly excites the sense electrodes—producing <strong>50–500+ °/s</strong> of raw mechanical quadrature right off the wafer!</p>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Raw Mech. Quadrature <span class="val" id="vDrgQuad">200 °/s</span></label>
+        <input id="sDrgQuad" type="range" min="0" max="500" step="10" value="200" />
+      </div>
+      <div class="ctrl">
+        <label>True Angular Rate Ωz <span class="val" id="vDrgRate">0 °/s</span></label>
+        <input id="sDrgRate" type="range" min="-200" max="200" step="10" value="0" />
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="chip green" id="btnDcTrim">DC Quad Electrodes (22.5°): OFF</button>
+      <button class="chip green" id="btnClq">FPGA CLQ Nulling (SY→0): OFF</button>
+    </div>
+
+    <canvas id="drgCanvas" height="290"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#38bdf8"></i>Nested Si DRG Rings (n=2 Wineglass)</span>
+      <span><i class="dot" style="background:#fbbf24"></i>Drive Electrodes (0°/90°)</span>
+      <span><i class="dot" style="background:#f87171"></i>Sense Electrodes (45°/135°)</span>
+      <span><i class="dot" style="background:#34d399"></i>DC Quad-Trim Electrodes (22.5°/67.5°)</span>
+    </div>
+
+    <div class="callout">
+      <strong>Look closely at the sense electrodes (red):</strong> With <code>Ωz = 0</code> and <code>Quad = 200 °/s</code>, the ring still flexes strongly into the 45° sense axis—<strong>in-phase with drive displacement</strong> (90° out of phase with Coriolis velocity). Flip on <strong>DC Quad Electrodes</strong> or <strong>CLQ Nulling</strong> and watch the sense-axis motion collapse back to pure 0°/90° standing vibration!
+    </div>
+  </section>
+
+  <!-- SECTION 2: Interactive Phasor Diagram (Quadrature Leakage vs Anisodamping) -->
+  <section>
+    <h2><span class="badge">2</span> Phasor Proof: How 0.1° of Phase Error Destroys Bias</h2>
+    <p>In the rotating I/Q frame, <strong>Quadrature (<code>SY</code>)</strong> sits at 90° to <strong>Coriolis Rate (<code>SX</code>)</strong>. An ideal lock-in ignores it—but any tiny demodulation phase error <code>Δφ</code> (from TIA op-amp temp drift, ADC skew, or PLL phase lag) rotates the axes and projects a giant shadow onto rate:</p>
+    <div class="eq">Ω_leak = Q_equiv · sin(Δφ) &nbsp;&nbsp;|&nbsp;&nbsp; 200 °/s × sin(0.1°) = 0.349 °/s = 1,257 °/hr!</div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Raw Quadrature Q_equiv <span class="val" id="vPhQuad">200 °/s</span></label>
+        <input id="sPhQuad" type="range" min="20" max="800" step="10" value="200" />
+      </div>
+      <div class="ctrl">
+        <label>Demod Phase Error Δφ <span class="val" id="vPhErr">+0.100°</span></label>
+        <input id="sPhErr" type="range" min="-1.0" max="1.0" step="0.005" value="0.100" />
+      </div>
+      <div class="ctrl">
+        <label>CLQ + DC-Trim Nulling <span class="val" id="vPhClq">0 dB</span></label>
+        <input id="sPhClq" type="range" min="0" max="80" step="5" value="0" />
+      </div>
+      <div class="ctrl">
+        <label>Anisodamping Bias g_xy <span class="val" id="vAniso">0.05 °/s</span></label>
+        <input id="sAniso" type="range" min="0" max="0.50" step="0.01" value="0.05" />
+      </div>
+    </div>
+
+    <canvas id="phasorCanvas" height="270"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#f87171"></i>Quadrature Vector (90°, huge)</span>
+      <span><i class="dot" style="background:#38bdf8"></i>Rotated Demod Rate Axis (SX′)</span>
+      <span><i class="dot" style="background:#fbbf24"></i>Leaked Quad Bias on Rate Axis</span>
+      <span><i class="dot" style="background:#a78bfa"></i>Anisodamping Bias (0°, in-phase!)</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">Quad Leak Bias</div>
+        <div class="num c-red" id="mPhLeakDps">0.349 °/s</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Quad Leak (°/hr)</div>
+        <div class="num c-amber" id="mPhLeakDph">1,257 °/hr</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Anisodamping Bias</div>
+        <div class="num c-purple" id="mPhAnisoDph">180 °/hr</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Bias per 0.01° Drift</div>
+        <div class="num c-blue" id="mPhSens">125.7 °/hr</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Key insight — Stiffness vs. Damping Asymmetry:</strong><br>
+      • <strong>Stiffness Quadrature (<code>k_xy</code>)</strong> is 90° out of phase → you can crush it by 40–80 dB with DC quad electrodes + FPGA CLQ.<br>
+      • <strong>Anisodamping (<code>g_xy</code>)</strong> is <strong>0° in-phase with Coriolis</strong> → no phase trim can separate it! It scales inversely with <em>Q</em>, which is why vacuum pressure and getter stability directly control long-term bias drift.
+    </div>
+  </section>
+
+  <!-- SECTION 3: Where 100+ deg/s Comes From in High-Aspect-Ratio DRIE -->
+  <section>
+    <h2><span class="badge">3</span> Why High-Aspect-Ratio DRIE Makes Quadrature Easy to Trigger</h2>
+    <div class="cards">
+      <div class="mini">
+        <h3>1. Sidewall Taper &amp; Footing</h3>
+        Even <strong>0.1°–0.3°</strong> of asymmetric Bosch-etch sidewall angle across 100+ µm deep spokes shifts local ring stiffness enough to rotate the wineglass axes by tenths of a degree → <strong>100–400 °/s</strong> raw quadrature.
+      </div>
+      <div class="mini">
+        <h3>2. Crystal &amp; Mask Alignment</h3>
+        Single-crystal silicon has anisotropic Young's modulus. On (100)-Si (or even slightly misaligned (111)-Si), a tiny mask-to-flat angle error directly couples the 0° and 45° modes.
+      </div>
+      <div class="mini">
+        <h3>3. Packaging Thermal Stress</h3>
+        Die-attach epoxy or AuSn eutectic lid sealing puts asymmetric strain into the silicon anchor. As temperature changes, that strain warps the stiffness tensor—drifting quadrature over temperature!
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Gold Scrabble-Tile LCC Vacuum Package & Q(P) Curve -->
+  <section>
+    <h2><span class="badge">4</span> Inside the Gold "Scrabble-Tile" Vacuum Package</h2>
+    <p>Those gold-looking ceramic square packages are hermetic <strong>alumina LCC/CLCC carriers</strong> with a gold-plated Kovar seal ring, AuSn eutectic seam-sealed lid, and a <strong>Non-Evaporable Getter (NEG)</strong> thin film on the lid underside. Drag the internal vacuum pressure to see how squeeze-film gas damping battles Thermoelastic Damping (TED) and anchor loss:</p>
+    <div class="eq blue">1 / Q_total = 1 / Q_gas(P) + 1 / Q_TED + 1 / Q_anchor &nbsp;&nbsp;|&nbsp;&nbsp; τ_ringup = Q / (π · f₀)</div>
+
+    <div class="btn-row">
+      <button class="chip active" data-mat="si">Silicon DRG (11 kHz, Q_TED ≈ 250k)</button>
+      <button class="chip" data-mat="sio2">Fused-Silica HRG (11 kHz, Q_TED ≈ 5M)</button>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Package Pressure P <span class="val" id="vPress">1.0 mTorr</span></label>
+        <input id="sPress" type="range" min="-6" max="0" step="0.05" value="-3.0" />
+      </div>
+      <div class="ctrl">
+        <label>Capacitive Gap g <span class="val" id="vGap">2.5 µm</span></label>
+        <input id="sGap" type="range" min="1.0" max="6.0" step="0.5" value="2.5" />
+      </div>
+    </div>
+
+    <canvas id="vacCanvas" height="235"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#38bdf8"></i>Total Resonator Q(P)</span>
+      <span><i class="dot" style="background:#f87171"></i>Gas Squeeze-Film Limit Q_gas ∝ 1/P</span>
+      <span><i class="dot" style="background:#34d399"></i>TED + Anchor Ceiling</span>
+      <span><i class="dot" style="background:#f59e0b"></i>Typical LCC + NEG Getter Band (0.01–5 mTorr)</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">Effective Q</div>
+        <div class="num c-blue" id="mVacQ">125,000</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Ring-Up τ_A (63%)</div>
+        <div class="num c-green" id="mVacTau">3.6 s</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Dominant Loss</div>
+        <div class="num c-amber" id="mVacDom">TED + Gas</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Rel. Brownian ARW</div>
+        <div class="num c-purple" id="mVacArw">1.00×</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Why getters matter over years:</strong> Narrow high-aspect-ratio capacitive gaps (1.5–4 µm) create strong squeeze-film air damping above ~5–10 mTorr. A properly baked &amp; activated NEG getter holds <strong>10⁻³ to 10⁻⁵ Torr</strong> so air damping fades below TED. If organic die-attach outgasses or the getter saturates, pressure creeps right → <em>Q</em> drops, ring-up shortens, Brownian ARW climbs, and gas-driven anisodamping shifts rate bias!
+    </div>
+  </section>
+
+  <!-- SECTION 5: How Modern DRG Systems Beat Quadrature -->
+  <section>
+    <h2><span class="badge">5</span> The 3-Layer Defense Against Quadrature</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Defense Layer</th>
+          <th>Where It Runs</th>
+          <th>Typical Rejection</th>
+          <th>What It Does</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. DC Quad Electrodes</strong></td>
+          <td>MEMS die (22.5°/67.5° pads)</td>
+          <td>20–40 dB</td>
+          <td>Negative electrostatic spring (<code>−V²/g³</code>) physically rotates stiffness axis back onto electrodes before TIA sees it.</td>
+        </tr>
+        <tr>
+          <td><strong>2. FPGA CLQ Loop</strong></td>
+          <td>PL RTL (<code>mems_ctrl_top.sv</code>)</td>
+          <td>40–60+ dB</td>
+          <td>Drives demodulated <code>SY → 0</code> via AC carrier force so sense pickoff stays near zero—no TIA/ADC overload.</td>
+        </tr>
+        <tr>
+          <td><strong>3. Phase &amp; Temp Cal</strong></td>
+          <td>R5F / Host (using PLL <code>f₀(T)</code>)</td>
+          <td>10–30 dB</td>
+          <td>Uses the resonator's own PLL frequency shift as an exact zero-lag thermometer to trim demod phase &amp; residual bias.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    Saved in <code>zub1cg-dsp-lab/studies/drg_quadrature_and_vacuum_explainer.html</code> · 100% offline, mobile-friendly.
+  </div>
+</div>
+
+<script>
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const h = parseInt(c.dataset.h || c.getAttribute("height"), 10) || 240;
+  c.dataset.h = String(h);
+  c.style.height = h + "px";
+  const w = Math.max(240, Math.round(c.clientWidth || 340));
+  const bw = Math.round(w * dpr);
+  const bh = Math.round(h * dpr);
+  if (c.width !== bw || c.height !== bh) {
+    c.width = bw;
+    c.height = bh;
+  }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+// =========================================================================
+// 1. Live Animated n=2 Wineglass Mode DRG
+// =========================================================================
+let dcTrimOn = false;
+let clqOn = false;
+let animT = 0;
+
+document.getElementById("btnDcTrim").addEventListener("click", (e) => {
+  dcTrimOn = !dcTrimOn;
+  e.target.classList.toggle("active", dcTrimOn);
+  e.target.textContent = "DC Quad Electrodes (22.5°): " + (dcTrimOn ? "ON (-30 dB)" : "OFF");
+});
+document.getElementById("btnClq").addEventListener("click", (e) => {
+  clqOn = !clqOn;
+  e.target.classList.toggle("active", clqOn);
+  e.target.textContent = "FPGA CLQ Nulling (SY→0): " + (clqOn ? "ON (-40 dB)" : "OFF");
+});
+
+function drawDrg() {
+  const { ctx, w, h } = setupCanvas("drgCanvas");
+  ctx.clearRect(0, 0, w, h);
+
+  const rawQuad = parseFloat(document.getElementById("sDrgQuad").value);
+  const rate = parseFloat(document.getElementById("sDrgRate").value);
+  document.getElementById("vDrgQuad").textContent = rawQuad.toFixed(0) + " °/s";
+  document.getElementById("vDrgRate").textContent = (rate >= 0 ? "+" : "") + rate.toFixed(0) + " °/s";
+
+  let effQuad = rawQuad;
+  if (dcTrimOn) effQuad *= 0.032; // -30 dB
+  if (clqOn) effQuad *= 0.01;     // -40 dB
+
+  const cx = w * 0.5;
+  const cy = h * 0.52;
+  const R = Math.min(w, h) * 0.33;
+
+  // Motion amplitudes (visual scale)
+  const ampDrive = 0.14;
+  const qNorm = (effQuad / 500) * 0.11;  // In-phase with x (cos) -> tilts axis!
+  const cNorm = (rate / 200) * 0.10;     // 90 deg out of phase (sin) -> elliptical whirl!
+
+  const xPhase = Math.cos(animT);
+  const xDotPhase = Math.sin(animT);
+  const mode0 = ampDrive * xPhase;
+  const mode45 = qNorm * xPhase + cNorm * xDotPhase;
+
+  // Draw outer electrode ring (16 electrodes)
+  for (let i = 0; i < 16; i++) {
+    const ang = (i * Math.PI) / 8;
+    const isDrive = i % 4 === 0;       // 0, 90, 180, 270
+    const isSense = i % 4 === 2;       // 45, 135, 225, 315
+    const isQuad = i % 2 === 1;        // 22.5, 67.5, ...
+
+    let col = "rgba(52,211,153,0.35)";
+    if (isDrive) col = "#fbbf24";
+    else if (isSense) col = "#f87171";
+    else if (isQuad && dcTrimOn) col = "#34d399";
+
+    ctx.strokeStyle = col;
+    ctx.lineWidth = isDrive || isSense ? 5 : (dcTrimOn ? 4 : 2);
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 1.24, ang - 0.11, ang + 0.11);
+    ctx.stroke();
+  }
+
+  // Reference undeformed circle
+  ctx.strokeStyle = "rgba(148,163,184,0.18)";
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Anchor center post
+  ctx.fillStyle = "#1e293b";
+  ctx.strokeStyle = "#475569";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Concentric nested silicon DRG rings (4 rings)
+  const rings = [0.42, 0.61, 0.80, 1.0];
+  rings.forEach((frac, idx) => {
+    const r0 = R * frac;
+    ctx.strokeStyle = idx === 3 ? "#38bdf8" : "rgba(56,189,248," + (0.35 + idx * 0.18) + ")";
+    ctx.lineWidth = idx === 3 ? 2.8 : 1.7;
+    ctx.beginPath();
+    const steps = 120;
+    for (let k = 0; k <= steps; k++) {
+      const th = (k / steps) * Math.PI * 2;
+      const dr = (mode0 * Math.cos(2 * th) + mode45 * Math.sin(2 * th)) * r0;
+      const rr = r0 + dr;
+      const px = cx + rr * Math.cos(th);
+      const py = cy + rr * Math.sin(th);
+      if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  });
+
+  // Radial spokes between rings (8 spokes alternating)
+  ctx.strokeStyle = "rgba(56,189,248,0.38)";
+  ctx.lineWidth = 1.3;
+  for (let rIdx = 0; rIdx < rings.length - 1; rIdx++) {
+    const off = (rIdx % 2) * (Math.PI / 8);
+    for (let s = 0; s < 8; s++) {
+      const th = off + (s * Math.PI) / 4;
+      const rA = R * rings[rIdx] * (1 + mode0 * Math.cos(2 * th) + mode45 * Math.sin(2 * th));
+      const rB = R * rings[rIdx + 1] * (1 + mode0 * Math.cos(2 * th) + mode45 * Math.sin(2 * th));
+      ctx.beginPath();
+      ctx.moveTo(cx + rA * Math.cos(th), cy + rA * Math.sin(th));
+      ctx.lineTo(cx + rB * Math.cos(th), cy + rB * Math.sin(th));
+      ctx.stroke();
+    }
+  }
+
+  // Sense-axis amplitude bar readout (top-left)
+  const sensePeak = Math.hypot(qNorm, cNorm) / ampDrive;
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "bold 12px monospace";
+  ctx.fillText("Eff Quad: " + effQuad.toFixed(1) + " °/s", 12, 20);
+  ctx.fillStyle = sensePeak > 0.12 ? "#f87171" : "#34d399";
+  ctx.fillText("Sense Flex: " + (sensePeak * 100).toFixed(1) + "%", 12, 37);
+
+  // Label Drive & Sense axes
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "bold 11.5px sans-serif";
+  ctx.fillText("Drive 0°", cx + R * 1.32, cy + 4);
+  ctx.fillStyle = "#f87171";
+  ctx.fillText("Sense 45°", cx + R * 0.96, cy - R * 0.96);
+}
+
+// =========================================================================
+// 2. Interactive Phasor Diagram (Quadrature Leakage vs Anisodamping)
+// =========================================================================
+function drawPhasor() {
+  const { ctx, w, h } = setupCanvas("phasorCanvas");
+  ctx.clearRect(0, 0, w, h);
+
+  const qRaw = parseFloat(document.getElementById("sPhQuad").value);
+  const phiDeg = parseFloat(document.getElementById("sPhErr").value);
+  const clqDb = parseFloat(document.getElementById("sPhClq").value);
+  const anisoDps = parseFloat(document.getElementById("sAniso").value);
+
+  document.getElementById("vPhQuad").textContent = qRaw.toFixed(0) + " °/s";
+  document.getElementById("vPhErr").textContent = (phiDeg >= 0 ? "+" : "") + phiDeg.toFixed(3) + "°";
+  document.getElementById("vPhClq").textContent = clqDb.toFixed(0) + " dB";
+  document.getElementById("vAniso").textContent = anisoDps.toFixed(2) + " °/s";
+
+  const qEff = qRaw / Math.pow(10, clqDb / 20);
+  const phiRad = (phiDeg * Math.PI) / 180;
+  const leakDps = qEff * Math.sin(phiRad);
+  const leakDph = leakDps * 3600;
+  const anisoDph = anisoDps * 3600;
+  const sensPer001 = qEff * Math.sin((0.01 * Math.PI) / 180) * 3600;
+
+  document.getElementById("mPhLeakDps").textContent = (leakDps >= 0 ? "+" : "") + leakDps.toFixed(3) + " °/s";
+  document.getElementById("mPhLeakDph").textContent = (leakDph >= 0 ? "+" : "") +
+    (Math.abs(leakDph) >= 100 ? Math.round(leakDph).toLocaleString() : leakDph.toFixed(2)) + " °/hr";
+  document.getElementById("mPhAnisoDph").textContent = Math.round(anisoDph).toLocaleString() + " °/hr";
+  document.getElementById("mPhSens").textContent = (sensPer001 >= 10 ? sensPer001.toFixed(1) : sensPer001.toFixed(2)) + " °/hr";
+
+  const cx = w * 0.5;
+  const cy = h * 0.66;
+  const L = Math.min(w * 0.36, h * 0.54);
+
+  // Exaggerate visual rotation angle so 0.1 deg is visibly readable on phone
+  const visPhi = Math.max(-0.55, Math.min(0.55, phiDeg * 0.45));
+
+  // Ideal mechanical axes (gray dashed)
+  ctx.strokeStyle = "#334155";
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx - L * 1.15, cy); ctx.lineTo(cx + L * 1.15, cy);
+  ctx.moveTo(cx, cy + L * 0.45); ctx.lineTo(cx, cy - L * 1.12);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Rotated demodulator Rate axis SX' (blue)
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2.0;
+  const rx = Math.cos(visPhi), ry = -Math.sin(visPhi);
+  ctx.beginPath();
+  ctx.moveTo(cx - L * 1.1 * rx, cy - L * 1.1 * ry);
+  ctx.lineTo(cx + L * 1.1 * rx, cy + L * 1.1 * ry);
+  ctx.stroke();
+
+  // Helper arrow drawer
+  function arrow(x1, y1, x2, y2, color, lw) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    const sz = 8;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - sz * Math.cos(ang - 0.42), y2 - sz * Math.sin(ang - 0.42));
+    ctx.lineTo(x2 - sz * Math.cos(ang + 0.42), y2 - sz * Math.sin(ang + 0.42));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Giant Quadrature vector along +Y (vertical, 90 deg)
+  const qLen = Math.max(14, L * Math.min(1.0, Math.log10(1 + qEff) / Math.log10(801)));
+  arrow(cx, cy, cx, cy - qLen, "#f87171", 3.2);
+
+  // Projection of Quadrature onto rotated SX' axis!
+  const projScalar = qLen * Math.sin(visPhi);
+  const px = cx + projScalar * rx;
+  const py = cy + projScalar * ry;
+
+  // Dotted perpendicular projection drop line
+  ctx.strokeStyle = "rgba(251,191,36,0.75)";
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - qLen);
+  ctx.lineTo(px, py);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Leaked rate vector along SX' (amber)
+  if (Math.abs(projScalar) > 3) {
+    arrow(cx, cy, px, py, "#fbbf24", 3.4);
+  }
+
+  // Anisodamping vector directly along mechanical Rate axis (+X, 0 deg)
+  const anLen = Math.min(L * 0.65, 16 + (anisoDps / 0.5) * L * 0.42);
+  if (anisoDps > 0.001) {
+    arrow(cx, cy + 16, cx + anLen, cy + 16, "#a78bfa", 2.8);
+  }
+
+  // Labels
+  ctx.font = "bold 12px sans-serif";
+  ctx.fillStyle = "#f87171";
+  ctx.fillText("Quadrature SY (" + qEff.toFixed(1) + " °/s)", cx + 8, cy - qLen + 6);
+  ctx.fillStyle = "#38bdf8";
+  ctx.fillText("Demod Rate Axis SX′ (Δφ=" + phiDeg.toFixed(2) + "°)", cx + 10, cy - L * 0.08 - 10 * Math.sign(phiDeg || 1) - 10);
+  ctx.fillStyle = "#fbbf24";
+  ctx.fillText("Leaked Bias = Q·sin(Δφ)", 12, 22);
+  ctx.fillStyle = "#a78bfa";
+  ctx.fillText("Anisodamping g_xy (0° in-phase — inseparable!)", cx - 10, cy + 36);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "11px sans-serif";
+  ctx.fillText("(Angle exaggerated visually so sub-degree tilt is clear)", 12, h - 10);
+}
+
+// =========================================================================
+// 4. Vacuum Package Q(P) Curve
+// =========================================================================
+let matMode = "si";
+document.querySelectorAll("button[data-mat]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("button[data-mat]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    matMode = btn.dataset.mat;
+    drawVacuum();
+  });
+});
+
+function drawVacuum() {
+  const { ctx, w, h } = setupCanvas("vacCanvas");
+  ctx.clearRect(0, 0, w, h);
+
+  const logP = parseFloat(document.getElementById("sPress").value); // log10(Torr)
+  const P = Math.pow(10, logP); // Torr
+  const gapUm = parseFloat(document.getElementById("sGap").value);
+
+  const pStr = P >= 1 ? P.toFixed(2) + " Torr"
+             : P >= 1e-3 ? (P * 1e3).toFixed(2) + " mTorr"
+             : (P * 1e6).toFixed(1) + " µTorr";
+  document.getElementById("vPress").textContent = pStr;
+  document.getElementById("vGap").textContent = gapUm.toFixed(1) + " µm";
+
+  const f0 = 11000.0;
+  // Intrinsic Q ceiling (TED + anchor)
+  const qInt = matMode === "si" ? 250000 : 5000000;
+  // Free-molecular squeeze-film gas Q_gas(P) ~ C * (gap / 2.5um) / P_Torr
+  // Calibrated so at 1 mTorr (1e-3 Torr) and 2.5 um gap, Q_gas ~ 250k
+  function qGas(pTorr) {
+    return 250.0 * (gapUm / 2.5) / pTorr;
+  }
+  function qTotal(pTorr) {
+    return 1.0 / (1.0 / qGas(pTorr) + 1.0 / qInt);
+  }
+
+  const qNow = qTotal(P);
+  const qGasNow = qGas(P);
+  const tauNow = qNow / (Math.PI * f0);
+  const relArw = Math.sqrt(qInt / qNow); // Brownian ARW scales as 1/sqrt(Q)
+
+  document.getElementById("mVacQ").textContent = qNow >= 1e6
+    ? (qNow / 1e6).toFixed(2) + "M"
+    : Math.round(qNow).toLocaleString();
+  document.getElementById("mVacTau").textContent = tauNow >= 60
+    ? (tauNow / 60).toFixed(1) + " min"
+    : tauNow.toFixed(1) + " s";
+  document.getElementById("mVacDom").textContent =
+    qGasNow < 0.4 * qInt ? "Squeeze-Film Gas" :
+    qGasNow > 2.5 * qInt ? (matMode === "si" ? "Si TED / Anchor" : "SiO₂ TED / Coating") :
+    "Gas + TED Mix";
+  document.getElementById("mVacArw").textContent = relArw.toFixed(2) + "×";
+
+  const pad = { l: 54, r: 14, t: 24, b: 30 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+  const xMin = -6, xMax = 0; // log10(Torr)
+  const yMin = 2, yMax = 7;  // log10(Q)
+
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "bold 12.5px sans-serif";
+  ctx.fillText("Resonator Q vs. Internal Package Pressure (Torr)", pad.l, 15);
+
+  // Highlight LCC + NEG Getter operating band (1e-5 to 5e-3 Torr)
+  const xG1 = pad.l + ((-5 - xMin) / (xMax - xMin)) * pw;
+  const xG2 = pad.l + ((Math.log10(5e-3) - xMin) / (xMax - xMin)) * pw;
+  ctx.fillStyle = "rgba(245,158,11,0.14)";
+  ctx.fillRect(xG1, pad.t, xG2 - xG1, ph);
+
+  // Grid
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#93a4be";
+  ctx.font = "11px monospace";
+  for (let lq = yMin; lq <= yMax; lq++) {
+    const y = pad.t + ((yMax - lq) / (yMax - yMin)) * ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+    ctx.fillText("1e" + lq, 10, y + 4);
+  }
+  const pTicks = [
+    [-6, "1µT"], [-5, "10µT"], [-4, "0.1mT"], [-3, "1mT"], [-2, "10mT"], [-1, "0.1T"], [0, "1T"]
+  ];
+  for (const [lp, lbl] of pTicks) {
+    const x = pad.l + ((lp - xMin) / (xMax - xMin)) * pw;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+    ctx.fillText(lbl, x - 12, h - 8);
+  }
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
+
+  // Intrinsic TED+anchor line (green dashed)
+  const yInt = pad.t + ((yMax - Math.log10(qInt)) / (yMax - yMin)) * ph;
+  ctx.strokeStyle = "#34d399";
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(pad.l, yInt); ctx.lineTo(w - pad.r, yInt); ctx.stroke();
+
+  // Gas squeeze-film asymptote (red dashed)
+  ctx.strokeStyle = "#f87171";
+  ctx.beginPath();
+  for (let i = 0; i <= 100; i++) {
+    const lp = xMin + (i / 100) * (xMax - xMin);
+    const lq = Math.log10(qGas(Math.pow(10, lp)));
+    const px = pad.l + (i / 100) * pw;
+    const py = pad.t + ((yMax - lq) / (yMax - yMin)) * ph;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Total Q curve (blue solid)
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  for (let i = 0; i <= 150; i++) {
+    const lp = xMin + (i / 150) * (xMax - xMin);
+    const lq = Math.log10(qTotal(Math.pow(10, lp)));
+    const px = pad.l + (i / 150) * pw;
+    const py = pad.t + ((yMax - lq) / (yMax - yMin)) * ph;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Active operating point marker
+  const mx = pad.l + ((logP - xMin) / (xMax - xMin)) * pw;
+  const my = pad.t + ((yMax - Math.log10(qNow)) / (yMax - yMin)) * ph;
+  ctx.fillStyle = "#fbbf24";
+  ctx.strokeStyle = "#0b0f17";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(mx, my, 6.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// Event listeners
+["sPhQuad", "sPhErr", "sPhClq", "sAniso"].forEach(id => {
+  document.getElementById(id).addEventListener("input", drawPhasor);
+});
+["sPress", "sGap"].forEach(id => {
+  document.getElementById(id).addEventListener("input", drawVacuum);
+});
+window.addEventListener("resize", () => { drawPhasor(); drawVacuum(); });
+
+function tick() {
+  animT += 0.085;
+  drawDrg();
+  requestAnimationFrame(tick);
+}
+
+drawPhasor();
+drawVacuum();
+tick();
+</script>
+</body>
+</html>

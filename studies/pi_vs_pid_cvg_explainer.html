@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wait: PI, but no D? — CVG Control &amp; Quadrature Explainer</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --accent: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 18px 14px 56px;
+  }
+  header {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #132036 0%, #17132c 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+  .kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(24px, 6vw, 34px);
+    line-height: 1.15;
+  }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(56,189,248,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(56,189,248,0.35);
+  }
+  .eq {
+    background: #0d1320;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    overflow-x: auto;
+    color: #dbeafe;
+  }
+  .eq.green { border-left-color: var(--green); }
+  .eq.red { border-left-color: var(--red); }
+  .eq.amber { border-left-color: var(--amber); }
+
+  .callout {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 14.5px;
+  }
+  .callout strong { color: #fff; }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+  button.preset {
+    flex: 1 1 140px;
+    background: var(--card2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button.preset:hover { border-color: var(--accent); }
+  button.preset.active {
+    background: rgba(56,189,248,0.18);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.preset.danger.active {
+    background: rgba(248,113,113,0.18);
+    border-color: var(--red);
+  }
+  button.preset.good.active {
+    background: rgba(52,211,153,0.18);
+    border-color: var(--green);
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+    margin: 10px 0 14px;
+  }
+  .ctrl {
+    background: #0e1420;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 11px;
+  }
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .ctrl label span.val {
+    color: #fff;
+    font-weight: 700;
+    font-family: monospace;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 6px;
+  }
+  .toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    margin: 8px 0 12px;
+    font-size: 14px;
+  }
+  .toggle-row label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+    background: #090d14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .metric {
+    background: #0d1320;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .metric .lbl { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric .num { font-size: 18px; font-weight: 800; font-family: monospace; margin-top: 2px; }
+  .c-blue { color: var(--accent); }
+  .c-green { color: var(--green); }
+  .c-amber { color: var(--amber); }
+  .c-red { color: var(--red); }
+  .c-purple { color: var(--purple); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-top: 8px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 18px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">ZUBoard 1CG · Stage 1 CVG / MEMS DRG &amp; HRG Study Note</div>
+    <h1>Wait: PI, but no D?</h1>
+    <p>Why Coriolis Vibratory Gyroscope (DRG/HRG) loops skip the derivative term in feedback—where the derivative <em>actually</em> lives—and how mechanical quadrature leaks into rate.</p>
+  </header>
+
+  <!-- SECTION 1: 2nd-order -> 1st-order collapse -->
+  <section>
+    <h2><span class="badge">1</span> Demodulation Collapses 2nd-Order → 1st-Order</h2>
+    <p>In the lab frame, a silicon DRG or fused-silica HRG is a stiff <strong>2nd-order</strong> harmonic oscillator vibrating at 11 kHz:</p>
+    <div class="eq">ẍ + (ω₀/Q) ẋ + ω₀² x = F(t)</div>
+    <p>Once the I/Q lock-in demodulator strips off the 11 kHz carrier, you are only controlling the <strong>slow baseband envelopes</strong> (<code>DX, DY, SX, SY</code>). Factoring out the carrier collapses the dynamics to a clean <strong>1st-order</strong> plant:</p>
+    <div class="eq green">2 · d(DX)/dt + γₓ · DX = AGCAdj &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Drive Amplitude)
+2 · d(SX)/dt + γᵧ · SX = FTRAdj − 2·Ag·DX·Ωz &nbsp;&nbsp;(Sense Coriolis Rate)
+2 · d(SY)/dt + γᵧ · SY = CLQAdj − kₓᵧ·DX &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Sense Quadrature)</div>
+    <div class="callout">
+      <strong>Why PI is already optimal here:</strong> At high <em>Q</em> (100k–5M), <code>γ/2 = ω₀/(2Q)</code> is tiny (~0.03–0.35 rad/s), so the demodulated plant looks like a <strong>single integrator</strong> (only <strong>90°</strong> of phase lag, never 180°).<br>
+      • <strong>P</strong> sets closed-loop bandwidth directly (<code>ω_cl ≈ Kp / 2</code>) with ~90° phase margin.<br>
+      • <strong>I</strong> eliminates steady-state DC error (zero bias under constant rate, quadrature, or thermal drift).<br>
+      • <strong>D isn't needed for stability</strong>—and as you can test below, adding it hurts!
+    </div>
+    <canvas id="carrierCanvas" height="190"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#38bdf8"></i>Fast 11 kHz Carrier (2nd-order resonator)</span>
+      <span><i class="dot" style="background:#34d399"></i>Demodulated Slow Envelope SX / DX (1st-order plant!)</span>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Interactive PI vs PID vs Feedforward Simulator -->
+  <section>
+    <h2><span class="badge">2</span> Interactive Lab: Turn On D &amp; Watch What Breaks</h2>
+    <p>Simulate a <strong>100 °/s rate step</strong> on the DRG sense axis (<code>FTR</code> loop) with realistic pickoff noise and residual <code>2f₀</code> demod ripple. Try the presets or drag <strong>Kd</strong> above zero:</p>
+
+    <div class="btn-row">
+      <button class="preset active" data-preset="pi">1. Clean PI (Baseline)</button>
+      <button class="preset good" data-preset="ff">2. PI + Feedforward (Best)</button>
+      <button class="preset danger" data-preset="pid">3. Add D-Term (Noise Blowup!)</button>
+      <button class="preset danger" data-preset="ripple">4. D-Term + 2f₀ Ripple</button>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Proportional Kp <span class="val" id="vKp">160</span></label>
+        <input id="sKp" type="range" min="40" max="400" step="10" value="160" />
+      </div>
+      <div class="ctrl">
+        <label>Integral Ki <span class="val" id="vKi">12000</span></label>
+        <input id="sKi" type="range" min="0" max="30000" step="1000" value="12000" />
+      </div>
+      <div class="ctrl">
+        <label>Derivative Kd <span class="val" id="vKd">0.00</span></label>
+        <input id="sKd" type="range" min="0" max="0.80" step="0.02" value="0" />
+      </div>
+      <div class="ctrl">
+        <label>Pickoff Noise (RMS) <span class="val" id="vNoise">0.004</span></label>
+        <input id="sNoise" type="range" min="0" max="0.02" step="0.001" value="0.004" />
+      </div>
+      <div class="ctrl">
+        <label>2f₀ Carrier Ripple <span class="val" id="vRip">0.002</span></label>
+        <input id="sRip" type="range" min="0" max="0.02" step="0.001" value="0.002" />
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <label><input type="checkbox" id="chkFF" checked /> Show Feedforward Rate &amp; Angle (<code>-2·d(SX)/dt</code> outside loop)</label>
+    </div>
+
+    <canvas id="rateCanvas" height="210"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#94a3b8"></i>True Ωz (100 °/s step)</span>
+      <span><i class="dot" style="background:#38bdf8"></i>Closed-Loop FTR Rate</span>
+      <span><i class="dot" style="background:#34d399"></i>Feedforward Rate Ω_FF</span>
+    </div>
+
+    <canvas id="actCanvas" height="175"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#fbbf24"></i>Rebalance Force Command FTRAdj (DAC / Electrode Drive)</span>
+      <span><i class="dot" style="background:#f87171"></i>DAC Saturation Clip Limit (±150 °/s eq)</span>
+    </div>
+
+    <canvas id="angCanvas" height="175"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#f87171"></i>Raw FTR Integrated Angle Error (mdeg)</span>
+      <span><i class="dot" style="background:#34d399"></i>Feedforward Angle Error (mdeg — analytical cancellation!)</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">Actuator RMS Noise</div>
+        <div class="num c-amber" id="mActRms">0.0 °/s</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Peak Actuator Swing</div>
+        <div class="num c-red" id="mActPeak">0.0 °/s</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Raw FTR Angle Err</div>
+        <div class="num c-blue" id="mErrFtr">0.0 mdeg</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">FF Angle Err</div>
+        <div class="num c-green" id="mErrFf">0.0 mdeg</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Where the Derivative Actually Lives -->
+  <section>
+    <h2><span class="badge">3</span> Where the Derivative Actually Lives: Feedforward!</h2>
+    <p>Instead of putting a noisy derivative <em>inside</em> the closed-loop actuator path, we invert the exact 1st-order sense equation <strong>outside</strong> the loop (see <code>model/mems_gyro_model.py</code> and <code>host/gyro_dashboard.py</code>):</p>
+    <div class="eq green">Ω_FF(t) = [ FTRAdj − γᵧ · SX − 2 · d(SX)/dt ] / (2 · Ag · DX)</div>
+    <p>And when you integrate rate to get <strong>angle</strong>, the derivative cancels analytically into a purely algebraic, zero-noise-gain correction:</p>
+    <div class="eq green">θ_FF(t) = ∫ [ (FTRAdj − γᵧ · SX) / (2 · Ag · DX) ] dt  −  2 · SX / (2 · Ag · DX)</div>
+    <div class="callout">
+      <strong>Best of both worlds:</strong> The FPGA feedback loop stays calm, low-noise, and rock-solid (pure PI), while Feedforward recovers the instantaneous transient rate and slashes integrated angle error by <strong>&gt;10×</strong> with zero actuator noise amplification.
+    </div>
+  </section>
+
+  <!-- SECTION 4: Noise Transfer Function Bode Plot -->
+  <section>
+    <h2><span class="badge">4</span> Frequency-Domain Proof: Actuator Noise Gain</h2>
+    <p>Plot of how much <strong>pickoff noise</strong> reaches the rebalance electrodes, <code>|C(jω) / (1 + C(jω)G(jω))|</code>. Notice how PI stays flat at high frequency, whereas adding D shoots up at <strong>+20 dB/decade</strong>—right where pickoff noise and <code>2f₀</code> ripple live:</p>
+    <canvas id="bodeCanvas" height="220"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#34d399"></i>PI Only (Flat high-freq noise gain)</span>
+      <span><i class="dot" style="background:#f87171"></i>PID with Current Kd (+20 dB/dec noise amplification!)</span>
+      <span><i class="dot" style="background:#a78bfa"></i>2f₀ Ripple Zone (22 kHz)</span>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Bonus DRG Quadrature Leakage Calculator -->
+  <section>
+    <h2><span class="badge">5</span> Bonus: Real-World DRG Quadrature Leakage</h2>
+    <p>On high-aspect-ratio DRIE silicon DRGs, <strong>50–500+ °/s</strong> of raw mechanical quadrature is completely normal. Even a tiny demodulation phase error <code>Δφ</code> leaks <code>Ω_leak = Q_equiv · sin(Δφ)</code> straight into your rate bias:</p>
+    <div class="eq amber">Ω_leak = Q_equiv · sin(Δφ) &nbsp;&nbsp;(suppressed by CLQ loop: SY → 0)</div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label>Raw Mechanical Quad <span class="val" id="vQuad">200 °/s</span></label>
+        <input id="sQuad" type="range" min="10" max="1000" step="10" value="200" />
+      </div>
+      <div class="ctrl">
+        <label>Phase Error Δφ <span class="val" id="vPhi">0.100°</span></label>
+        <input id="sPhi" type="range" min="0.001" max="1.0" step="0.001" value="0.100" />
+      </div>
+      <div class="ctrl">
+        <label>CLQ + DC-Trim Suppression <span class="val" id="vClq">40 dB</span></label>
+        <input id="sClq" type="range" min="0" max="80" step="2" value="40" />
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="lbl">Uncompensated Leak</div>
+        <div class="num c-red" id="mLeakDps">0.349 °/s</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Uncompensated (°/hr)</div>
+        <div class="num c-red" id="mLeakDph">1,257 °/hr</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">After CLQ Suppression</div>
+        <div class="num c-green" id="mLeakClq">12.6 °/hr</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Cheat Sheet -->
+  <section>
+    <h2><span class="badge">6</span> When Do You Actually Use D?</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Control Loop</th>
+          <th>Plant Order</th>
+          <th>Controller</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>CVG AGC / FTR / CLQ</strong></td>
+          <td>1st-order envelope</td>
+          <td><strong>PI + Feedforward</strong></td>
+          <td>90° plant lag; D amplifies pickoff noise &amp; 2f₀ ripple</td>
+        </tr>
+        <tr>
+          <td><strong>CVG Drive PLL</strong></td>
+          <td>1st-order + NCO ∫</td>
+          <td><strong>PI (Type-2 PLL)</strong></td>
+          <td>P provides damping/phase lead; I kills freq error</td>
+        </tr>
+        <tr>
+          <td><strong>Ultra-wide BW FTR</strong></td>
+          <td>1st-order + 3-pole LPF</td>
+          <td><strong>PI + Filtered Lead</strong></td>
+          <td>Band-limited lead boosts phase margin near LPF corner, rolls off before 2f₀</td>
+        </tr>
+        <tr>
+          <td><strong>Stage 3 Pan-Tilt Gimbal</strong></td>
+          <td>2nd-order rigid body (Jθ̈ = τ)</td>
+          <td><strong>PID / Cascaded PI / LQR</strong></td>
+          <td>True 180° baseband phase lag; gyro rate provides clean D!</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">
+    Saved in <code>zub1cg-dsp-lab/studies/pi_vs_pid_cvg_explainer.html</code> · 100% offline, zero dependencies.
+  </div>
+</div>
+
+<script>
+// Deterministic PRNG so dragging sliders compares apples-to-apples
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function randn(rng) {
+  return (rng() + rng() + rng() + rng() - 2.0) * 1.73205;
+}
+
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const h = parseInt(c.dataset.h || c.getAttribute("height"), 10) || 200;
+  c.dataset.h = String(h);
+  c.style.height = h + "px";
+  const w = Math.max(240, Math.round(c.clientWidth || 340));
+  const bw = Math.round(w * dpr);
+  const bh = Math.round(h * dpr);
+  if (c.width !== bw || c.height !== bh) {
+    c.width = bw;
+    c.height = bh;
+  }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+// 1. Carrier vs Slow Envelope illustration
+function drawCarrier() {
+  const { ctx, w, h } = setupCanvas("carrierCanvas");
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 42, r: 14, t: 18, b: 26 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+
+  // Grid
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ph * i) / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+  }
+
+  const midY = pad.t + ph * 0.5;
+  const ampScale = ph * 0.42;
+  const N = 420;
+
+  // Carrier modulated by 1st-order envelope
+  ctx.strokeStyle = "rgba(56,189,248,0.65)";
+  ctx.lineWidth = 1.25;
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const env = u < 0.15 ? 0 : (1 - Math.exp(-(u - 0.15) / 0.22));
+    const y = midY - env * Math.sin(u * 48 * Math.PI) * ampScale;
+    const x = pad.l + u * pw;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Envelope curve (1st-order response)
+  ctx.strokeStyle = "#34d399";
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const env = u < 0.15 ? 0 : (1 - Math.exp(-(u - 0.15) / 0.22));
+    const y = midY - env * ampScale;
+    const x = pad.l + u * pw;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = "#93a4be";
+  ctx.font = "12px sans-serif";
+  ctx.fillText("1.0", 12, pad.t + 14);
+  ctx.fillText("0.0", 12, midY + 4);
+  ctx.fillText("-1.0", 8, h - pad.b - 4);
+  ctx.fillText("Time -> (step applied at t₀)", pad.l + pw * 0.34, h - 8);
+}
+
+// 2. Interactive Time-Domain CVG Sense-Axis Simulation
+function runSim() {
+  const Kp = parseFloat(document.getElementById("sKp").value);
+  const Ki = parseFloat(document.getElementById("sKi").value);
+  const Kd = parseFloat(document.getElementById("sKd").value);
+  const noiseRms = parseFloat(document.getElementById("sNoise").value);
+  const ripAmp = parseFloat(document.getElementById("sRip").value);
+  const showFF = document.getElementById("chkFF").checked;
+
+  document.getElementById("vKp").textContent = Kp.toFixed(0);
+  document.getElementById("vKi").textContent = Ki.toFixed(0);
+  document.getElementById("vKd").textContent = Kd.toFixed(2);
+  document.getElementById("vNoise").textContent = noiseRms.toFixed(3);
+  document.getElementById("vRip").textContent = ripAmp.toFixed(3);
+
+  // Normalized DRG envelope parameters (11 kHz, Q=95k, Ag=0.40)
+  const Ag = 0.40;
+  const gammaY = (2 * Math.PI * 11000) / 95000; // ~0.727 rad/s
+  const scaleDps = (180 / Math.PI) / (2 * Ag);  // FTRAdj -> deg/s
+  const dt = 0.00025; // 4 kHz baseband sim rate
+  const T = 0.14;     // 140 ms window
+  const steps = Math.floor(T / dt);
+  const rng = mulberry32(1337);
+
+  // 1-pole practical D-filter corner (e.g. 600 Hz lock-in bandwidth)
+  const alphaD = 1 - Math.exp(-2 * Math.PI * 600 * dt);
+  const satDps = 150.0;
+  const satCmd = satDps / scaleDps;
+
+  let sx = 0, integ = 0, prevMeas = 0, dFilt = 0;
+  let angTrue = 0, angFtr = 0, angFf = 0;
+
+  const tArr = [], wTrueArr = [], wFtrArr = [], wFfArr = [], actArr = [], eFtrArr = [], eFfArr = [];
+  let actNoiseSq = 0, actNoiseN = 0, actPeak = 0;
+  let maxErrFtr = 0, maxErrFf = 0;
+
+  // Smooth SX derivative for Feedforward readout (small 250 Hz post-filter)
+  let sxPrev = 0, dsxFilt = 0;
+  const alphaFF = 1 - Math.exp(-2 * Math.PI * 250 * dt);
+
+  for (let k = 0; k < steps; k++) {
+    const t = k * dt;
+    const wTrue = t >= 0.03 ? 100.0 : 0.0; // 100 deg/s step at 30 ms
+    const omegaRad = wTrue * Math.PI / 180;
+
+    // Pickoff measurement = true SX + white electronic noise + aliased residual 2f0 ripple
+    const measNoise = noiseRms * randn(rng);
+    const rip = ripAmp * Math.sin(2 * Math.PI * 820 * t); // visual residual high-freq ripple
+    const sxMeas = sx + measNoise + rip;
+
+    // Error e = 0 - sxMeas (we drive SX -> 0)
+    const err = -sxMeas;
+    const rawDeriv = -(sxMeas - prevMeas) / dt;
+    dFilt += alphaD * (rawDeriv - dFilt);
+    prevMeas = sxMeas;
+
+    // PID command (with saturation & anti-windup)
+    const uRaw = Kp * err + integ + Kd * dFilt;
+    let u = Math.max(-satCmd, Math.min(satCmd, uRaw));
+    if (u === uRaw || (u === satCmd && err < 0) || (u === -satCmd && err > 0)) {
+      integ += Ki * err * dt;
+    }
+
+    // 1st-order sense envelope physics: 2*d(SX)/dt + gammaY*SX = u - 2*Ag*Omega
+    const dsxTrue = 0.5 * (u - 2 * Ag * omegaRad - gammaY * sx);
+    sx += dsxTrue * dt;
+
+    // Readouts
+    const wFtr = u * scaleDps;
+    const dsxEst = (sxMeas - sxPrev) / dt;
+    sxPrev = sxMeas;
+    dsxFilt += alphaFF * (dsxEst - dsxFilt);
+    const wFf = (u - gammaY * sxMeas - 2 * dsxFilt) * scaleDps;
+
+    // Integrated angles
+    angTrue += wTrue * dt;
+    angFtr += wFtr * dt;
+    // Exact algebraic FF angle: int[(u - gammaY*sx)*scale] dt - 2*sx*scale
+    angFf += (u - gammaY * sxMeas) * scaleDps * dt;
+    const angFfTotal = angFf - 2 * sxMeas * scaleDps;
+
+    const eFtrMdeg = (angFtr - angTrue) * 1000;
+    const eFfMdeg = (angFfTotal - angTrue) * 1000;
+
+    tArr.push(t * 1000);
+    wTrueArr.push(wTrue);
+    wFtrArr.push(wFtr);
+    wFfArr.push(wFf);
+    actArr.push(wFtr);
+    eFtrArr.push(eFtrMdeg);
+    eFfArr.push(eFfMdeg);
+
+    if (t >= 0.08) { // steady-state noise metric
+      const diff = wFtr - 100.0;
+      actNoiseSq += diff * diff;
+      actNoiseN++;
+    }
+    actPeak = Math.max(actPeak, Math.abs(wFtr));
+    if (t >= 0.03) {
+      maxErrFtr = Math.max(maxErrFtr, Math.abs(eFtrMdeg));
+      maxErrFf = Math.max(maxErrFf, Math.abs(eFfMdeg));
+    }
+  }
+
+  const actRms = Math.sqrt(actNoiseSq / Math.max(actNoiseN, 1));
+  document.getElementById("mActRms").textContent = actRms.toFixed(1) + " °/s";
+  document.getElementById("mActPeak").textContent = actPeak.toFixed(1) + " °/s";
+  document.getElementById("mErrFtr").textContent = maxErrFtr.toFixed(1) + " mdeg";
+  document.getElementById("mErrFf").textContent = maxErrFf.toFixed(1) + " mdeg";
+
+  drawPlot("rateCanvas", tArr, [
+    { data: wTrueArr, color: "#94a3b8", dash: [5, 4], width: 1.6 },
+    { data: wFtrArr, color: "#38bdf8", width: 2.0 },
+    ...(showFF ? [{ data: wFfArr, color: "#34d399", width: 1.7 }] : []),
+  ], -40, 170, "Rate (°/s)", "Closed-Loop Rate Step (100 °/s at 30 ms)");
+
+  drawPlot("actCanvas", tArr, [
+    { data: actArr, color: "#fbbf24", width: 1.7 },
+    { data: tArr.map(() => satDps), color: "#f87171", dash: [4, 4], width: 1.3 },
+    { data: tArr.map(() => -satDps), color: "#f87171", dash: [4, 4], width: 1.3 },
+  ], -170, 170, "FTRAdj (°/s)", "Actuator Command Sent to Electrodes");
+
+  drawPlot("angCanvas", tArr, [
+    { data: tArr.map(() => 0), color: "#475569", dash: [4, 4], width: 1.1 },
+    { data: eFtrArr, color: "#f87171", width: 2.0 },
+    ...(showFF ? [{ data: eFfArr, color: "#34d399", width: 2.2 }] : []),
+  ], -Math.max(400, maxErrFtr * 1.15), Math.max(150, maxErrFf * 2.0), "Err (mdeg)", "Integrated Angle Error (Raw FTR vs. Feedforward)");
+
+  drawBode(Kp, Ki, Kd);
+}
+
+function drawPlot(id, xs, series, yMin, yMax, yLabel, title) {
+  const { ctx, w, h } = setupCanvas(id);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 50, r: 12, t: 24, b: 26 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+
+  // Title
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "bold 12.5px sans-serif";
+  ctx.fillText(title, pad.l, 15);
+
+  // Horizontal grid + Y labels
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#93a4be";
+  ctx.font = "11px monospace";
+  for (let i = 0; i <= 4; i++) {
+    const frac = i / 4;
+    const y = pad.t + frac * ph;
+    const val = yMax - frac * (yMax - yMin);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+    ctx.fillText(val.toFixed(0), 6, y + 4);
+  }
+
+  // X ticks
+  const xMin = xs[0], xMax = xs[xs.length - 1];
+  for (let i = 0; i <= 4; i++) {
+    const val = xMin + (i / 4) * (xMax - xMin);
+    const x = pad.l + (i / 4) * pw;
+    ctx.fillText(val.toFixed(0) + "ms", x - 12, h - 7);
+  }
+
+  // Clip region
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pad.l, pad.t, pw, ph);
+  ctx.clip();
+
+  for (const s of series) {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = s.width || 1.8;
+    ctx.setLineDash(s.dash || []);
+    ctx.beginPath();
+    for (let i = 0; i < xs.length; i++) {
+      const px = pad.l + ((xs[i] - xMin) / (xMax - xMin)) * pw;
+      const py = pad.t + ((yMax - s.data[i]) / (yMax - yMin)) * ph;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.setLineDash([]);
+}
+
+// 4. Noise-to-Actuator Transfer Function |C / (1 + CG)| Bode plot
+function drawBode(Kp, Ki, Kd) {
+  const { ctx, w, h } = setupCanvas("bodeCanvas");
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 50, r: 14, t: 24, b: 28 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+
+  const fMin = 1, fMax = 30000;
+  const logMin = Math.log10(fMin), logMax = Math.log10(fMax);
+  const yMin = 20, yMax = 110; // dB
+
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "bold 12.5px sans-serif";
+  ctx.fillText("Noise-to-Actuator Gain |C(jω) / (1 + C(jω)G(jω))| (dB)", pad.l, 15);
+
+  // Highlight 2f0 ripple band (18-26 kHz)
+  const x2f0L = pad.l + ((Math.log10(18000) - logMin) / (logMax - logMin)) * pw;
+  const x2f0R = pad.l + ((Math.log10(26000) - logMin) / (logMax - logMin)) * pw;
+  ctx.fillStyle = "rgba(167,139,250,0.16)";
+  ctx.fillRect(x2f0L, pad.t, x2f0R - x2f0L, ph);
+
+  // Grid
+  ctx.strokeStyle = "#1e293b";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "#93a4be";
+  ctx.font = "11px monospace";
+  for (let db = 20; db <= 110; db += 15) {
+    const y = pad.t + ((yMax - db) / (yMax - yMin)) * ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+    ctx.fillText(db + "dB", 6, y + 4);
+  }
+  for (const f of [1, 10, 100, 1000, 10000]) {
+    const x = pad.l + ((Math.log10(f) - logMin) / (logMax - logMin)) * pw;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+    const lbl = f >= 1000 ? (f / 1000) + "kHz" : f + "Hz";
+    ctx.fillText(lbl, x - 12, h - 8);
+  }
+
+  function evalNoiseGainDb(freq, kdVal) {
+    const wRad = 2 * Math.PI * freq;
+    // Plant G(jw) = 1 / (gamma + j*2*w)
+    const gamma = 0.727;
+    const gDen = gamma * gamma + 4 * wRad * wRad;
+    const gRe = gamma / gDen, gIm = (-2 * wRad) / gDen;
+    // Controller C(jw) = Kp + Ki/(jw) + Kd*jw / (1 + jw/w_f) (pure-ish D corner at 15 kHz)
+    const wf = 2 * Math.PI * 15000;
+    const dDen = 1 + (wRad / wf) ** 2;
+    const dRe = (kdVal * (wRad * wRad / wf)) / dDen;
+    const dIm = (kdVal * wRad) / dDen;
+    const cRe = Kp + dRe;
+    const cIm = -Ki / wRad + dIm;
+    // 1 + C*G
+    const lRe = 1 + (cRe * gRe - cIm * gIm);
+    const lIm = cRe * gIm + cIm * gRe;
+    const mag = Math.hypot(cRe, cIm) / Math.max(Math.hypot(lRe, lIm), 1e-12);
+    return 20 * Math.log10(Math.max(mag, 1e-6));
+  }
+
+  const curves = [
+    { kd: 0, color: "#34d399", width: 2.3 },
+    { kd: Math.max(Kd, 0.25), color: "#f87171", width: 2.0, dash: Kd === 0 ? [5, 4] : [] },
+  ];
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
+  for (const cv of curves) {
+    ctx.strokeStyle = cv.color;
+    ctx.lineWidth = cv.width;
+    ctx.setLineDash(cv.dash || []);
+    ctx.beginPath();
+    for (let i = 0; i <= 240; i++) {
+      const f = Math.pow(10, logMin + (i / 240) * (logMax - logMin));
+      const db = evalNoiseGainDb(f, cv.kd);
+      const px = pad.l + (i / 240) * pw;
+      const py = pad.t + ((yMax - db) / (yMax - yMin)) * ph;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.setLineDash([]);
+}
+
+// 5. Quadrature Leakage Calculator
+function updateQuad() {
+  const q = parseFloat(document.getElementById("sQuad").value);
+  const phi = parseFloat(document.getElementById("sPhi").value);
+  const clqDb = parseFloat(document.getElementById("sClq").value);
+
+  document.getElementById("vQuad").textContent = q.toFixed(0) + " °/s";
+  document.getElementById("vPhi").textContent = phi.toFixed(3) + "°";
+  document.getElementById("vClq").textContent = clqDb.toFixed(0) + " dB";
+
+  const leakDps = q * Math.sin(phi * Math.PI / 180);
+  const leakDph = leakDps * 3600;
+  const clqDph = leakDph / Math.pow(10, clqDb / 20);
+
+  document.getElementById("mLeakDps").textContent = leakDps.toFixed(3) + " °/s";
+  document.getElementById("mLeakDph").textContent = leakDph >= 100
+    ? Math.round(leakDph).toLocaleString() + " °/hr"
+    : leakDph.toFixed(2) + " °/hr";
+  document.getElementById("mLeakClq").textContent = clqDph >= 100
+    ? Math.round(clqDph).toLocaleString() + " °/hr"
+    : clqDph.toFixed(2) + " °/hr";
+}
+
+// Presets
+const PRESETS = {
+  pi:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.004, rip: 0.002, ff: false },
+  ff:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.004, rip: 0.002, ff: true  },
+  pid:    { kp: 160, ki: 12000, kd: 0.45, noise: 0.006, rip: 0.002, ff: true  },
+  ripple: { kp: 160, ki: 12000, kd: 0.50, noise: 0.003, rip: 0.012, ff: true  },
+};
+
+document.querySelectorAll("button.preset").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("button.preset").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const p = PRESETS[btn.dataset.preset];
+    document.getElementById("sKp").value = p.kp;
+    document.getElementById("sKi").value = p.ki;
+    document.getElementById("sKd").value = p.kd;
+    document.getElementById("sNoise").value = p.noise;
+    document.getElementById("sRip").value = p.rip;
+    document.getElementById("chkFF").checked = p.ff;
+    runSim();
+  });
+});
+
+["sKp", "sKi", "sKd", "sNoise", "sRip", "chkFF"].forEach(id => {
+  document.getElementById(id).addEventListener("input", runSim);
+});
+["sQuad", "sPhi", "sClq"].forEach(id => {
+  document.getElementById(id).addEventListener("input", updateQuad);
+});
+window.addEventListener("resize", () => { drawCarrier(); runSim(); });
+
+// Initial render
+drawCarrier();
+runSim();
+updateQuad();
+</script>
+</body>
+</html>
