@@ -311,12 +311,12 @@
         <input id="sKd" type="range" min="0" max="0.80" step="0.02" value="0" />
       </div>
       <div class="ctrl">
-        <label>Pickoff Noise (RMS) <span class="val" id="vNoise">0.004</span></label>
-        <input id="sNoise" type="range" min="0" max="0.02" step="0.001" value="0.004" />
+        <label>Pickoff Noise (RMS) <span class="val" id="vNoise">2.0e-4</span></label>
+        <input id="sNoise" type="range" min="0" max="0.0010" step="0.00005" value="0.00020" />
       </div>
       <div class="ctrl">
-        <label>2f₀ Carrier Ripple <span class="val" id="vRip">0.002</span></label>
-        <input id="sRip" type="range" min="0" max="0.02" step="0.001" value="0.002" />
+        <label>2f₀ Carrier Ripple <span class="val" id="vRip">1.5e-4</span></label>
+        <input id="sRip" type="range" min="0" max="0.0010" step="0.00005" value="0.00015" />
       </div>
     </div>
 
@@ -569,8 +569,8 @@ function runSim() {
   document.getElementById("vKp").textContent = Kp.toFixed(0);
   document.getElementById("vKi").textContent = Ki.toFixed(0);
   document.getElementById("vKd").textContent = Kd.toFixed(2);
-  document.getElementById("vNoise").textContent = noiseRms.toFixed(3);
-  document.getElementById("vRip").textContent = ripAmp.toFixed(3);
+  document.getElementById("vNoise").textContent = noiseRms === 0 ? "0" : noiseRms.toExponential(1);
+  document.getElementById("vRip").textContent = ripAmp === 0 ? "0" : ripAmp.toExponential(1);
 
   // Normalized DRG envelope parameters (11 kHz, Q=95k, Ag=0.40)
   const Ag = 0.40;
@@ -667,23 +667,32 @@ function runSim() {
   document.getElementById("mErrFtr").textContent = maxErrFtr.toFixed(1) + " mdeg";
   document.getElementById("mErrFf").textContent = maxErrFf.toFixed(1) + " mdeg";
 
+  // Compute clean auto-fit bounds so traces always stay comfortably inside the frame
+  const allRate = showFF ? wFtrArr.concat(wFfArr) : wFtrArr;
+  const rMin = Math.min(-25, Math.floor(Math.min(...allRate) / 20) * 20 - 10);
+  const rMax = Math.max(150, Math.ceil(Math.max(...allRate) / 20) * 20 + 10);
+
   drawPlot("rateCanvas", tArr, [
     { data: wTrueArr, color: "#94a3b8", dash: [5, 4], width: 1.6 },
     { data: wFtrArr, color: "#38bdf8", width: 2.0 },
     ...(showFF ? [{ data: wFfArr, color: "#34d399", width: 1.7 }] : []),
-  ], -40, 170, "Rate (°/s)", "Closed-Loop Rate Step (100 °/s at 30 ms)");
+  ], Math.max(-180, rMin), Math.min(220, rMax), "Rate (°/s)", "Closed-Loop Rate Step (100 °/s at 30 ms)");
 
   drawPlot("actCanvas", tArr, [
     { data: actArr, color: "#fbbf24", width: 1.7 },
     { data: tArr.map(() => satDps), color: "#f87171", dash: [4, 4], width: 1.3 },
     { data: tArr.map(() => -satDps), color: "#f87171", dash: [4, 4], width: 1.3 },
-  ], -170, 170, "FTRAdj (°/s)", "Actuator Command Sent to Electrodes");
+  ], -175, 175, "FTRAdj (°/s)", "Actuator Command Sent to Electrodes");
+
+  const allAng = showFF ? eFtrArr.concat(eFfArr) : eFtrArr;
+  const aMin = Math.min(-100, Math.floor(Math.min(...allAng) / 50) * 50 - 30);
+  const aMax = Math.max(100, Math.ceil(Math.max(...allAng) / 50) * 50 + 30);
 
   drawPlot("angCanvas", tArr, [
     { data: tArr.map(() => 0), color: "#475569", dash: [4, 4], width: 1.1 },
     { data: eFtrArr, color: "#f87171", width: 2.0 },
     ...(showFF ? [{ data: eFfArr, color: "#34d399", width: 2.2 }] : []),
-  ], -Math.max(400, maxErrFtr * 1.15), Math.max(150, maxErrFf * 2.0), "Err (mdeg)", "Integrated Angle Error (Raw FTR vs. Feedforward)");
+  ], aMin, aMax, "Err (mdeg)", "Integrated Angle Error (Raw FTR vs. Feedforward)");
 
   drawBode(Kp, Ki, Kd);
 }
@@ -751,7 +760,7 @@ function drawBode(Kp, Ki, Kd) {
 
   const fMin = 1, fMax = 30000;
   const logMin = Math.log10(fMin), logMax = Math.log10(fMax);
-  const yMin = 20, yMax = 110; // dB
+  const yMin = 20, yMax = 120; // dB
 
   ctx.fillStyle = "#e2e8f0";
   ctx.font = "bold 12.5px sans-serif";
@@ -850,10 +859,10 @@ function updateQuad() {
 
 // Presets
 const PRESETS = {
-  pi:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.004, rip: 0.002, ff: false },
-  ff:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.004, rip: 0.002, ff: true  },
-  pid:    { kp: 160, ki: 12000, kd: 0.45, noise: 0.006, rip: 0.002, ff: true  },
-  ripple: { kp: 160, ki: 12000, kd: 0.50, noise: 0.003, rip: 0.012, ff: true  },
+  pi:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.00020, rip: 0.00015, ff: false },
+  ff:     { kp: 160, ki: 12000, kd: 0.00, noise: 0.00020, rip: 0.00015, ff: true  },
+  pid:    { kp: 160, ki: 12000, kd: 0.45, noise: 0.00035, rip: 0.00015, ff: true  },
+  ripple: { kp: 160, ki: 12000, kd: 0.50, noise: 0.00015, rip: 0.00060, ff: true  },
 };
 
 document.querySelectorAll("button.preset").forEach((btn) => {
