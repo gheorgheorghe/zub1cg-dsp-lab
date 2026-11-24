@@ -55,6 +55,10 @@ async def run_ringdown(dut, q_target: float, f0_hz: float = 11_000.0, fs_hz: flo
     dut.u_y_k.value = 0
     dut.u_x_k1.value = 0
     dut.u_y_k1.value = 0
+    dut.force_noise_amp.value = 0
+    dut.adc_noise_amp.value = 0
+    dut.rrw_step_amp.value = 0
+    dut.noise_seed.value = 0xA5A51337
 
     dut.cos_tx.value = to_fixed(math.cos(tx), 36, C_FRAC)
     dut.sin_tx.value = to_fixed(math.sin(tx), 36, C_FRAC)

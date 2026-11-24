@@ -56,7 +56,7 @@ module mems_hil_axis_wrap #(
 );
 
     localparam logic [31:0] VERSION_ID = 32'h5A55_0101; // "ZU" Stage 1 v1
-    localparam int NUM_RW_REGS = 41;                   // Byte offsets 0x00 .. 0xA0
+    localparam int NUM_RW_REGS = 44;                   // Byte offsets 0x00 .. 0xAC
 
     logic [31:0] rw_regs [0:NUM_RW_REGS-1];
 
@@ -122,6 +122,9 @@ module mems_hil_axis_wrap #(
             rw_regs[3]  <= 32'd47244640;  // 11 kHz @ 1 MHz NCO tuning word
             rw_regs[4]  <= 32'd4194304;   // DX setpoint = 1.0 in Q2.22
             rw_regs[39] <= 32'd34360;     // half_dt_q36 = 0.5e-6 * 2^36
+            rw_regs[41] <= 32'h0000_0000; // 0xA4 NOISE_CFG: [15:0]=force_amp, [31:16]=adc_amp
+            rw_regs[42] <= 32'hA5A5_1337; // 0xA8 NOISE_SEED
+            rw_regs[43] <= 32'h0000_0000; // 0xAC RRW_CFG:   [15:0]=rrw_step_amp
         end else begin
             state_load_pulse <= 1'b0;
             pi_load_pulse    <= 1'b0;
@@ -131,7 +134,7 @@ module mems_hil_axis_wrap #(
             end
 
             if (wr_fire) begin
-                if (wr_idx < 6'd41) begin
+                if (wr_idx < 6'd44) begin
                     for (int b = 0; b < 4; b++) begin
                         if (wr_strb_eff[b]) begin
                             rw_regs[wr_idx][b*8 +: 8] <= wr_data_eff[b*8 +: 8];
@@ -178,7 +181,7 @@ module mems_hil_axis_wrap #(
             end
             if (s_axi_arvalid && s_axi_arready) begin
                 s_axi_rvalid <= 1'b1;
-                if (rd_idx < 6'd41) begin
+                if (rd_idx < 6'd44) begin
                     s_axi_rdata <= rw_regs[rd_idx];
                 end else begin
                     unique case (rd_idx)
@@ -253,8 +256,12 @@ module mems_hil_axis_wrap #(
         .half_gy_dt     (signed'({rw_regs[32][3:0], rw_regs[31]})),
         .half_kxy_dt    (signed'({rw_regs[34][3:0], rw_regs[33]})),
         .half_gxy_dt    (signed'({rw_regs[36][3:0], rw_regs[35]})),
-        .half_cor_dt    (eff_half_cor_dt),
-        .half_dt_q36    (signed'({rw_regs[40][3:0], rw_regs[39]})),
+        .half_cor_dt     (eff_half_cor_dt),
+        .half_dt_q36     (signed'({rw_regs[40][3:0], rw_regs[39]})),
+        .force_noise_amp (rw_regs[41][15:0]),
+        .adc_noise_amp   (rw_regs[41][31:16]),
+        .rrw_step_amp    (rw_regs[43][15:0]),
+        .noise_seed      (rw_regs[42]),
 
         .base_freq_word (rw_regs[3]),
         .lpf_shift      (lpf_shift),
@@ -377,6 +384,6 @@ module mems_hil_axis_wrap #(
                          rw_regs[22][31:4], rw_regs[24][31:4], rw_regs[26][31:4],
                          rw_regs[28][31:4], rw_regs[30][31:4], rw_regs[32][31:4],
                          rw_regs[34][31:4], rw_regs[36][31:4], rw_regs[38][31:4],
-                         rw_regs[40][31:4]};
+                         rw_regs[40][31:4], rw_regs[43][31:16]};
 
 endmodule

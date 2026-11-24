@@ -57,6 +57,10 @@ async def tb_drg_closed_loop_rtl(dut):
     dut.half_gxy_dt.value = 0
     dut.half_cor_dt.value = 0
     dut.half_dt_q36.value = to_fixed(0.5 * dt, 36, DT_FRAC)
+    dut.force_noise_amp.value = 0
+    dut.adc_noise_amp.value = 0
+    dut.rrw_step_amp.value = 0
+    dut.noise_seed.value = 0xA5A51337
 
     # NCO base frequency word for 11 kHz at fs = 200 kHz
     dut.base_freq_word.value = int(round((f0 / fs) * (2**32)))

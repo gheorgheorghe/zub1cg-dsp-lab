@@ -29,6 +29,12 @@ module mems_hil_top #(
     input  logic signed [35:0] half_kxy_dt, half_gxy_dt,
     input  logic signed [35:0] half_cor_dt, half_dt_q36,
 
+    // Optional PRNG thermal force, pickoff ADC, and RRW bias-walk injection
+    input  logic [15:0]        force_noise_amp,
+    input  logic [15:0]        adc_noise_amp,
+    input  logic [15:0]        rrw_step_amp,
+    input  logic [31:0]        noise_seed,
+
     // Controller parameters
     input  logic [31:0]        base_freq_word,
     input  logic [3:0]         lpf_shift,
@@ -127,11 +133,15 @@ module mems_hil_top #(
         .half_gxy_dt (half_gxy_dt),
         .half_cor_dt (half_cor_dt),
         .half_dt_q36 (half_dt_q36),
-        .u_x_k       (u_x_k_bus),
-        .u_y_k       (u_y_k_bus),
-        .u_x_k1      (u_x_k1_bus),
-        .u_y_k1      (u_y_k1_bus),
-        .x_q14       (x_q14),
+        .u_x_k           (u_x_k_bus),
+        .u_y_k           (u_y_k_bus),
+        .u_x_k1          (u_x_k1_bus),
+        .u_y_k1          (u_y_k1_bus),
+        .force_noise_amp (force_noise_amp),
+        .adc_noise_amp   (adc_noise_amp),
+        .rrw_step_amp    (rrw_step_amp),
+        .noise_seed      (noise_seed),
+        .x_q14           (x_q14),
         .y_q14       (y_q14),
         .x_state     (x_state_nc),
         .vx_state    (vx_state_nc),

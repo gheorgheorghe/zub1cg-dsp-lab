@@ -171,6 +171,26 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     dx_stream_last = words[56] / float(1 << 22)
     assert abs(dx_stream_last - dx_ro) < 0.02
 
+    # 4. Verify Stage 1.5 PRNG thermal/ADC/RRW noise registers (0xA4..0xAC)
+    await axil_write(dut, 0xA4, (400 << 16) | 2000)   # adc_amp=400, force_amp=2000
+    await axil_write(dut, 0xA8, 0x12345678)            # custom PRNG seed
+    await axil_write(dut, 0xAC, 50)                    # rrw_step_amp=50
+    assert await axil_read(dut, 0xA4) == ((400 << 16) | 2000)
+    assert await axil_read(dut, 0xA8) == 0x12345678
+    assert await axil_read(dut, 0xAC) == 50
+
+    # Capture 2 more bursts with noise enabled and verify pickoff/telemetry stays live & bounded
+    noisy_words = []
+    while len(noisy_words) < 64:
+        await RisingEdge(dut.aclk)
+        if dut.m_axis_tvalid.value and dut.m_axis_tready.value:
+            noisy_words.append(from_s32(int(dut.m_axis_tdata.value)))
+    dx_noisy = [noisy_words[i * 8] / float(1 << 22) for i in range(8)]
+    ftr_noisy = [noisy_words[i * 8 + 7] / float(1 << 14) for i in range(8)]
+    cocotb.log.info(f"Stage 1.5 PRNG noise OK: DX_mean={sum(dx_noisy)/8:.4f}, FTR_span={max(ftr_noisy)-min(ftr_noisy):.4f}")
+    assert 0.5 < (sum(dx_noisy) / 8.0) < 1.5
+    assert (max(ftr_noisy) - min(ftr_noisy)) > 0.0
+
 
 def test_runner():
     root = Path(__file__).resolve().parents[1]
