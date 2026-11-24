@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include "xil_io.h"
 #include "xil_printf.h"
-#include "xtime_l.h"
+#include "xiltimer.h"
 
 /* Must match hw/scripts/create_bd.tcl */
 #define DSP_SLOT_BASEADDR   0x80010000U

@@ -4,11 +4,13 @@ PY    := $(VENV)/bin/python
 PIP   := $(VENV)/bin/pip
 SIM   ?= verilator
 VIVADO ?= vivado
+VITIS  ?= vitis
+XSDB   ?= xsdb
 BOARD_REPO ?=
 PROJECT ?= stage1_mems
 JOBS ?= 8
 
-.PHONY: help venv board-files lint sim sim-nco sim-slot sim-lockin sim-plant sim-closed-loop sim-stage1-axis test-model plot-drg plot-hrg plot-space-hrg bd bit mock-host clean
+.PHONY: help venv board-files lint sim sim-nco sim-slot sim-lockin sim-plant sim-closed-loop sim-stage1-axis test-model plot-drg plot-hrg plot-space-hrg bd bit sw boot mock-host clean
 
 help:
 	@echo "Targets:"
@@ -103,6 +105,12 @@ bit:
 	mkdir -p hw/build
 	PROJECT=$(PROJECT) BOARD_REPO=$(BOARD_REPO) JOBS=$(JOBS) $(VIVADO) -mode batch -source hw/scripts/build_bit.tcl \
 		-log hw/build/build_bit_$(PROJECT).log -journal hw/build/build_bit_$(PROJECT).jou
+
+sw:
+	PROJECT=$(PROJECT) $(VITIS) -s sw/build_vitis.py $(PROJECT)
+
+boot:
+	PROJECT=$(PROJECT) $(XSDB) sw/boot_jtag.tcl
 
 mock-host:
 	$(PY) host/zuboard_client.py --mock --freq-hz 16000 --samples 2048 --no-plot
