@@ -88,9 +88,9 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     dut.aresetn.value = 1
     await RisingEdge(dut.aclk)
 
-    # 1. Verify Stage 1 VERSION register (0xEC)
+    # 1. Verify Stage 1 v2 High-Q VERSION register (0xEC)
     ver = await axil_read(dut, 0xEC)
-    assert ver == 0x5A550101, f"Unexpected VERSION: 0x{ver:08X}"
+    assert ver == 0x5A550102, f"Unexpected VERSION: 0x{ver:08X}"
 
     # 2. Program DRG 11 kHz Q=100k parameters over AXI-Lite (fs = 1 MHz)
     fs = 1_000_000.0
@@ -105,31 +105,37 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     await axil_write(dut, 0x0C, int(round((f0 / fs) * (2**32))))
     await axil_write(dut, 0x10, 1 << 22)                 # DX setpoint = 1.0
 
-    # Gains (Q2.22 err -> Q10.14 out)
-    pll_scale = (2**32 / (2.0 * math.pi * fs)) / 16.0 / (2**22)
-    u_scale = (1 << 14) / float(1 << 22)
-    await axil_write(dut, 0x1C, to_s24(600.0 * pll_scale, 16))
-    await axil_write(dut, 0x20, to_s24(150_000.0 * dt * pll_scale, 16))
-    await axil_write(dut, 0x24, to_s24(160.0 * u_scale, 16))
-    await axil_write(dut, 0x28, to_s24(5_000.0 * dt * u_scale, 16))
-    await axil_write(dut, 0x2C, to_s24(240.0 * u_scale, 16))
-    await axil_write(dut, 0x30, to_s24(12_000.0 * dt * u_scale, 16))
-    await axil_write(dut, 0x34, to_s24(240.0 * u_scale, 16))
-    await axil_write(dut, 0x38, to_s24(12_000.0 * dt * u_scale, 16))
+    # Stage 1 v2 High-Q gains (Q2.22 err -> 32-bit Q10.22 out / 40b NCO, GAIN_FRAC = 14)
+    pll_scale = (2**40 / (2.0 * math.pi * fs)) / (2**22)
+    await axil_write(dut, 0x1C, to_s24(600.0 * pll_scale, 14))
+    await axil_write(dut, 0x20, to_s24(150_000.0 * dt * pll_scale, 14))
+    await axil_write(dut, 0x24, to_s24(160.0, 14))
+    await axil_write(dut, 0x28, to_s24(5_000.0 * dt, 14))
+    await axil_write(dut, 0x2C, to_s24(240.0, 14))
+    await axil_write(dut, 0x30, to_s24(12_000.0 * dt, 14))
+    await axil_write(dut, 0x34, to_s24(240.0, 14))
+    await axil_write(dut, 0x38, to_s24(12_000.0 * dt, 14))
 
-    # Plant coefficients (36-bit Q2.34)
+    # Plant cos/sin (36-bit Q2.34)
     for addr_lo, val in [
         (0x54, math.cos(w0 * dt)),
         (0x5C, math.sin(w0 * dt)),
         (0x64, math.cos(2 * math.pi * (f0 + 0.5) * dt)),
         (0x6C, math.sin(2 * math.pi * (f0 + 0.5) * dt)),
+    ]:
+        lo, hi = to_s36(val, 34)
+        await axil_write(dut, addr_lo, lo)
+        await axil_write(dut, addr_lo + 4, hi)
+
+    # Plant high-Q kick coefficients (36-bit Q-6.42)
+    for addr_lo, val in [
         (0x74, 0.5 * (w0 / 100_000.0) * dt),
         (0x7C, 0.5 * (w0 / 95_000.0) * dt),
         (0x84, 0.5 * k_xy * dt),
         (0x8C, 0.0),
         (0x94, 0.5 * (2.0 * ag * (100.0 * math.pi / 180.0)) * dt),
     ]:
-        lo, hi = to_s36(val, 34)
+        lo, hi = to_s36(val, 42)
         await axil_write(dut, addr_lo, lo)
         await axil_write(dut, addr_lo + 4, hi)
 
@@ -142,7 +148,7 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     await axil_write(dut, 0x48, 0)
     await axil_write(dut, 0x4C, 0)
     await axil_write(dut, 0x50, 0x1000)
-    await axil_write(dut, 0x40, to_s24(w0 / 100_000.0, 14))
+    await axil_write(dut, 0x40, int(round((w0 / 100_000.0) * (1 << 22))) & 0xFFFFFFFF)
     await axil_write(dut, 0x00, 0xDE)  # state_load=1, pi_load=1, loops=1, run=0
     await axil_write(dut, 0x00, 0x1F)  # run=1, PLL/AGC/CLQ/FTR enabled
 
@@ -186,7 +192,7 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
         if dut.m_axis_tvalid.value and dut.m_axis_tready.value:
             noisy_words.append(from_s32(int(dut.m_axis_tdata.value)))
     dx_noisy = [noisy_words[i * 8] / float(1 << 22) for i in range(8)]
-    ftr_noisy = [noisy_words[i * 8 + 7] / float(1 << 14) for i in range(8)]
+    ftr_noisy = [noisy_words[i * 8 + 7] / float(1 << 22) for i in range(8)]
     cocotb.log.info(f"Stage 1.5 PRNG noise OK: DX_mean={sum(dx_noisy)/8:.4f}, FTR_span={max(ftr_noisy)-min(ftr_noisy):.4f}")
     assert 0.5 < (sum(dx_noisy) / 8.0) < 1.5
     assert (max(ftr_noisy) - min(ftr_noisy)) > 0.0

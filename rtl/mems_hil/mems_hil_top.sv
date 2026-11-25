@@ -20,9 +20,9 @@ module mems_hil_top #(
     input  logic               state_load,
     input  logic signed [47:0] x_init, vx_init, y_init, vy_init,
     input  logic               pi_load,
-    input  logic signed [23:0] pll_init, agc_init,
+    input  logic signed [31:0] pll_init, agc_init,
 
-    // Plant parameters (Q2.34 & Q0.36)
+    // Plant parameters (cos/sin in Q2.34; kick coeffs in Q-6.42; half_dt in Q0.36)
     input  logic signed [35:0] cos_tx, sin_tx,
     input  logic signed [35:0] cos_ty, sin_ty,
     input  logic signed [35:0] half_gx_dt, half_gy_dt,
@@ -45,12 +45,12 @@ module mems_hil_top #(
     input  logic signed [23:0] clq_kp, clq_ki,
     input  logic signed [23:0] ftr_kp, ftr_ki,
 
-    // Live telemetry outputs
+    // Live telemetry outputs (32-bit High-Q PI outputs!)
     output logic               tick_pulse,
     output logic               step_done,
     output logic signed [15:0] x_q14, y_q14,
     output logic signed [23:0] dx_out, dy_out, sx_out, sy_out,
-    output logic signed [23:0] pll_adj_out, agc_adj_out, clq_adj_out, ftr_adj_out
+    output logic signed [31:0] pll_adj_out, agc_adj_out, clq_adj_out, ftr_adj_out
 );
 
     // Tick divider
@@ -70,13 +70,14 @@ module mems_hil_top #(
 
     logic signed [31:0] u_x_k_bus, u_y_k_bus, u_x_k1_bus, u_y_k1_bus;
     logic               plant_start_bus;
+    logic signed [23:0] x_q22_bus, y_q22_bus;
 
     mems_ctrl_top u_ctrl (
         .clk            (clk),
         .rst_n          (rst_n),
         .tick_en        (tick_pulse),
-        .x_q14          (x_q14),
-        .y_q14          (y_q14),
+        .x_q22          (x_q22_bus),
+        .y_q22          (y_q22_bus),
         .base_freq_word (base_freq_word),
         .lpf_shift      (lpf_shift),
         .enable_pll     (enable_pll),
@@ -142,7 +143,9 @@ module mems_hil_top #(
         .rrw_step_amp    (rrw_step_amp),
         .noise_seed      (noise_seed),
         .x_q14           (x_q14),
-        .y_q14       (y_q14),
+        .y_q14           (y_q14),
+        .x_q22           (x_q22_bus),
+        .y_q22           (y_q22_bus),
         .x_state     (x_state_nc),
         .vx_state    (vx_state_nc),
         .y_state     (y_state_nc),

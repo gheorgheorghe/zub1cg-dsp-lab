@@ -19,6 +19,7 @@
 `timescale 1ns / 1ps
 
 module sv_lockin #(
+    parameter int IN_W  = 16,
     parameter int OUT_W = 24
 ) (
     input  logic                    clk,
@@ -26,7 +27,7 @@ module sv_lockin #(
     input  logic                    tick_en,
 
     input  logic [3:0]              lpf_shift, // 1..12 (fc ~ fs / (2*pi*2^lpf_shift))
-    input  logic signed [15:0]      sig_in,    // Q2.14 pickoff
+    input  logic signed [IN_W-1:0]  sig_in,    // Q2.(IN_W-2) pickoff (16b Q2.14 or 24b Q2.22)
     input  logic signed [15:0]      cos_in,    // Q1.15 NCO cos
     input  logic signed [15:0]      sin_in,    // Q1.15 NCO sin
 
@@ -35,24 +36,26 @@ module sv_lockin #(
     output logic                    out_valid
 );
 
-    // Stage 0: Registered I/Q mixing (maps cleanly to 2 DSP48E2 slices)
-    // sig_in (Q2.14) * sin_in (Q1.15) = Q3.29; * 2 => Q2.30 (fits in signed 32-bit since |sig|<2, |sin|<=1)
-    // Store internal LPF states in signed 36-bit Q4.32 for zero truncation noise at high lpf_shift.
-    localparam int LPF_W = 36;
+    // Stage 0: Registered I/Q mixing (maps cleanly to 2 DSP48E2 slices: up to 24x16)
+    // sig_in Q2.(IN_W-2) * sin_in Q1.15 = Q3.(IN_W+13); *2 lock-in factor => Q2.(IN_W+14).
+    // Align into signed 44-bit Q6.38 internal LPF accumulators for zero truncation noise.
+    localparam int MIX_W     = IN_W + 16;
+    localparam int LPF_W     = 44;
+    localparam int MIX_SHIFT = 38 - (IN_W + 13) + 1; // 10 for IN_W=16, 2 for IN_W=24 (includes 2x lock-in factor)
+    localparam int OUT_SHIFT = 38 - 22;              // 16: Q6.38 -> Q2.22
 
-    logic signed [31:0] mix_i_reg;
-    logic signed [31:0] mix_q_reg;
-    logic               mix_valid;
+    logic signed [MIX_W-1:0] mix_i_reg;
+    logic signed [MIX_W-1:0] mix_q_reg;
+    logic                    mix_valid;
 
     logic signed [LPF_W-1:0] i_s1, i_s2, i_s3;
     logic signed [LPF_W-1:0] q_s1, q_s2, q_s3;
 
-    logic signed [LPF_W-1:0] mix_i_q32;
-    logic signed [LPF_W-1:0] mix_q_q32;
+    logic signed [LPF_W-1:0] mix_i_q38;
+    logic signed [LPF_W-1:0] mix_q_q38;
 
-    // Q2.14 * Q1.15 = Q3.29; *2 (lock-in 2x factor) => Q2.30; shift left 3 -> Q4.32 (total <<< 4)
-    assign mix_i_q32 = LPF_W'(mix_i_reg) <<< 4;
-    assign mix_q_q32 = LPF_W'(mix_q_reg) <<< 4;
+    assign mix_i_q38 = LPF_W'(mix_i_reg) <<< MIX_SHIFT;
+    assign mix_q_q38 = LPF_W'(mix_q_reg) <<< MIX_SHIFT;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
@@ -69,35 +72,34 @@ module sv_lockin #(
         end else begin
             mix_valid <= tick_en;
             if (tick_en) begin
-                // Q2.14 * Q1.15 -> Q3.29 (shifted left by 3 above = *2 -> Q2.30, +2 guard -> Q4.32)
-                mix_i_reg <= 32'(sig_in) * 32'(sin_in);
-                mix_q_reg <= 32'(sig_in) * 32'(cos_in);
+                mix_i_reg <= MIX_W'(sig_in) * MIX_W'(sin_in);
+                mix_q_reg <= MIX_W'(sig_in) * MIX_W'(cos_in);
             end
 
             out_valid <= mix_valid;
             if (mix_valid) begin
-                i_s1 <= i_s1 + ((mix_i_q32 - i_s1) >>> lpf_shift);
+                i_s1 <= i_s1 + ((mix_i_q38 - i_s1) >>> lpf_shift);
                 i_s2 <= i_s2 + ((i_s1      - i_s2) >>> lpf_shift);
                 i_s3 <= i_s3 + ((i_s2      - i_s3) >>> lpf_shift);
 
-                q_s1 <= q_s1 + ((mix_q_q32 - q_s1) >>> lpf_shift);
+                q_s1 <= q_s1 + ((mix_q_q38 - q_s1) >>> lpf_shift);
                 q_s2 <= q_s2 + ((q_s1      - q_s2) >>> lpf_shift);
                 q_s3 <= q_s3 + ((q_s2      - q_s3) >>> lpf_shift);
             end
         end
     end
 
-    // Convert Q4.32 -> Q2.22 (24-bit signed) with round-to-nearest
+    // Convert Q6.38 -> Q2.22 (24-bit signed) with round-to-nearest
     logic signed [LPF_W-1:0] i_rnd;
     logic signed [LPF_W-1:0] q_rnd;
-    assign i_rnd = i_s3 + (LPF_W'(1) <<< 9);
-    assign q_rnd = q_s3 + (LPF_W'(1) <<< 9);
+    assign i_rnd = i_s3 + (LPF_W'(1) <<< (OUT_SHIFT - 1));
+    assign q_rnd = q_s3 + (LPF_W'(1) <<< (OUT_SHIFT - 1));
 
-    assign out_i = i_rnd[10 +: OUT_W];
-    assign out_q = q_rnd[10 +: OUT_W];
+    assign out_i = i_rnd[OUT_SHIFT +: OUT_W];
+    assign out_q = q_rnd[OUT_SHIFT +: OUT_W];
 
     logic unused_ok;
-    assign unused_ok = &{1'b0, i_rnd[LPF_W-1:10+OUT_W], i_rnd[9:0],
-                         q_rnd[LPF_W-1:10+OUT_W], q_rnd[9:0]};
+    assign unused_ok = &{1'b0, i_rnd[LPF_W-1:OUT_SHIFT+OUT_W], i_rnd[OUT_SHIFT-1:0],
+                         q_rnd[LPF_W-1:OUT_SHIFT+OUT_W], q_rnd[OUT_SHIFT-1:0]};
 
 endmodule

@@ -58,9 +58,11 @@ module mems_plant_2dof (
     input  logic [15:0]        rrw_step_amp,    // slow random walk step on half_gxy_dt
     input  logic [31:0]        noise_seed,
 
-    // Pickoff outputs (Q2.14, 16-bit ADC equivalent) & full 48-bit truth states
+    // Pickoff outputs (16-bit Q2.14 + 24-bit Q2.22 Delta-Sigma ADC equivalent) & 48-bit truth states
     output logic signed [15:0] x_q14,
     output logic signed [15:0] y_q14,
+    output logic signed [23:0] x_q22,
+    output logic signed [23:0] y_q22,
     output logic signed [47:0] x_state,
     output logic signed [47:0] vx_state,
     output logic signed [47:0] y_state,
@@ -68,8 +70,9 @@ module mems_plant_2dof (
     output logic               step_done
 );
 
-    localparam int C_FRAC  = 34; // state(Q4.44) * coeff(Q2.34) -> >>> 34 -> Q4.44
-    localparam int U_SHIFT = 14; // u(Q10.22) * half_dt(Q0.36) -> frac=58 -> >>> 14 -> Q4.44
+    localparam int C_FRAC     = 34; // cos/sin (Q2.34): state(Q4.44) * coeff(Q2.34) -> >>> 34 -> Q4.44
+    localparam int SMALL_FRAC = 42; // high-Q kick coeffs (Q-6.42, 256x finer!): >>> 42 -> Q4.44
+    localparam int U_SHIFT    = 14; // u(Q10.22) * half_dt(Q0.36) -> frac=58 -> >>> 14 -> Q4.44
 
     // Primary 48-bit Q4.44 states
     logic signed [47:0] x_r, vx_r, y_r, vy_r;
@@ -86,11 +89,13 @@ module mems_plant_2dof (
     logic signed [47:0] mul_a;
     logic signed [35:0] mul_b;
     logic               mul_is_u;
+    logic               mul_is_small;
     logic               mul_neg;
     logic [3:0]         mul_dest;
 
     logic signed [83:0] prod_r;
     logic               prod_is_u_r;
+    logic               prod_is_small_r;
     logic               prod_neg_r;
     logic [3:0]         prod_dest_r;
     logic               prod_valid_r;
@@ -128,7 +133,7 @@ module mems_plant_2dof (
     logic signed [9:0]  g_fx, g_fy, g_ax, g_ay;
     logic signed [26:0] fn_x_prod, fn_y_prod, an_x_prod, an_y_prod;
     logic signed [31:0] fn_x_q22_r, fn_y_q22_r;
-    logic signed [15:0] an_x_q14_r, an_y_q14_r;
+    logic signed [23:0] an_x_q22_r, an_y_q22_r;
 
     assign g_fx = 10'(signed'(rng0[7:0]))   + 10'(signed'(rng1[7:0]))   +
                   10'(signed'(rng2[7:0]))   + 10'(signed'(rng3[7:0]));
@@ -145,15 +150,15 @@ module mems_plant_2dof (
     assign an_y_prod = 27'(g_ay) * 27'(signed'({1'b0, adc_noise_amp}));
 
     logic signed [26:0] fn_x_shf, fn_y_shf, an_x_shf, an_y_shf;
-    assign fn_x_shf = (fn_x_prod + 27'sd8)    >>> 4;
-    assign fn_y_shf = (fn_y_prod + 27'sd8)    >>> 4;
-    assign an_x_shf = (an_x_prod + 27'sd2048) >>> 12;
-    assign an_y_shf = (an_y_prod + 27'sd2048) >>> 12;
+    assign fn_x_shf = (fn_x_prod + 27'sd8) >>> 4;
+    assign fn_y_shf = (fn_y_prod + 27'sd8) >>> 4;
+    assign an_x_shf = (an_x_prod + 27'sd8) >>> 4; // Q2.22 pickoff noise (sigma = 9.238 * amp / 2^22)
+    assign an_y_shf = (an_y_prod + 27'sd8) >>> 4;
 
     logic [31:0] eff_seed;
     assign eff_seed = (noise_seed == 32'd0) ? 32'hA5A5_1337 : noise_seed;
 
-    // Slow Rate Random Walk (RRW) accumulator added to half_gxy_dt (52-bit: 36b Q2.34 + 16b sub-LSB)
+    // Slow Rate Random Walk (RRW) accumulator added to half_gxy_dt (52-bit: 36b Q-6.42 + 16b sub-LSB)
     logic signed [51:0] gxy_walk_acc;
     logic signed [35:0] eff_half_gxy_dt;
     assign eff_half_gxy_dt = half_gxy_dt + gxy_walk_acc[51:16];
@@ -165,6 +170,8 @@ module mems_plant_2dof (
     always_comb begin
         if (prod_is_u_r) begin
             prod_shifted = (prod_r + (84'sd1 <<< (U_SHIFT - 1))) >>> U_SHIFT;
+        end else if (prod_is_small_r) begin
+            prod_shifted = (prod_r + (84'sd1 <<< (SMALL_FRAC - 1))) >>> SMALL_FRAC;
         end else begin
             prod_shifted = (prod_r + (84'sd1 <<< (C_FRAC - 1))) >>> C_FRAC;
         end
@@ -175,56 +182,57 @@ module mems_plant_2dof (
     // Note: Wait 1 bubble cycle after each dependency boundary (step 11 -> vx_h/vy_h ready,
     // step 20 -> x_n/vx_rot/y_n/vy_rot ready) so registered accumulation is hazard-free!
     always_comb begin
-        mul_a    = 48'sd0;
-        mul_b    = 36'sd0;
-        mul_is_u = 1'b0;
-        mul_neg  = 1'b0;
-        mul_dest = DST_NONE;
+        mul_a        = 48'sd0;
+        mul_b        = 36'sd0;
+        mul_is_u     = 1'b0;
+        mul_is_small = 1'b0;
+        mul_neg      = 1'b0;
+        mul_dest     = DST_NONE;
 
         unique case (step_idx)
             // --- Kick 1: vx_h = vx + dt/2 * (-gx*vx - kxy*y - gxy*vy + cor*vy + u_x_k) ---
-            6'd1:  begin mul_a = vx_r;             mul_b = half_gx_dt;  mul_neg = 1'b1; mul_dest = DST_VX_H; end
-            6'd2:  begin mul_a = y_r;              mul_b = half_kxy_dt; mul_neg = 1'b1; mul_dest = DST_VX_H; end
-            6'd3:  begin mul_a = vy_r;             mul_b = eff_half_gxy_dt; mul_neg = 1'b1; mul_dest = DST_VX_H; end
-            6'd4:  begin mul_a = vy_r;             mul_b = half_cor_dt; mul_neg = 1'b0; mul_dest = DST_VX_H; end
-            6'd5:  begin mul_a = 48'(ux0_r);       mul_b = half_dt_q36; mul_is_u = 1'b1; mul_dest = DST_VX_H; end
+            6'd1:  begin mul_a = vx_r;             mul_b = half_gx_dt;      mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_H; end
+            6'd2:  begin mul_a = y_r;              mul_b = half_kxy_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_H; end
+            6'd3:  begin mul_a = vy_r;             mul_b = eff_half_gxy_dt; mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_H; end
+            6'd4:  begin mul_a = vy_r;             mul_b = half_cor_dt;     mul_is_small = 1'b1; mul_neg = 1'b0; mul_dest = DST_VX_H; end
+            6'd5:  begin mul_a = 48'(ux0_r);       mul_b = half_dt_q36;     mul_is_u     = 1'b1; mul_dest = DST_VX_H; end
 
             // --- Kick 1: vy_h = vy + dt/2 * (-gy*vy - kxy*x - gxy*vx - cor*vx + u_y_k) ---
-            6'd6:  begin mul_a = vy_r;             mul_b = half_gy_dt;  mul_neg = 1'b1; mul_dest = DST_VY_H; end
-            6'd7:  begin mul_a = x_r;              mul_b = half_kxy_dt; mul_neg = 1'b1; mul_dest = DST_VY_H; end
-            6'd8:  begin mul_a = vx_r;             mul_b = eff_half_gxy_dt; mul_neg = 1'b1; mul_dest = DST_VY_H; end
-            6'd9:  begin mul_a = vx_r;             mul_b = half_cor_dt; mul_neg = 1'b1; mul_dest = DST_VY_H; end
-            6'd10: begin mul_a = 48'(uy0_r);       mul_b = half_dt_q36; mul_is_u = 1'b1; mul_dest = DST_VY_H; end
+            6'd6:  begin mul_a = vy_r;             mul_b = half_gy_dt;      mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_H; end
+            6'd7:  begin mul_a = x_r;              mul_b = half_kxy_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_H; end
+            6'd8:  begin mul_a = vx_r;             mul_b = eff_half_gxy_dt; mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_H; end
+            6'd9:  begin mul_a = vx_r;             mul_b = half_cor_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_H; end
+            6'd10: begin mul_a = 48'(uy0_r);       mul_b = half_dt_q36;     mul_is_u     = 1'b1; mul_dest = DST_VY_H; end
 
             // Bubble cycle 11: vy_h finishes accumulating from step 10 (vx_h already ready at step 7)
             6'd11: begin mul_dest = DST_NONE; end
 
             // --- Exact Harmonic Rotation: (x, vx_h) -> (x_n, vx_rot) and (y, vy_h) -> (y_n, vy_rot) ---
-            6'd12: begin mul_a = x_r;              mul_b = cos_tx;      mul_neg = 1'b0; mul_dest = DST_X_N;   end
-            6'd13: begin mul_a = vx_h;             mul_b = sin_tx;      mul_neg = 1'b0; mul_dest = DST_X_N;   end
-            6'd14: begin mul_a = x_r;              mul_b = sin_tx;      mul_neg = 1'b1; mul_dest = DST_VX_RT; end
-            6'd15: begin mul_a = vx_h;             mul_b = cos_tx;      mul_neg = 1'b0; mul_dest = DST_VX_RT; end
-            6'd16: begin mul_a = y_r;              mul_b = cos_ty;      mul_neg = 1'b0; mul_dest = DST_Y_N;   end
-            6'd17: begin mul_a = vy_h;             mul_b = sin_ty;      mul_neg = 1'b0; mul_dest = DST_Y_N;   end
-            6'd18: begin mul_a = y_r;              mul_b = sin_ty;      mul_neg = 1'b1; mul_dest = DST_VY_RT; end
-            6'd19: begin mul_a = vy_h;             mul_b = cos_ty;      mul_neg = 1'b0; mul_dest = DST_VY_RT; end
+            6'd12: begin mul_a = x_r;              mul_b = cos_tx;          mul_neg = 1'b0; mul_dest = DST_X_N;   end
+            6'd13: begin mul_a = vx_h;             mul_b = sin_tx;          mul_neg = 1'b0; mul_dest = DST_X_N;   end
+            6'd14: begin mul_a = x_r;              mul_b = sin_tx;          mul_neg = 1'b1; mul_dest = DST_VX_RT; end
+            6'd15: begin mul_a = vx_h;             mul_b = cos_tx;          mul_neg = 1'b0; mul_dest = DST_VX_RT; end
+            6'd16: begin mul_a = y_r;              mul_b = cos_ty;          mul_neg = 1'b0; mul_dest = DST_Y_N;   end
+            6'd17: begin mul_a = vy_h;             mul_b = sin_ty;          mul_neg = 1'b0; mul_dest = DST_Y_N;   end
+            6'd18: begin mul_a = y_r;              mul_b = sin_ty;          mul_neg = 1'b1; mul_dest = DST_VY_RT; end
+            6'd19: begin mul_a = vy_h;             mul_b = cos_ty;          mul_neg = 1'b0; mul_dest = DST_VY_RT; end
 
             // Bubble cycle 20: vy_rot finishes accumulating from step 19, initialize vx_n/vy_n
             6'd20: begin mul_dest = DST_NONE; end
 
             // --- Kick 2: vx_n = vx_rot + dt/2 * (-gx*vx_rot - kxy*y_n - gxy*vy_rot + cor*vy_rot + u_x_k1) ---
-            6'd21: begin mul_a = vx_rot;           mul_b = half_gx_dt;  mul_neg = 1'b1; mul_dest = DST_VX_N; end
-            6'd22: begin mul_a = y_n;              mul_b = half_kxy_dt; mul_neg = 1'b1; mul_dest = DST_VX_N; end
-            6'd23: begin mul_a = vy_rot;           mul_b = eff_half_gxy_dt; mul_neg = 1'b1; mul_dest = DST_VX_N; end
-            6'd24: begin mul_a = vy_rot;           mul_b = half_cor_dt; mul_neg = 1'b0; mul_dest = DST_VX_N; end
-            6'd25: begin mul_a = 48'(ux1_r);       mul_b = half_dt_q36; mul_is_u = 1'b1; mul_dest = DST_VX_N; end
+            6'd21: begin mul_a = vx_rot;           mul_b = half_gx_dt;      mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_N; end
+            6'd22: begin mul_a = y_n;              mul_b = half_kxy_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_N; end
+            6'd23: begin mul_a = vy_rot;           mul_b = eff_half_gxy_dt; mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VX_N; end
+            6'd24: begin mul_a = vy_rot;           mul_b = half_cor_dt;     mul_is_small = 1'b1; mul_neg = 1'b0; mul_dest = DST_VX_N; end
+            6'd25: begin mul_a = 48'(ux1_r);       mul_b = half_dt_q36;     mul_is_u     = 1'b1; mul_dest = DST_VX_N; end
 
             // --- Kick 2: vy_n = vy_rot + dt/2 * (-gy*vy_rot - kxy*x_n - gxy*vx_rot - cor*vx_rot + u_y_k1) ---
-            6'd26: begin mul_a = vy_rot;           mul_b = half_gy_dt;  mul_neg = 1'b1; mul_dest = DST_VY_N; end
-            6'd27: begin mul_a = x_n;              mul_b = half_kxy_dt; mul_neg = 1'b1; mul_dest = DST_VY_N; end
-            6'd28: begin mul_a = vx_rot;           mul_b = eff_half_gxy_dt; mul_neg = 1'b1; mul_dest = DST_VY_N; end
-            6'd29: begin mul_a = vx_rot;           mul_b = half_cor_dt; mul_neg = 1'b1; mul_dest = DST_VY_N; end
-            6'd30: begin mul_a = 48'(uy1_r);       mul_b = half_dt_q36; mul_is_u = 1'b1; mul_dest = DST_VY_N; end
+            6'd26: begin mul_a = vy_rot;           mul_b = half_gy_dt;      mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_N; end
+            6'd27: begin mul_a = x_n;              mul_b = half_kxy_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_N; end
+            6'd28: begin mul_a = vx_rot;           mul_b = eff_half_gxy_dt; mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_N; end
+            6'd29: begin mul_a = vx_rot;           mul_b = half_cor_dt;     mul_is_small = 1'b1; mul_neg = 1'b1; mul_dest = DST_VY_N; end
+            6'd30: begin mul_a = 48'(uy1_r);       mul_b = half_dt_q36;     mul_is_u     = 1'b1; mul_dest = DST_VY_N; end
 
             default: begin mul_dest = DST_NONE; end
         endcase
@@ -248,23 +256,24 @@ module mems_plant_2dof (
             uy0_r        <= '0;
             ux1_r        <= '0;
             uy1_r        <= '0;
-            prod_r       <= '0;
-            prod_is_u_r  <= 1'b0;
-            prod_neg_r   <= 1'b0;
-            prod_dest_r  <= DST_NONE;
-            prod_valid_r <= 1'b0;
-            step_idx     <= 6'd0;
-            busy         <= 1'b0;
-            step_done    <= 1'b0;
-            rng0         <= 32'hA5A5_1337;
-            rng1         <= 32'h3C6E_F372;
-            rng2         <= 32'h9E37_79B9;
-            rng3         <= 32'hBB67_AE85;
-            fn_x_q22_r   <= 32'sd0;
-            fn_y_q22_r   <= 32'sd0;
-            an_x_q14_r   <= 16'sd0;
-            an_y_q14_r   <= 16'sd0;
-            gxy_walk_acc <= 52'sd0;
+            prod_r          <= '0;
+            prod_is_u_r     <= 1'b0;
+            prod_is_small_r <= 1'b0;
+            prod_neg_r      <= 1'b0;
+            prod_dest_r     <= DST_NONE;
+            prod_valid_r    <= 1'b0;
+            step_idx        <= 6'd0;
+            busy            <= 1'b0;
+            step_done       <= 1'b0;
+            rng0            <= 32'hA5A5_1337;
+            rng1            <= 32'h3C6E_F372;
+            rng2            <= 32'h9E37_79B9;
+            rng3            <= 32'hBB67_AE85;
+            fn_x_q22_r      <= 32'sd0;
+            fn_y_q22_r      <= 32'sd0;
+            an_x_q22_r      <= 24'sd0;
+            an_y_q22_r      <= 24'sd0;
+            gxy_walk_acc    <= 52'sd0;
         end else begin
             step_done <= 1'b0;
 
@@ -282,16 +291,17 @@ module mems_plant_2dof (
                 rng3         <= eff_seed ^ 32'hBB67_AE85;
                 fn_x_q22_r   <= 32'sd0;
                 fn_y_q22_r   <= 32'sd0;
-                an_x_q14_r   <= 16'sd0;
-                an_y_q14_r   <= 16'sd0;
+                an_x_q22_r   <= 24'sd0;
+                an_y_q22_r   <= 24'sd0;
                 gxy_walk_acc <= 52'sd0;
             end else begin
                 // Stage 1 of MAC pipeline: multiply and register 84-bit signed product
-                prod_r       <= signed'({{36{mul_a[47]}}, mul_a}) * signed'({{48{mul_b[35]}}, mul_b});
-                prod_is_u_r  <= mul_is_u;
-                prod_neg_r   <= mul_neg;
-                prod_dest_r  <= mul_dest;
-                prod_valid_r <= (mul_dest != DST_NONE);
+                prod_r          <= signed'({{36{mul_a[47]}}, mul_a}) * signed'({{48{mul_b[35]}}, mul_b});
+                prod_is_u_r     <= mul_is_u;
+                prod_is_small_r <= mul_is_small;
+                prod_neg_r      <= mul_neg;
+                prod_dest_r     <= mul_dest;
+                prod_valid_r    <= (mul_dest != DST_NONE);
 
                 // Stage 2 of MAC pipeline: accumulate into target register
                 if (prod_valid_r) begin
@@ -330,8 +340,8 @@ module mems_plant_2dof (
                         rng3       <= xorshift32(rng3);
                         fn_x_q22_r <= (force_noise_amp != 16'd0) ? 32'(fn_x_shf) : 32'sd0;
                         fn_y_q22_r <= (force_noise_amp != 16'd0) ? 32'(fn_y_shf) : 32'sd0;
-                        an_x_q14_r <= (adc_noise_amp   != 16'd0) ? an_x_shf[15:0] : 16'sd0;
-                        an_y_q14_r <= (adc_noise_amp   != 16'd0) ? an_y_shf[15:0] : 16'sd0;
+                        an_x_q22_r <= (adc_noise_amp   != 16'd0) ? an_x_shf[23:0] : 24'sd0;
+                        an_y_q22_r <= (adc_noise_amp   != 16'd0) ? an_y_shf[23:0] : 24'sd0;
                         if (rrw_step_amp != 16'd0) begin
                             gxy_walk_acc <= (rng0[0] ^ rng2[1])
                                           ? (gxy_walk_acc + 52'(signed'({1'b0, rrw_step_amp})))
@@ -365,28 +375,30 @@ module mems_plant_2dof (
         end
     end
 
-    // Convert Q4.44 state -> Q2.14 16-bit pickoff (round bit 29, extract bits [45:30])
-    // and add optional front-end ADC pickoff noise with 16-bit saturation.
+    // Convert Q4.44 state -> 24-bit Q2.22 Delta-Sigma pickoff (round bit 21, extract [45:22])
+    // and add optional front-end ADC pickoff noise with 24-bit saturation.
     logic signed [47:0] x_rnd, y_rnd;
-    logic signed [16:0] x_noisy_ext, y_noisy_ext;
-    assign x_rnd       = x_r + (48'sd1 <<< 29);
-    assign y_rnd       = y_r + (48'sd1 <<< 29);
-    assign x_noisy_ext = 17'(signed'(x_rnd[30 +: 16])) + 17'(an_x_q14_r);
-    assign y_noisy_ext = 17'(signed'(y_rnd[30 +: 16])) + 17'(an_y_q14_r);
+    logic signed [24:0] x_noisy_ext, y_noisy_ext;
+    assign x_rnd       = x_r + (48'sd1 <<< 21);
+    assign y_rnd       = y_r + (48'sd1 <<< 21);
+    assign x_noisy_ext = 25'(signed'(x_rnd[22 +: 24])) + 25'(an_x_q22_r);
+    assign y_noisy_ext = 25'(signed'(y_rnd[22 +: 24])) + 25'(an_y_q22_r);
 
-    assign x_q14 = (x_noisy_ext >  17'sd32767) ?  16'sd32767 :
-                   (x_noisy_ext < -17'sd32768) ? -16'sd32768 :
-                                                  x_noisy_ext[15:0];
-    assign y_q14 = (y_noisy_ext >  17'sd32767) ?  16'sd32767 :
-                   (y_noisy_ext < -17'sd32768) ? -16'sd32768 :
-                                                  y_noisy_ext[15:0];
+    assign x_q22 = (x_noisy_ext >  25'sd8388607) ?  24'sd8388607 :
+                   (x_noisy_ext < -25'sd8388608) ? -24'sd8388608 :
+                                                    x_noisy_ext[23:0];
+    assign y_q22 = (y_noisy_ext >  25'sd8388607) ?  24'sd8388607 :
+                   (y_noisy_ext < -25'sd8388608) ? -24'sd8388608 :
+                                                    y_noisy_ext[23:0];
+    assign x_q14 = x_q22[23:8];
+    assign y_q14 = y_q22[23:8];
     assign x_state  = x_r;
     assign vx_state = vx_r;
     assign y_state  = y_r;
     assign vy_state = vy_r;
 
     logic unused_ok;
-    assign unused_ok = &{1'b0, prod_shifted[83:48], x_rnd[47:46], x_rnd[29:0], y_rnd[47:46], y_rnd[29:0],
-                         an_x_shf[26:16], an_y_shf[26:16], gxy_walk_acc[15:0]};
+    assign unused_ok = &{1'b0, prod_shifted[83:48], x_rnd[47:46], x_rnd[21:0], y_rnd[47:46], y_rnd[21:0],
+                         an_x_shf[26:24], an_y_shf[26:24], gxy_walk_acc[15:0]};
 
 endmodule

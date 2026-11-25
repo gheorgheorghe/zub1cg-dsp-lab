@@ -13,6 +13,7 @@ except ImportError:
 
 S_FRAC = 44
 C_FRAC = 34
+SMALL_FRAC = 42
 DT_FRAC = 36
 
 
@@ -51,9 +52,9 @@ async def tb_drg_closed_loop_rtl(dut):
     dut.sin_tx.value = to_fixed(math.sin(w0 * dt), 36, C_FRAC)
     dut.cos_ty.value = to_fixed(math.cos(2 * math.pi * (f0 + 0.5) * dt), 36, C_FRAC)
     dut.sin_ty.value = to_fixed(math.sin(2 * math.pi * (f0 + 0.5) * dt), 36, C_FRAC)
-    dut.half_gx_dt.value = to_fixed(0.5 * (w0 / q_x) * dt, 36, C_FRAC)
-    dut.half_gy_dt.value = to_fixed(0.5 * (w0 / q_y) * dt, 36, C_FRAC)
-    dut.half_kxy_dt.value = to_fixed(0.5 * k_xy * dt, 36, C_FRAC)
+    dut.half_gx_dt.value = to_fixed(0.5 * (w0 / q_x) * dt, 36, SMALL_FRAC)
+    dut.half_gy_dt.value = to_fixed(0.5 * (w0 / q_y) * dt, 36, SMALL_FRAC)
+    dut.half_kxy_dt.value = to_fixed(0.5 * k_xy * dt, 36, SMALL_FRAC)
     dut.half_gxy_dt.value = 0
     dut.half_cor_dt.value = 0
     dut.half_dt_q36.value = to_fixed(0.5 * dt, 36, DT_FRAC)
@@ -74,34 +75,32 @@ async def tb_drg_closed_loop_rtl(dut):
     dut.sx_setpoint.value = 0
     dut.sy_setpoint.value = 0
 
-    # Convert physical PI gains into Q2.22-in -> Q10.14-out fixed-point gains (GAIN_FRAC=16):
-    # Scale factor from Q2.22 err to Q10.14 out is 2^-8.
-    # For PLL: 1 rad/s = (2^32 / (2*pi*fs)) / 16 PLLAdj counts = 213.6 counts/(rad/s)
-    pll_scale = (2**32 / (2.0 * math.pi * fs)) / 16.0 / (2**22)
-    u_scale = (1 << 14) / float(1 << 22)  # Q10.14 / Q2.22 = 2^-8
+    # Stage 1 v2 High-Q gains: Q2.22 err -> 32-bit Q10.22 out (u_scale = 1.0, GAIN_FRAC = 14)
+    # For 40-bit PLL: 1 rad/s = (2^40 / (2*pi*fs)) PLLAdj counts
+    pll_scale = (2**40 / (2.0 * math.pi * fs)) / (2**22)
 
-    dut.pll_kp.value = to_fixed(600.0 * pll_scale, 24, 16)
-    dut.pll_ki.value = to_fixed(150_000.0 * dt * pll_scale, 24, 16)
-    dut.agc_kp.value = to_fixed(160.0 * u_scale, 24, 16)
-    dut.agc_ki.value = to_fixed(5_000.0 * dt * u_scale, 24, 16)
-    dut.clq_kp.value = to_fixed(240.0 * u_scale, 24, 16)
-    dut.clq_ki.value = to_fixed(12_000.0 * dt * u_scale, 24, 16)
-    dut.ftr_kp.value = to_fixed(240.0 * u_scale, 24, 16)
-    dut.ftr_ki.value = to_fixed(12_000.0 * dt * u_scale, 24, 16)
+    dut.pll_kp.value = to_fixed(600.0 * pll_scale, 24, 14)
+    dut.pll_ki.value = to_fixed(150_000.0 * dt * pll_scale, 24, 14)
+    dut.agc_kp.value = to_fixed(160.0, 24, 14)
+    dut.agc_ki.value = to_fixed(5_000.0 * dt, 24, 14)
+    dut.clq_kp.value = to_fixed(240.0, 24, 14)
+    dut.clq_ki.value = to_fixed(12_000.0 * dt, 24, 14)
+    dut.ftr_kp.value = to_fixed(240.0, 24, 14)
+    dut.ftr_ki.value = to_fixed(12_000.0 * dt, 24, 14)
 
     for _ in range(5):
         await RisingEdge(dut.clk)
     dut.rst_n.value = 1
     await RisingEdge(dut.clk)
 
-    # Preload drive resonator near nominal amplitude & preload AGC nominal drive
+    # Preload drive resonator near nominal amplitude & preload AGC nominal drive (Q10.22)
     dut.x_init.value = 0
     dut.vx_init.value = to_fixed(0.95, 48, S_FRAC)
     dut.y_init.value = 0
     dut.vy_init.value = 0
     dut.state_load.value = 1
     dut.pll_init.value = 0
-    dut.agc_init.value = to_fixed(w0 / q_x, 24, 14)
+    dut.agc_init.value = to_fixed(w0 / q_x, 32, 22)
     dut.pi_load.value = 1
     await RisingEdge(dut.clk)
     dut.state_load.value = 0
@@ -126,7 +125,7 @@ async def tb_drg_closed_loop_rtl(dut):
         if dut.tick_pulse.value:
             ticks += 1
             if ticks == 6_000:
-                dut.half_cor_dt.value = to_fixed(0.5 * (2.0 * ag * omega_step_rad) * dt, 36, C_FRAC)
+                dut.half_cor_dt.value = to_fixed(0.5 * (2.0 * ag * omega_step_rad) * dt, 36, SMALL_FRAC)
 
             if ticks >= 6_000:
                 dx_val = from_signed(int(dut.dx_out.value), 24) / float(1 << 22)
@@ -135,8 +134,8 @@ async def tb_drg_closed_loop_rtl(dut):
                 sy_val = from_signed(int(dut.sy_out.value), 24) / float(1 << 22)
                 amp = max(math.hypot(dx_val, dy_val), 0.1)
                 cd, sd = dx_val / amp, dy_val / amp
-                ftr_u = from_signed(int(dut.ftr_adj_out.value), 24) / float(1 << 14)
-                clq_u = from_signed(int(dut.clq_adj_out.value), 24) / float(1 << 14)
+                ftr_u = from_signed(int(dut.ftr_adj_out.value), 32) / float(1 << 22)
+                clq_u = from_signed(int(dut.clq_adj_out.value), 32) / float(1 << 22)
                 ftr_aligned = ftr_u * cd - clq_u * sd
                 clq_aligned = ftr_u * sd + clq_u * cd
                 sx_aligned = sx_val * cd - sy_val * sd

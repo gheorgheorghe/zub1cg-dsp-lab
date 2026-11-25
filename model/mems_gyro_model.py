@@ -89,6 +89,19 @@ PRESETS: dict[str, GyroParams] = {
         arw_deg_sqrt_hr=0.015,
         readout_noise_rms=1e-7,
     ),
+    "sic_drg_18khz_q500k": GyroParams(
+        name="SiC MEMS DRG (18 kHz, Q=500k)",
+        f0_hz=18_000.0,
+        q_x=500_000.0,
+        q_y=485_000.0,
+        mode_split_hz=0.20,
+        angular_gain=0.40,
+        quad_equiv_dps=60.0,
+        anisodamp_bias_dps=0.015,
+        tcf_ppm_per_c=-15.0,      # Epitaxial SiC TCF (~ -0.27 Hz/C, 2x stiffer than Si)
+        arw_deg_sqrt_hr=0.005,
+        readout_noise_rms=5e-8,
+    ),
     "hrg_micro_11khz_q1m": GyroParams(
         name="Fused-Silica Micro-HRG (11 kHz, Q=1M)",
         f0_hz=11_000.0,

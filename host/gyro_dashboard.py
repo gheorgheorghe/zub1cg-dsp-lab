@@ -35,7 +35,8 @@ from model.mems_gyro_model import (
 
 HIL_FS_HZ = 1_000_000.0  # 100 MHz pl_clk0 / TICK_DIV=100
 PRNG_FORCE_LSB_PER_AMP = 9.2376     # sigma(fn_q22) = 9.2376 * force_noise_amp
-PRNG_ADC_LSB_PER_AMP = 0.03608      # sigma(an_q14) = 0.03608 * adc_noise_amp
+PRNG_ADC_LSB_PER_AMP = 9.2376       # sigma(an_q22) = 9.2376 * adc_noise_amp (Stage 1 v2 Q2.22)
+SMALL_COEFF_FRAC = 42               # Stage 1 v2 Q-6.42 high-Q kick coefficients (256x finer)
 
 
 def _to_s36(val: float, frac: int) -> tuple[int, int]:
@@ -62,7 +63,7 @@ def compute_noise_regs(
     force_amp = max(0, min(65535, force_amp))
 
     readout_std = params.readout_noise_rms * math.sqrt(HIL_FS_HZ)
-    adc_amp = int(round((readout_std * (1 << 14)) / PRNG_ADC_LSB_PER_AMP))
+    adc_amp = int(round((readout_std * (1 << 22)) / PRNG_ADC_LSB_PER_AMP))
     adc_amp = max(0, min(65535, adc_amp))
 
     noise_cfg = ((adc_amp & 0xFFFF) << 16) | (force_amp & 0xFFFF)
@@ -98,30 +99,38 @@ def program_cvg_preset(
     client.reg_write(0x14, 0)        # SX_SETPOINT = 0.0
     client.reg_write(0x18, 0)        # SY_SETPOINT = 0.0
 
-    pll_scale = (2**32 / (2.0 * math.pi * HIL_FS_HZ)) / 16.0 / (2**22)
-    u_scale = (1 << 14) / float(1 << 22)
+    # Stage 1 v2 High-Q gains: Q2.22 err -> 32-bit Q10.22 out / 40-bit NCO (GAIN_FRAC = 14)
+    pll_scale = (2**40 / (2.0 * math.pi * HIL_FS_HZ)) / (2**22)
 
-    client.reg_write(0x1C, _to_s24(800.0 * pll_scale, 16))
-    client.reg_write(0x20, _to_s24(200_000.0 * dt * pll_scale, 16))
-    client.reg_write(0x24, _to_s24(160.0 * u_scale, 16))
-    client.reg_write(0x28, _to_s24(5_000.0 * dt * u_scale, 16))
-    client.reg_write(0x2C, _to_s24(240.0 * u_scale, 16))
-    client.reg_write(0x30, _to_s24(12_000.0 * dt * u_scale, 16))
-    client.reg_write(0x34, _to_s24(240.0 * u_scale, 16))
-    client.reg_write(0x38, _to_s24(12_000.0 * dt * u_scale, 16))
+    client.reg_write(0x1C, _to_s24(800.0 * pll_scale, 14))
+    client.reg_write(0x20, _to_s24(200_000.0 * dt * pll_scale, 14))
+    client.reg_write(0x24, _to_s24(160.0, 14))
+    client.reg_write(0x28, _to_s24(5_000.0 * dt, 14))
+    client.reg_write(0x2C, _to_s24(240.0, 14))
+    client.reg_write(0x30, _to_s24(12_000.0 * dt, 14))
+    client.reg_write(0x34, _to_s24(240.0, 14))
+    client.reg_write(0x38, _to_s24(12_000.0 * dt, 14))
 
+    # Rotation cos/sin in Q2.34
     for addr_lo, val in [
         (0x54, math.cos(w0 * dt)),
         (0x5C, math.sin(w0 * dt)),
         (0x64, math.cos(wy * dt)),
         (0x6C, math.sin(wy * dt)),
+    ]:
+        lo, hi = _to_s36(val, 34)
+        client.reg_write(addr_lo, lo)
+        client.reg_write(addr_lo + 4, hi)
+
+    # High-Q kick coefficients in Q-6.42 (256x finer damping/anisodamping/Coriolis!)
+    for addr_lo, val in [
         (0x74, 0.5 * (w0 / params.q_x) * dt),
         (0x7C, 0.5 * (wy / params.q_y) * dt),
         (0x84, 0.5 * k_xy * dt),
         (0x8C, 0.5 * g_xy * dt),
         (0x94, 0.0),  # Omega_z = 0 initially
     ]:
-        lo, hi = _to_s36(val, 34)
+        lo, hi = _to_s36(val, SMALL_COEFF_FRAC)
         client.reg_write(addr_lo, lo)
         client.reg_write(addr_lo + 4, hi)
 
@@ -137,14 +146,14 @@ def program_cvg_preset(
     client.reg_write(0xA8, seed_val)
     client.reg_write(0xAC, rrw_cfg)
 
-    # Preload initial drive oscillation vx = 0.95 and nominal AGC drive
+    # Preload initial drive oscillation vx = 0.95 and nominal AGC drive (Q10.22)
     vx_q44 = int(round(0.95 * (1 << 44)))
     client.reg_write(0x44, 0)
     client.reg_write(0x48, 0)
     client.reg_write(0x4C, vx_q44 & 0xFFFFFFFF)
     client.reg_write(0x50, (vx_q44 >> 32) & 0xFFFF)
     client.reg_write(0x3C, 0)
-    client.reg_write(0x40, _to_s24(w0 / params.q_x, 14))
+    client.reg_write(0x40, int(round((w0 / params.q_x) * (1 << 22))) & 0xFFFFFFFF)
 
     loop_mask = 0x06 | (0x08 if enable_clq else 0) | (0x10 if enable_ftr else 0)
     # Release reset, pulse state_load + pi_load, then enable closed-loop HIL
@@ -155,7 +164,7 @@ def program_cvg_preset(
 def set_rate_dps(client: ZUBoardClient, params: GyroParams, rate_dps: float) -> None:
     dt = 1.0 / HIL_FS_HZ
     cor_half = 0.5 * (2.0 * params.angular_gain * (rate_dps * DEG2RAD)) * dt
-    lo, hi = _to_s36(cor_half, 34)
+    lo, hi = _to_s36(cor_half, SMALL_COEFF_FRAC)
     client.reg_write(0x94, lo)
     client.reg_write(0x98, hi)
 
@@ -187,11 +196,11 @@ def decode_hw_frames(raw: np.ndarray, params: GyroParams, decim_hz: float, omega
     sx = raw[:, 2].astype(np.float64) / float(1 << 22)
     sy = raw[:, 3].astype(np.float64) / float(1 << 22)
 
-    pll_lsb_hz = (16.0 / (2**32)) * HIL_FS_HZ
+    pll_lsb_hz = HIL_FS_HZ / float(2**40)
     pll_adj_hz = raw[:, 4].astype(np.float64) * pll_lsb_hz
-    agc_adj = raw[:, 5].astype(np.float64) / float(1 << 14)
-    clq_adj = raw[:, 6].astype(np.float64) / float(1 << 14)
-    ftr_adj = raw[:, 7].astype(np.float64) / float(1 << 14)
+    agc_adj = raw[:, 5].astype(np.float64) / float(1 << 22)
+    clq_adj = raw[:, 6].astype(np.float64) / float(1 << 22)
+    ftr_adj = raw[:, 7].astype(np.float64) / float(1 << 22)
 
     amp = np.maximum(np.hypot(dx, dy), 1e-3)
     cd, sd = dx / amp, dy / amp

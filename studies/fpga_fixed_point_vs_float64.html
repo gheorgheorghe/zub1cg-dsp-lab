@@ -174,6 +174,44 @@
   </section>
 
   <section>
+    <h2><span class="badge green">Stage 1 v2 Upgrade</span> Live Silicon Before vs. After (<code>0x5A550101</code> &rarr; <code>0x5A550102</code>)</h2>
+    <p>We upgraded all four high-Q bottlenecks in RTL (<strong>40-bit NCO</strong> <code>0.91 &micro;Hz/LSB</code>, <strong>32-bit <code>Q10.22</code> PI</strong> <code>0.06&ndash;0.09 °/hr/LSB</code>, <strong>24-bit <code>Q2.22</code> &Delta;&Sigma; pickoff</strong>, and <strong><code>Q-6.42</code></strong> plant kick coeffs) &mdash; costing only +10 DSP48E2s (<code>46/216 = 21.3%</code>) while <em>improving</em> timing slack to <code>WNS = +1.343 ns @ 100 MHz</code>:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Live XCZU1CG Silicon Metric</th><th>Stage 1 v1 (<code>0x5A550101</code>)</th><th>Stage 1 v2 (<code>0x5A550102</code>)</th><th>Gain</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>30 s Pure Fixed-Point ADEV Floor</strong></td><td class="warn">2.749 °/hr</td><td class="ok">0.0274 °/hr</td><td class="ok">100&times; lower!</td></tr>
+          <tr><td><strong>Silicon DRG Zero-Rate Ripple (RMS)</strong></td><td class="warn">43.39 °/hr</td><td class="ok">0.19 °/hr</td><td class="ok">228&times; cleaner!</td></tr>
+          <tr><td><strong>Space HRG (Q=5M) Damping Rounding</strong></td><td class="warn">0.742% (45 LSB)</td><td class="ok">0.0015% (11,606 LSB)</td><td class="ok">495&times; finer!</td></tr>
+          <tr><td><strong>Space HRG 0.0005 °/s Anisodamping</strong></td><td class="bad">0.04 LSB &rarr; erased!</td><td class="ok">+0.00051 °/s (2% err!)</td><td class="ok">Resolved live!</td></tr>
+          <tr><td><strong>Quadrature Rejection (DRG / &micro;HRG / HRG)</strong></td><td>122 / 107 / 98 dB</td><td class="ok">229 / 215 / 205 dB</td><td class="ok">+107 dB!</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="plot">
+      <img src="hw_fpga_vs_float_error_v2.png" alt="Stage 1 v2 High-Q Live ZUBoard 1CG vs Float64" />
+      <div class="cap"><strong>Stage 1 v2 Live Silicon:</strong> Silicon DRG ripple dropped from <code>43.4</code> to <code>0.19 °/hr</code> and Micro-HRG to <code>0.03 °/hr</code>! (Bonus finding: the persistent <code>10.3 °/hr</code> 400 Hz wave on 4.2 kHz Space HRG is not quantization &mdash; it is <code>2f<sub>0</sub> = 8.4 kHz</code> carrier leakthrough through <code>lpf_shift=8</code> aliased to <code>400 Hz</code> at 2 kHz decimation!)</div>
+    </div>
+
+    <div class="plot">
+      <img src="hw_adev_30s_v2.png" alt="Stage 1 v2 30 s Live Hardware ADEV" />
+      <div class="cap"><strong>Stage 1 v2 30 s Live ADEV:</strong> The green pure fixed-point floor now sits at <code>0.0274 °/hr</code> &mdash; more than <strong>10&times; below</strong> the Silicon DRG thermal ARW target line, completely invisible underneath real sensor noise!</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Live Thermal Ramp</span> +30 °C Self-Thermometry on ZUBoard 1CG</h2>
+    <p>Streaming a live <code>25 °C &rarr; 55 °C</code> Silicon TCF ramp (<code>&minus;30 ppm/°C = &minus;9.90 Hz</code>) over GbE UDP while simultaneously applying a <code>+50.0 °/s</code> rotation rate proves our 40-bit NCO PLL tracks resonator temperature to <strong>6 millikelvin RMS</strong> with zero loss of rate accuracy:</p>
+    <div class="plot">
+      <img src="hw_temp_ramp_live.png" alt="Live ZUBoard 1CG +30 C thermal ramp self-thermometry" />
+      <div class="cap">Live XCZU1CG hardware capture: <strong>0.006 °C RMS</strong> (<code>0.009 °C max</code>) self-thermometry error from 40-bit <code>PLLAdj</code> while FTR holds <code>50.082 °/s</code> (<code>0.043 °/s</code> p2p thermal drift across +30 °C).</div>
+    </div>
+  </section>
+
+  <section>
     <h2><span class="badge red">Takeaways</span> Exact Bit-Width Bottlenecks &amp; Upgrades</h2>
     <ul>
       <li><strong><code>Q4.44</code> 48-bit Strang-Split Plant State — ROCK SOLID:</strong> <code>1 LSB = 5.7&times;10<sup>-14</sup></code> (&minus;265 dB). Zero noticeable integration drift or energy leak even at <code>Q = 5,000,000</code>.</li>

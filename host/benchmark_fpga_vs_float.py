@@ -35,38 +35,37 @@ from model.mems_gyro_model import (
 
 
 def coeff_quant_report(p: GyroParams) -> dict[str, float]:
-    """Compute exact quantization error of key Q2.34 plant & Q10.14 output registers."""
+    """Compute exact quantization error of Stage 1 v2 High-Q Q-6.42 plant & Q10.22 output registers."""
     dt = 1.0 / HIL_FS_HZ
     w0 = p.w0
     gx = 0.5 * (w0 / p.q_x) * dt
     gy = 0.5 * (w0 / p.q_y) * dt
     gxy = 0.5 * (2.0 * p.angular_gain * (p.anisodamp_bias_dps * DEG2RAD)) * dt
     cor_1dps = 0.5 * (2.0 * p.angular_gain * (1.0 * DEG2RAD)) * dt
-    q34 = float(1 << 34)
+    q42 = float(1 << 42)
 
-    gx_lsb = gx * q34
+    gx_lsb = gx * q42
     gx_err_pct = abs(round(gx_lsb) - gx_lsb) / max(gx_lsb, 1e-12) * 100.0
-    gxy_lsb = gxy * q34
+    gxy_lsb = gxy * q42
     gxy_err_pct = abs(round(gxy_lsb) - gxy_lsb) / max(gxy_lsb, 1e-12) * 100.0
 
-    # 1 LSB of Q10.14 FTRAdj mapped to deg/s and deg/hr
-    ftr_lsb_dps = (1.0 / float(1 << 14)) * RAD2DEG / (2.0 * p.angular_gain)
+    # 1 LSB of Q10.22 FTRAdj mapped to deg/s and deg/hr
+    ftr_lsb_dps = (1.0 / float(1 << 22)) * RAD2DEG / (2.0 * p.angular_gain)
     ftr_lsb_dph = ftr_lsb_dps * 3600.0
-    # 1 LSB of Q2.22 demod SX mapped to normalized displacement
+    # 1 LSB of Q2.22 demod SX and Q2.22 Delta-Sigma pickoff ADC
     sx_lsb = 1.0 / float(1 << 22)
-    # 1 LSB of Q2.14 pickoff ADC
-    adc_lsb = 1.0 / float(1 << 14)
+    adc_lsb = 1.0 / float(1 << 22)
 
     return {
-        "gamma_x_q34_lsbs": gx_lsb,
+        "gamma_x_q42_lsbs": gx_lsb,
         "gamma_x_quant_err_pct": gx_err_pct,
-        "anisodamp_q34_lsbs": gxy_lsb,
+        "anisodamp_q42_lsbs": gxy_lsb,
         "anisodamp_quant_err_pct": gxy_err_pct,
-        "cor_1dps_q34_lsbs": cor_1dps * q34,
-        "ftr_q14_lsb_dps": ftr_lsb_dps,
-        "ftr_q14_lsb_dph": ftr_lsb_dph,
+        "cor_1dps_q42_lsbs": cor_1dps * q42,
+        "ftr_q22_lsb_dps": ftr_lsb_dps,
+        "ftr_q22_lsb_dph": ftr_lsb_dph,
         "sx_q22_lsb": sx_lsb,
-        "adc_q14_lsb": adc_lsb,
+        "adc_q22_lsb": adc_lsb,
     }
 
 
@@ -88,9 +87,9 @@ def main() -> None:
         p = PRESETS[key]
         qrep = coeff_quant_report(p)
         print(f"\n=== Preset: {p.name} ({key}) ===")
-        print(f"  Q2.34 gamma_x = {qrep['gamma_x_q34_lsbs']:.1f} LSBs (err {qrep['gamma_x_quant_err_pct']:.3f}%) | "
-              f"anisodamp g_xy = {qrep['anisodamp_q34_lsbs']:.2f} LSBs | "
-              f"Q10.14 FTR 1 LSB = {qrep['ftr_q14_lsb_dps']:.5f} dps ({qrep['ftr_q14_lsb_dph']:.1f} dph)")
+        print(f"  Q-6.42 gamma_x = {qrep['gamma_x_q42_lsbs']:.1f} LSBs (err {qrep['gamma_x_quant_err_pct']:.4f}%) | "
+              f"anisodamp g_xy = {qrep['anisodamp_q42_lsbs']:.2f} LSBs | "
+              f"Q10.22 FTR 1 LSB = {qrep['ftr_q22_lsb_dps']:.7f} dps ({qrep['ftr_q22_lsb_dph']:.3f} dph)")
 
         # 1. Noise-free Live FPGA 0 -> 100 dps step
         program_cvg_preset(client, p, decim=500, lpf_shift=8, pkt_frames=frames, enable_noise=False)
@@ -198,7 +197,7 @@ def main() -> None:
     n_bursts = 12       # 30.0 s total
 
     adev_data = {}
-    for label, en_noise, rrw_amp in [("fixed_point_only", False, 0), ("prng_thermal_rrw", True, 8)]:
+    for label, en_noise, rrw_amp in [("fixed_point_only", False, 0), ("prng_thermal_rrw", True, 2048)]:
         program_cvg_preset(
             client, p_drg, decim=decim_adev, lpf_shift=9, pkt_frames=burst_frames,
             enable_noise=en_noise, rrw_step_amp=rrw_amp,
@@ -247,19 +246,19 @@ def main() -> None:
         t_z = np.arange(len(tr["z_hw"])) * 0.5  # ms
         z_dph = (tr["z_hw"] - np.mean(tr["z_hw"])) * 3600.0
         ax_r.plot(t_z, z_dph, color=colors[idx], lw=1.0, label=f"HW Zero-Rate Ripple (RMS={r['zero_rms_hw_dps']*3600:.2f} °/hr)")
-        lsb_dph = r["ftr_q14_lsb_dph"]
-        ax_r.axhline(+0.5 * lsb_dph, color="#dc2626", ls=":", lw=1.1, label=f"±0.5 LSB of Q10.14 FTR (±{0.5*lsb_dph:.1f} °/hr)")
+        lsb_dph = r["ftr_q22_lsb_dph"]
+        ax_r.axhline(+0.5 * lsb_dph, color="#dc2626", ls=":", lw=1.1, label=f"±0.5 LSB of Q10.22 FTR (±{0.5*lsb_dph:.3f} °/hr)")
         ax_r.axhline(-0.5 * lsb_dph, color="#dc2626", ls=":", lw=1.1)
-        ax_r.set_title(f"Zero-Rate Fixed-Point Floor (PRNG OFF) | Quad Rej = {r['quad_rej_db']:.1f} dB", fontsize=10)
+        ax_r.set_title(f"Zero-Rate Fixed-Point Floor (v2 High-Q) | Quad Rej = {r['quad_rej_db']:.1f} dB", fontsize=10)
         ax_r.set_ylabel("Residual Rate (°/hr)")
         ax_r.grid(True, alpha=0.3)
         ax_r.legend(loc="upper right", fontsize=8)
 
     axes[2, 0].set_xlabel("Time (ms)")
     axes[2, 1].set_xlabel("Zero-Rate Capture Time (ms)")
-    fig.suptitle("ZUBoard 1CG Live Fixed-Point RTL vs 64-bit Float64 Golden Model (Zero Noise)", fontsize=13, fontweight="bold")
+    fig.suptitle("ZUBoard 1CG Live Stage 1 v2 (40b NCO + Q10.22 PI + 24b ADC + Q-6.42) vs Float64", fontsize=12.5, fontweight="bold")
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    p1 = out_dir / "hw_fpga_vs_float_error.png"
+    p1 = out_dir / "hw_fpga_vs_float_error_v2.png"
     fig.savefig(p1, dpi=150)
     plt.close(fig)
     print(f"\nSaved -> {p1}")
@@ -269,22 +268,22 @@ def main() -> None:
     fp = adev_data["fixed_point_only"]
     pr = adev_data["prng_thermal_rrw"]
     ax.loglog(pr["taus"], pr["adevs_dph"], "o-", color="#2563eb", lw=2.0, ms=4,
-              label=f"Live FPGA PRNG ON (ARW={pr['arw_1s']:.3f} °/√hr, min={pr['min_adev_dph']:.2f} °/hr)")
-    ax.loglog(fp["taus"], fp["adevs_dph"], "s-", color="#dc2626", lw=2.0, ms=4,
-              label=f"Live FPGA PRNG OFF — Pure Fixed-Point Floor (min={fp['min_adev_dph']:.2f} °/hr)")
+              label=f"Live FPGA v2 PRNG ON (ARW={pr['arw_1s']:.4f} °/√hr, min={pr['min_adev_dph']:.3f} °/hr)")
+    ax.loglog(fp["taus"], fp["adevs_dph"], "s-", color="#10b981", lw=2.0, ms=4,
+              label=f"Live FPGA v2 PRNG OFF — Pure Fixed-Point Floor (min={fp['min_adev_dph']:.4f} °/hr)")
     arw_ref = (p_drg.arw_deg_sqrt_hr * 60.0) / np.sqrt(pr["taus"])
     ax.loglog(pr["taus"], arw_ref, "--", color="#6b7280", lw=1.3,
               label=f"Silicon DRG Target ARW = {p_drg.arw_deg_sqrt_hr} °/√hr (-1/2 slope)")
-    q14_floor = results["drg_11khz_q100k"]["ftr_q14_lsb_dph"] / math.sqrt(12.0)
-    ax.axhline(q14_floor, color="#f59e0b", ls=":", lw=1.3,
-               label=f"Q10.14 FTR 1-sample quant floor (LSB/√12 = {q14_floor:.2f} °/hr)")
+    q22_floor = results["drg_11khz_q100k"]["ftr_q22_lsb_dph"] / math.sqrt(12.0)
+    ax.axhline(q22_floor, color="#f59e0b", ls=":", lw=1.3,
+               label=f"Q10.22 FTR 1-sample quant floor (LSB/√12 = {q22_floor:.4f} °/hr)")
     ax.set_xlabel("Cluster Time τ (s)")
     ax.set_ylabel("Allan Deviation σ(τ) (°/hr)")
-    ax.set_title("ZUBoard 1CG Live 30 s Hardware ADEV — Fixed-Point Quantization Floor vs PRNG Noise")
+    ax.set_title("ZUBoard 1CG Live 30 s ADEV (Stage 1 v2 High-Q Precision) — Fixed-Point Floor vs PRNG")
     ax.legend(fontsize=8.5)
     ax.grid(True, which="both", alpha=0.35)
     plt.tight_layout()
-    p2 = out_dir / "hw_adev_30s_clean.png"
+    p2 = out_dir / "hw_adev_30s_v2.png"
     fig.savefig(p2, dpi=150)
     plt.close(fig)
     print(f"Saved -> {p2}")
@@ -298,8 +297,8 @@ def main() -> None:
             for k, v in adev_data.items()
         },
     }
-    (out_dir / "hw_fixed_point_benchmark.json").write_text(json.dumps(summary, indent=2))
-    print(f"Saved -> {out_dir / 'hw_fixed_point_benchmark.json'}")
+    (out_dir / "hw_fixed_point_benchmark_v2.json").write_text(json.dumps(summary, indent=2))
+    print(f"Saved -> {out_dir / 'hw_fixed_point_benchmark_v2.json'}")
 
 
 if __name__ == "__main__":

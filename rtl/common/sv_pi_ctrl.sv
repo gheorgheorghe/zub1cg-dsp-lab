@@ -14,25 +14,26 @@
 
 module sv_pi_ctrl #(
     parameter int DATA_W    = 24,
+    parameter int OUT_W     = DATA_W,
     parameter int GAIN_W    = 24,
     parameter int GAIN_FRAC = 16,
     parameter int ACC_W     = 48
 ) (
-    input  logic                     clk,
-    input  logic                     rst_n,
-    input  logic                     tick_en,
+    input  logic                    clk,
+    input  logic                    rst_n,
+    input  logic                    tick_en,
 
     // Runtime preload for bumpless mode transitions (e.g. R5F startup sweep -> lock)
-    input  logic                     int_load,
-    input  logic signed [DATA_W-1:0] int_init,
+    input  logic                    int_load,
+    input  logic signed [OUT_W-1:0] int_init,
 
     input  logic signed [DATA_W-1:0] err,
     input  logic signed [GAIN_W-1:0] kp,
     input  logic signed [GAIN_W-1:0] ki,
-    input  logic signed [DATA_W-1:0] out_min,
-    input  logic signed [DATA_W-1:0] out_max,
+    input  logic signed [OUT_W-1:0]  out_min,
+    input  logic signed [OUT_W-1:0]  out_max,
 
-    output logic signed [DATA_W-1:0] ctrl_out,
+    output logic signed [OUT_W-1:0]  ctrl_out,
     output logic                     sat_flag,
     output logic                     out_valid
 );
@@ -91,7 +92,7 @@ module sv_pi_ctrl #(
                     ctrl_out <= out_min;
                     sat_flag <= 1'b1;
                 end else begin
-                    ctrl_out <= sum_scaled[DATA_W-1:0];
+                    ctrl_out <= sum_scaled[OUT_W-1:0];
                     sat_flag <= 1'b0;
                 end
                 out_valid <= 1'b1;

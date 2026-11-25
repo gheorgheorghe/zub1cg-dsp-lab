@@ -1,0 +1,10 @@
+{
+  "version_hex": "0x5A550102",
+  "temp_start_c": 25.0,
+  "temp_end_c": 55.0,
+  "rms_temp_err_c": 0.0056553847772346,
+  "max_temp_err_c": 0.009176140090190188,
+  "rate_cmd_dps": 50.0,
+  "rate_mean_dps": 50.081915363414524,
+  "rate_p2p_drift_dps": 0.0429075057221624
+}

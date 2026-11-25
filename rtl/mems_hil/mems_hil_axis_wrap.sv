@@ -55,7 +55,7 @@ module mems_hil_axis_wrap #(
     output logic        m_axis_tlast
 );
 
-    localparam logic [31:0] VERSION_ID = 32'h5A55_0101; // "ZU" Stage 1 v1
+    localparam logic [31:0] VERSION_ID = 32'h5A55_0102; // "ZU" Stage 1 v2 (High-Q Precision)
     localparam int NUM_RW_REGS = 44;                   // Byte offsets 0x00 .. 0xAC
 
     logic [31:0] rw_regs [0:NUM_RW_REGS-1];
@@ -95,7 +95,7 @@ module mems_hil_axis_wrap #(
     logic               step_done;
     logic signed [15:0] x_q14, y_q14;
     logic signed [23:0] dx_bus, dy_bus, sx_bus, sy_bus;
-    logic signed [23:0] pll_adj_bus, agc_adj_bus, clq_adj_bus, ftr_adj_bus;
+    logic signed [31:0] pll_adj_bus, agc_adj_bus, clq_adj_bus, ftr_adj_bus;
     logic [31:0]        frame_cnt;
     logic               stream_ovf;
     logic               step_done_sticky;
@@ -189,10 +189,10 @@ module mems_hil_axis_wrap #(
                         6'd49: s_axi_rdata <= {{8{dy_bus[23]}},      dy_bus};       // 0xC4 DY_RO
                         6'd50: s_axi_rdata <= {{8{sx_bus[23]}},      sx_bus};       // 0xC8 SX_RO
                         6'd51: s_axi_rdata <= {{8{sy_bus[23]}},      sy_bus};       // 0xCC SY_RO
-                        6'd52: s_axi_rdata <= {{8{pll_adj_bus[23]}}, pll_adj_bus};  // 0xD0 PLL_ADJ_RO
-                        6'd53: s_axi_rdata <= {{8{agc_adj_bus[23]}}, agc_adj_bus};  // 0xD4 AGC_ADJ_RO
-                        6'd54: s_axi_rdata <= {{8{clq_adj_bus[23]}}, clq_adj_bus};  // 0xD8 CLQ_ADJ_RO
-                        6'd55: s_axi_rdata <= {{8{ftr_adj_bus[23]}}, ftr_adj_bus};  // 0xDC FTR_ADJ_RO
+                        6'd52: s_axi_rdata <= pll_adj_bus;                          // 0xD0 PLL_ADJ_RO (40b NCO LSB)
+                        6'd53: s_axi_rdata <= agc_adj_bus;                          // 0xD4 AGC_ADJ_RO (Q10.22)
+                        6'd54: s_axi_rdata <= clq_adj_bus;                          // 0xD8 CLQ_ADJ_RO (Q10.22)
+                        6'd55: s_axi_rdata <= ftr_adj_bus;                          // 0xDC FTR_ADJ_RO (Q10.22)
                         6'd56: s_axi_rdata <= {y_q14, x_q14};                       // 0xE0 PICKOFF_XY
                         6'd57: s_axi_rdata <= {16'h0001, 12'd0, stream_ovf,
                                                rw_regs[0][0], step_done_sticky, 1'b1}; // 0xE4 STATUS
@@ -245,8 +245,8 @@ module mems_hil_axis_wrap #(
         .vy_init        (48'sd0),
 
         .pi_load        (pi_load_pulse),
-        .pll_init       (signed'(rw_regs[15][23:0])),
-        .agc_init       (signed'(rw_regs[16][23:0])),
+        .pll_init       (signed'(rw_regs[15])),
+        .agc_init       (signed'(rw_regs[16])),
 
         .cos_tx         (signed'({rw_regs[22][3:0], rw_regs[21]})),
         .sin_tx         (signed'({rw_regs[24][3:0], rw_regs[23]})),
@@ -344,10 +344,10 @@ module mems_hil_axis_wrap #(
                     snap_words[1] <= {{8{dy_bus[23]}},      dy_bus};
                     snap_words[2] <= {{8{sx_bus[23]}},      sx_bus};
                     snap_words[3] <= {{8{sy_bus[23]}},      sy_bus};
-                    snap_words[4] <= {{8{pll_adj_bus[23]}}, pll_adj_bus};
-                    snap_words[5] <= {{8{agc_adj_bus[23]}}, agc_adj_bus};
-                    snap_words[6] <= {{8{clq_adj_bus[23]}}, clq_adj_bus};
-                    snap_words[7] <= {{8{ftr_adj_bus[23]}}, ftr_adj_bus};
+                    snap_words[4] <= pll_adj_bus;
+                    snap_words[5] <= agc_adj_bus;
+                    snap_words[6] <= clq_adj_bus;
+                    snap_words[7] <= ftr_adj_bus;
                     tx_active     <= 1'b1;
                     word_idx      <= 3'd0;
                     frame_cnt     <= frame_cnt + 32'd1;
@@ -379,8 +379,8 @@ module mems_hil_axis_wrap #(
                          rw_regs[4][31:24], rw_regs[5][31:24], rw_regs[6][31:24],
                          rw_regs[7][31:24], rw_regs[8][31:24], rw_regs[9][31:24],
                          rw_regs[10][31:24], rw_regs[11][31:24], rw_regs[12][31:24],
-                         rw_regs[13][31:24], rw_regs[14][31:24], rw_regs[15][31:24],
-                         rw_regs[16][31:24], rw_regs[18][31:16], rw_regs[20][31:16],
+                         rw_regs[13][31:24], rw_regs[14][31:24],
+                         rw_regs[18][31:16], rw_regs[20][31:16],
                          rw_regs[22][31:4], rw_regs[24][31:4], rw_regs[26][31:4],
                          rw_regs[28][31:4], rw_regs[30][31:4], rw_regs[32][31:4],
                          rw_regs[34][31:4], rw_regs[36][31:4], rw_regs[38][31:4],

@@ -19,6 +19,7 @@ except ImportError:
 
 S_FRAC = 44
 C_FRAC = 34
+SMALL_FRAC = 42
 DT_FRAC = 36
 
 
@@ -64,8 +65,8 @@ async def run_ringdown(dut, q_target: float, f0_hz: float = 11_000.0, fs_hz: flo
     dut.sin_tx.value = to_fixed(math.sin(tx), 36, C_FRAC)
     dut.cos_ty.value = to_fixed(math.cos(tx), 36, C_FRAC)
     dut.sin_ty.value = to_fixed(math.sin(tx), 36, C_FRAC)
-    dut.half_gx_dt.value = to_fixed(0.5 * (w / q_target) * dt, 36, C_FRAC)
-    dut.half_gy_dt.value = to_fixed(0.5 * (w / q_target) * dt, 36, C_FRAC)
+    dut.half_gx_dt.value = to_fixed(0.5 * (w / q_target) * dt, 36, SMALL_FRAC)
+    dut.half_gy_dt.value = to_fixed(0.5 * (w / q_target) * dt, 36, SMALL_FRAC)
     dut.half_kxy_dt.value = 0
     dut.half_gxy_dt.value = 0
     dut.half_cor_dt.value = 0
@@ -111,7 +112,12 @@ async def tb_drg_and_hrg_ringdown_and_coriolis(dut):
     # 2. HRG Q = 1,000,000 ringdown (10 ms = 10,000 steps @ 1 MHz)
     q_hrg, err_hrg, _ = await run_ringdown(dut, q_target=1_000_000.0, n_steps=10_000)
     cocotb.log.info(f"RTL HRG Q=1M:   measured={q_hrg:.1f} (err={err_hrg:+.4f}%)")
-    assert abs(err_hrg) < 0.2, f"HRG Q error too high: {err_hrg:.4f}%"
+    assert abs(err_hrg) < 0.15, f"HRG Q=1M error too high: {err_hrg:.4f}%"
+
+    # 2b. Space HRG Q = 5,000,000 @ 4.2 kHz ringdown (10 ms = 10,000 steps @ 1 MHz)
+    q_space, err_space, _ = await run_ringdown(dut, q_target=5_000_000.0, f0_hz=4_200.0, n_steps=10_000)
+    cocotb.log.info(f"RTL HRG Q=5M:   measured={q_space:.1f} (err={err_space:+.4f}%)")
+    assert abs(err_space) < 0.5, f"Space HRG Q=5M error too high: {err_space:.4f}%"
 
     # 3. Coriolis coupling: mode-matched DRG under Omega_z = 200 deg/s for 5 ms
     # Analytical sense envelope growth: |y(t)| ~ Ag * Omega_rad * t (for small angle)
@@ -122,9 +128,13 @@ async def tb_drg_and_hrg_ringdown_and_coriolis(dut):
     omega_rad = 200.0 * math.pi / 180.0
     n_cor = 5000  # 5 ms
 
-    dut.half_cor_dt.value = to_fixed(0.5 * (2.0 * ag * omega_rad) * dt, 36, C_FRAC)
-    dut.half_gx_dt.value = to_fixed(0.5 * (2 * math.pi * f0 / 100_000.0) * dt, 36, C_FRAC)
-    dut.half_gy_dt.value = to_fixed(0.5 * (2 * math.pi * f0 / 100_000.0) * dt, 36, C_FRAC)
+    dut.cos_tx.value = to_fixed(math.cos(2 * math.pi * f0 * dt), 36, C_FRAC)
+    dut.sin_tx.value = to_fixed(math.sin(2 * math.pi * f0 * dt), 36, C_FRAC)
+    dut.cos_ty.value = to_fixed(math.cos(2 * math.pi * f0 * dt), 36, C_FRAC)
+    dut.sin_ty.value = to_fixed(math.sin(2 * math.pi * f0 * dt), 36, C_FRAC)
+    dut.half_cor_dt.value = to_fixed(0.5 * (2.0 * ag * omega_rad) * dt, 36, SMALL_FRAC)
+    dut.half_gx_dt.value = to_fixed(0.5 * (2 * math.pi * f0 / 100_000.0) * dt, 36, SMALL_FRAC)
+    dut.half_gy_dt.value = to_fixed(0.5 * (2 * math.pi * f0 / 100_000.0) * dt, 36, SMALL_FRAC)
     dut.x_init.value = to_fixed(1.0, 48, S_FRAC)
     dut.vx_init.value = 0
     dut.y_init.value = 0

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Advanced CVG Physics: Softening, Duffing Overdrive &amp; Whole-Angle HRG</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #1d1436 0%, #111c30 100%);
+    border: 1px solid #3c2b6b; border-radius: 16px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--purple); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.8vw, 31px); line-height: 1.16; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(167,139,250,0.16); color: var(--purple); border: 1px solid rgba(167,139,250,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.blue { background: rgba(56,189,248,0.16); color: var(--blue); border-color: rgba(56,189,248,0.38); }
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 12px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--purple);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #e9d5ff; overflow-x: auto;
+  }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  @media (max-width: 680px) { .grid3 { grid-template-columns: 1fr; } }
+  .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .val { font-size: 19px; font-weight: 700; margin-top: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+  .stat .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Stage 1 Advanced Physics · Python Golden Model</div>
+    <h1>Electrostatic Softening, Duffing Overdrive &amp; Whole-Angle HRG Mode</h1>
+    <p>Three flagship high-Q gyro phenomena modeled in <code>model/mems_gyro_advanced.py</code>: how DC voltages tune away fabrication mode split, why overdriving the AGC bends resonance into a shark-fin, and how Whole-Angle HRG mode survives 500 °/s spin bursts with zero rate saturation.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge blue">1 &amp; 2</span> Electrostatic Softening &amp; Duffing Nonlinearity</h2>
+    <p>In capacitive parallel-plate MEMS DRGs, the electrostatic attraction force grows as <code>1/(d<sub>0</sub> &minus; x)&sup2;</code>. Expanding in a Taylor series creates both a <strong>negative linear spring</strong> (DC mode-matching) and a <strong>cubic softening term</strong> (Duffing shark-fin):</p>
+    <div class="eq">
+      &omega;<sub>eff</sub>&sup2;(V) = &omega;<sub>mech</sub>&sup2; &minus; (&epsilon;<sub>0</sub>A / m d<sub>0</sub>&sup3;) &middot; V&sup2;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&Delta;f<sub>Duffing</sub>(A) = (3/8) &middot; &beta;<sub>3</sub> &middot; f<sub>0</sub> &middot; A&sup2;
+    </div>
+    <div class="grid3">
+      <div class="stat">
+        <div class="lbl">DC Mode-Match Voltage</div>
+        <div class="val" style="color:var(--green)">12.25 V</div>
+        <div class="sub">Collapses 18.0 Hz fabrication split to <code>0.00 Hz</code></div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Bifurcation Cliff (Q=100k)</div>
+        <div class="val" style="color:var(--red)">A<sub>crit</sub> = 0.66</div>
+        <div class="sub">Scales as <code>1/&radic;Q</code> &mdash; higher Q hits jump instability sooner!</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Overdrive Thermometry Pull</div>
+        <div class="val" style="color:var(--amber)">+1.75 °C</div>
+        <div class="sub">AGC amplitude pull masquerades as temperature drift in <code>PLLAdj</code></div>
+      </div>
+    </div>
+    <div class="plot">
+      <img src="advanced_softening_duffing.png" alt="Electrostatic Softening and Duffing Shark-Fin Curves" />
+      <div class="cap">Top: DC polarization softening and exact sense-electrode mode matching at 12.25 V. Bottom: Bent Duffing shark-fin resonance curves folding past <code>A<sub>crit</sub></code> and corrupting PLL self-thermometry when AGC overdrives the resonator.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">3</span> Whole-Angle (WA) HRG Mode — Lynch E/Q Control</h2>
+    <p>In Force-to-Rebalance (FTR) mode, a high-rate maneuver (&gt;250 °/s) can saturate the sense force loop and lose angle. In <strong>Whole-Angle (WA) mode</strong>, the standing-wave pattern is allowed to <em>precess freely around the shell</em> at Bryan's factor <code>d&theta;/dt = &minus;A<sub>g</sub>&Omega;<sub>z</sub></code> while two strictly orthogonal Lynch loops hold total energy <code>E</code> constant and null quadrature <code>Q</code> to zero:</p>
+    <div class="eq">
+      E = x&sup2; + v<sub>x</sub>&sup2; + y&sup2; + v<sub>y</sub>&sup2; &rarr; E<sub>0</sub> &nbsp;&nbsp;|&nbsp;&nbsp; Q = 2(x v<sub>y</sub> &minus; y v<sub>x</sub>) &rarr; 0 &nbsp;&nbsp;|&nbsp;&nbsp; &Theta;<sub>body</sub> = &minus;&theta;<sub>wave</sub> / A<sub>g</sub>
+    </div>
+    <div class="grid3">
+      <div class="stat">
+        <div class="lbl">Spin Burst Peak Rate</div>
+        <div class="val" style="color:var(--blue)">+500 / &minus;300 °/s</div>
+        <div class="sub">2&times; above typical FTR loop saturation rails</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Peak WA Angle Error</div>
+        <div class="val" style="color:var(--green)">9.41 mdeg</div>
+        <div class="sub">Through 50° net turn with 30 °/s quad stiffness active</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Max Quadrature Leak</div>
+        <div class="val" style="color:var(--purple)">|Q| &lt; 0.00073</div>
+        <div class="sub">Lynch PI quad loop keeps standing wave razor-linear</div>
+      </div>
+    </div>
+    <div class="plot">
+      <img src="advanced_whole_angle_hrg.png" alt="Whole-Angle Micro-HRG under 500 deg/s spin burst" />
+      <div class="cap">Micro-HRG (<code>Q = 1,000,000, A<sub>g</sub> = 0.28</code>) in Whole-Angle mode: standing wave precesses <code>&minus;14.00°</code> for a <code>+50.0°</code> turn with constant Lynch energy <code>E = 1.000</code> and <code>9.4 mdeg</code> peak angle error.</div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
