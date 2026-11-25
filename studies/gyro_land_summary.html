@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gyro-Land Summary · ZUBoard 1CG Stage 1 Sign-Off</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #0d2b24 0%, #101e36 55%, #1e1435 100%);
+    border: 1px solid #24574a; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 33px); line-height: 1.14; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(52,211,153,0.16); color: var(--green); border: 1px solid rgba(52,211,153,0.38);
+  }
+  .badge.blue { background: rgba(56,189,248,0.16); color: var(--blue); border-color: rgba(56,189,248,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.purple { background: rgba(167,139,250,0.16); color: var(--purple); border-color: rgba(167,139,250,0.38); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 4px; }
+  @media (max-width: 700px) { .kpis { grid-template-columns: 1fr 1fr; } }
+  .kpi { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .kpi .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .kpi .val { font-size: 20px; font-weight: 800; margin-top: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+  .kpi .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .fig { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin: 12px 0; }
+  .fig svg, .fig img { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .timeline { list-style: none; padding: 0; margin: 8px 0 0; }
+  .timeline li {
+    position: relative; padding: 10px 12px 10px 36px; margin-bottom: 8px;
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px; font-size: 14.5px;
+  }
+  .timeline li::before {
+    content: "✓"; position: absolute; left: 11px; top: 10px;
+    width: 19px; height: 19px; border-radius: 50%;
+    background: rgba(52,211,153,0.18); color: var(--green);
+    font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .timeline li.next::before { content: "→"; background: rgba(56,189,248,0.18); color: var(--blue); }
+  .timeline strong { color: #fff; }
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13.2px; }
+  th, td { padding: 8px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .ok { color: var(--green); font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  a.linkcard {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+  }
+  a.linkcard:hover { border-color: var(--blue); }
+  a.linkcard .t { font-size: 14.5px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  a.linkcard .d { font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; All ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Executive Summary · Stage 0 &amp; Stage 1 Complete</div>
+    <h1>Gyro-Land Summary: From Blank FPGA to Space-Grade HRG on Live Silicon</h1>
+    <p>Everything built, simulated, debugged, and verified live on the Avnet ZUBoard 1CG (<code>XCZU1CG</code>) for our 2-DOF Coriolis Vibratory Gyroscope (DRG &amp; HRG) Hardware-in-the-Loop lab.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge">Live Silicon</span> Stage 1 v2 Hardware Scorecard (<code>0x5A550102</code>)</h2>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="lbl">Scale-Factor Err</div>
+        <div class="val" style="color:var(--green)">0.05&ndash;0.10%</div>
+        <div class="sub">100 °/s step across Q=100k to Q=5M</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Quad Rejection</div>
+        <div class="val" style="color:var(--blue)">205&ndash;229 dB</div>
+        <div class="sub">CLQ nulls 10&ndash;120 °/s quad to 0</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Fixed-Pt Floor</div>
+        <div class="val" style="color:var(--purple)">0.027 °/hr</div>
+        <div class="sub">100&times; drop in v2 (30 s live ADEV)</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Self-Thermometry</div>
+        <div class="val" style="color:var(--amber)">0.006 °C</div>
+        <div class="sub">RMS across live +30 °C ramp</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Architecture</span> What Runs Live on the ZUBoard 1CG</h2>
+    <div class="fig">
+      <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg">
+        <rect width="760" height="320" fill="#090d14" rx="10"/>
+
+        <!-- Host Box -->
+        <rect x="18" y="20" width="210" height="280" rx="12" fill="#131a26" stroke="#38bdf8" stroke-width="1.8"/>
+        <text x="123" y="46" fill="#38bdf8" font-size="13" font-weight="700" text-anchor="middle">LINUX HOST (PYTHON)</text>
+        <rect x="34" y="64" width="178" height="58" rx="8" fill="#192233" stroke="#26334a"/>
+        <text x="123" y="87" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">gyro_dashboard.py</text>
+        <text x="123" y="105" fill="#93a4be" font-size="11" text-anchor="middle">Step · Quad · ADEV · Temp</text>
+        <rect x="34" y="138" width="178" height="58" rx="8" fill="#192233" stroke="#26334a"/>
+        <text x="123" y="161" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">mems_gyro_model.py</text>
+        <text x="123" y="179" fill="#93a4be" font-size="11" text-anchor="middle">Si / SiC DRG · µHRG · HRG</text>
+        <rect x="34" y="212" width="178" height="68" rx="8" fill="#192233" stroke="#a78bfa"/>
+        <text x="123" y="235" fill="#d8b4fe" font-size="12" font-weight="700" text-anchor="middle">mems_gyro_advanced.py</text>
+        <text x="123" y="253" fill="#93a4be" font-size="11" text-anchor="middle">Softening · Duffing</text>
+        <text x="123" y="269" fill="#93a4be" font-size="11" text-anchor="middle">Whole-Angle HRG (500°/s)</text>
+
+        <!-- GbE Link Arrow -->
+        <line x1="228" y1="150" x2="294" y2="150" stroke="#34d399" stroke-width="2.5"/>
+        <polygon points="294,150 285,144 285,156" fill="#34d399"/>
+        <polygon points="228,150 237,144 237,156" fill="#34d399"/>
+        <text x="261" y="132" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">1000 Mbps</text>
+        <text x="261" y="170" fill="#93a4be" font-size="10.5" text-anchor="middle">UDP :5000</text>
+        <text x="261" y="185" fill="#93a4be" font-size="10" text-anchor="middle">0.36 ms RTT</text>
+
+        <!-- ZUBoard 1CG Outer Box -->
+        <rect x="296" y="20" width="446" height="280" rx="12" fill="#101826" stroke="#34d399" stroke-width="1.8"/>
+        <text x="519" y="44" fill="#34d399" font-size="13" font-weight="700" text-anchor="middle">AVNET ZUBOARD 1CG (XCZU1CG · 100 MHz PL · WNS +1.34 ns)</text>
+
+        <!-- PS Box -->
+        <rect x="312" y="58" width="190" height="226" rx="10" fill="#141e30" stroke="#26334a"/>
+        <text x="407" y="78" fill="#fbbf24" font-size="12" font-weight="700" text-anchor="middle">PROCESSING SYSTEM (PS)</text>
+        <rect x="324" y="90" width="166" height="58" rx="7" fill="#192233" stroke="#38bdf8"/>
+        <text x="407" y="110" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Cortex-A53 #0 (0x0000_0000)</text>
+        <text x="407" y="126" fill="#93a4be" font-size="10.5" text-anchor="middle">lwIP 2.2.0 + KSZ9131 RGMII-ID</text>
+        <text x="407" y="140" fill="#93a4be" font-size="10.5" text-anchor="middle">UDP ↔ AXI-Lite &amp; AXI-DMA</text>
+
+        <rect x="324" y="158" width="166" height="58" rx="7" fill="#192233" stroke="#a78bfa"/>
+        <text x="407" y="178" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Cortex-R5F #0 (0x3000_0000)</text>
+        <text x="407" y="194" fill="#93a4be" font-size="10.5" text-anchor="middle">1 kHz 7-State Supervisor</text>
+        <text x="407" y="208" fill="#93a4be" font-size="10.5" text-anchor="middle">Isolated 255 MB LPDDR4</text>
+
+        <rect x="324" y="226" width="166" height="46" rx="7" fill="#192233" stroke="#34d399"/>
+        <text x="407" y="246" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">GEM2 + KSZ9131RNX</text>
+        <text x="407" y="262" fill="#93a4be" font-size="10.5" text-anchor="middle">MMD2 0x4C/0x4D = 0x06D1</text>
+
+        <!-- PL Box -->
+        <rect x="518" y="58" width="210" height="226" rx="10" fill="#141e30" stroke="#26334a"/>
+        <text x="623" y="78" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">FPGA FABRIC (PL · 21% DSP)</text>
+        <rect x="530" y="90" width="186" height="60" rx="7" fill="#192233" stroke="#34d399"/>
+        <text x="623" y="109" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">1 MHz 2-DOF Strang Plant</text>
+        <text x="623" y="125" fill="#93a4be" font-size="10.5" text-anchor="middle">48b Q4.44 · Q-6.42 Kicks</text>
+        <text x="623" y="140" fill="#93a4be" font-size="10.5" text-anchor="middle">4-Lane PRNG + 52b RRW</text>
+
+        <rect x="530" y="158" width="186" height="62" rx="7" fill="#192233" stroke="#fbbf24"/>
+        <text x="623" y="177" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">4&times; Closed-Loop DSP</text>
+        <text x="623" y="193" fill="#93a4be" font-size="10.5" text-anchor="middle">40b NCO (0.91 µHz) · 24b ADC</text>
+        <text x="623" y="208" fill="#93a4be" font-size="10.5" text-anchor="middle">32b Q10.22 PLL/AGC/CLQ/FTR</text>
+
+        <rect x="530" y="228" width="186" height="44" rx="7" fill="#192233" stroke="#38bdf8"/>
+        <text x="623" y="247" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">8-Word AXIS → AXI-DMA</text>
+        <text x="623" y="262" fill="#93a4be" font-size="10.5" text-anchor="middle">DX..SY + PLL..FTR @ 2 kHz</text>
+
+        <!-- Internal AXI arrow -->
+        <line x1="502" y1="168" x2="518" y2="168" stroke="#fbbf24" stroke-width="2.2"/>
+      </svg>
+      <div class="cap">End-to-end ZUBoard 1CG Stage 1 v2 architecture: 29.8% LUTs (11,154), 15.8% FFs (11,864), 2.8% BRAM (3), 21.3% DSP48E2 (46).</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">Journey</span> What We Built &amp; Verified So Far</h2>
+    <ul class="timeline">
+      <li><strong>Stage 0 Shell &amp; Reusable DSP IP:</strong> Built zero-DSP CORDIC NCO (<code>99.6 dBc</code> SFDR), AXI4-Lite regfile, AXI-DMA S2MM shell, and closed timing at <code>WNS = +6.12 ns</code>.</li>
+      <li><strong>Stage 1.0–1.5 Closed-Loop MEMS/DRG/HRG HIL:</strong> Designed 48-bit Strang-split 2-DOF physics engine + dual lock-in demodulators + 4 anti-windup PI loops + 4-lane CLT PRNG thermal/ADC noise &amp; 52-bit RRW walk; passed 100% of Verilator + cocotb sims.</li>
+      <li><strong>Physical Hardware Bring-Up (2 Classic Embedded Bugs Slayed):</strong> Fixed <strong>Bug #01</strong> (A53/R5F LPDDR4 overlap at <code>0x100000</code> → clean <code>0x0</code> / <code>0x30000000</code> split) and <strong>Bug #02</strong> (Microchip KSZ9131RNX PHY OUI <code>0x0022</code> + asymmetric <code>MMD2 0x4D</code> TXC 2 ns DLL bypass <code>0x16D1 → 0x06D1</code>) → instant <strong>0.36 ms GbE ping</strong> from cold <code>make boot</code>.</li>
+      <li><strong>Stage 1 v2 High-Q Fixed-Point Upgrade (<code>0x5A550102</code>):</strong> Widened NCO to 40-bit, PI outputs to 32-bit <code>Q10.22</code>, pickoff to 24-bit <code>Q2.22</code>, and kick coeffs to <code>Q-6.42</code> — slashing pure fixed-point ADEV floor <strong>100&times;</strong> to <code>0.027 °/hr</code> and resolving Space HRG's <code>0.0005 °/s</code> anisodamping bias live on silicon!</li>
+      <li><strong>Live +30 °C Thermal Ramp &amp; Advanced Python Physics:</strong> Verified <strong>0.006 °C RMS</strong> live self-thermometry on silicon, added the SiC DRG preset (<code>18 kHz, Q=500k</code>), and modeled Electrostatic Softening, Duffing Overdrive, and Whole-Angle HRG mode (<code>9.4 mdeg</code> error through a <code>+500 / −300 °/s</code> burst).</li>
+      <li class="next"><strong>Up Next — Stage 2 (Radar / RF DSP):</strong> Python-first golden model (<code>model/radar_sim_model.py</code> integrating <code>/vibes/radar_sim</code> &amp; <code>/gemini/tracking_harness</code>) before writing Stage 2 matched-filter / Doppler FFT RTL.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="badge purple">4 Presets</span> Calibrated CVG Suite</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Gyro Preset</th><th>f<sub>0</sub></th><th>Q Factor</th><th>TCF</th><th>Quad</th><th>Live v2 Silicon Result</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Silicon MEMS DRG</strong></td><td>11.0 kHz</td><td>100k</td><td>&minus;30 ppm/°C</td><td>120 °/s</td><td class="ok">+0.10% err · 229 dB · 0.027 °/hr floor</td></tr>
+          <tr><td><strong>SiC MEMS DRG</strong></td><td>18.0 kHz</td><td>500k</td><td>&minus;15 ppm/°C</td><td>60 °/s</td><td>Python preset ready (2&times; stiffer)</td></tr>
+          <tr><td><strong>Micro-HRG (SiO<sub>2</sub>)</strong></td><td>11.0 kHz</td><td>1,000k</td><td>+80 ppm/°C</td><td>30 °/s</td><td class="ok">+0.05% err · 215 dB · 0.03 °/hr ripple</td></tr>
+          <tr><td><strong>Space HRG (30 mm)</strong></td><td>4.2 kHz</td><td>5,000k</td><td>+80 ppm/°C</td><td>10 °/s</td><td class="ok">+0.05% err · 205 dB · 0.0005 °/s resolved</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge">Live Gallery</span> Highlights Straight Off XCZU1CG Silicon</h2>
+    <div class="fig">
+      <img src="hw_step_silicon.png" alt="Live 12-panel closed-loop step response" />
+      <div class="cap"><strong>12-Panel Live Hardware Capture:</strong> 100.0 °/s step on ZUBoard 1CG (`0.10%` steady-state error, 10&times; smaller transient angle error via Feedforward rate/angle).</div>
+    </div>
+    <div class="fig">
+      <img src="hw_adev_30s_v2.png" alt="Live 30 s ADEV Stage 1 v2" />
+      <div class="cap"><strong>Stage 1 v2 30 s Live ADEV:</strong> Pure fixed-point floor drops to <code>0.0274 °/hr</code> (green), 10&times; below the DRG thermal ARW line!</div>
+    </div>
+    <div class="fig">
+      <img src="hw_temp_ramp_live.png" alt="Live +30 C thermal ramp self-thermometry" />
+      <div class="cap"><strong>Live +30 °C Thermal Ramp:</strong> 40-bit NCO PLL tracks <code>&minus;9.90 Hz</code> Silicon TCF drift to <strong>0.006 °C RMS</strong> while FTR holds <code>50.08 °/s</code> flat.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Deep Dives</span> All Gyro-Land Study Pages</h2>
+    <div class="grid2">
+      <a class="linkcard" href="fpga_fixed_point_vs_float64.html">
+        <div class="t">Fixed-Point v1 &rarr; v2 &amp; Thermal Ramp</div>
+        <div class="d">Full Before/After silicon tables, 3-preset error plots, and 30 s ADEV comparison.</div>
+      </a>
+      <a class="linkcard" href="advanced_gyro_physics.html">
+        <div class="t">Softening, Duffing &amp; Whole-Angle HRG</div>
+        <div class="d">DC mode-matching, shark-fin bifurcation, and 500 °/s Lynch E/Q free precession.</div>
+      </a>
+      <a class="linkcard" href="pi_vs_pid_cvg_explainer.html">
+        <div class="t">Wait: PI, but no D? (Interactive)</div>
+        <div class="d">Live browser simulator showing why lock-in demodulation turns a 2nd-order resonator 1st-order.</div>
+      </a>
+      <a class="linkcard" href="drg_quadrature_and_vacuum_explainer.html">
+        <div class="t">Quadrature &amp; Gold Getter Vacuum</div>
+        <div class="d">Animated n=2 wineglass mode, phasor diagrams, and LCC NEG vacuum Q(P) curve.</div>
+      </a>
+      <a class="linkcard" href="bugs/bug01_a53_r5f_ddr_collision.html">
+        <div class="t">Bug #01: A53/R5F DDR4 Collision</div>
+        <div class="d">Memory map SVG, crash timeline, and Vitis linker partition fix.</div>
+      </a>
+      <a class="linkcard" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
+        <div class="t">Bug #02: KSZ9131 RGMII TXC DLL</div>
+        <div class="d">Interactive RGMII eye diagram showing MMD2 0x4D 0x16D1 &rarr; 0x06D1 fix.</div>
+      </a>
+    </div>
+  </section>
+</div>
+</body>
+</html>
