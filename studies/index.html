@@ -62,6 +62,24 @@
     <h2>Gyro ADEV Comparison (°/hr)</h2>
     <p class="desc">Overlapping Allan Deviation bathtub curves across Consumer MEMS, Silicon DRG (Q=100k), Micro-HRG (Q=1M), and Space HRG (Q=5M).</p>
   </a>
+
+  <a class="card" href="fpga_fixed_point_vs_float64.html">
+    <div class="tag" style="color:#34d399">Live Silicon Results · Fixed-Point Study</div>
+    <h2>Live ZUBoard 1CG: Fixed-Point RTL vs. Float64 Rounding</h2>
+    <p class="desc">Real XCZU1CG hardware measurements across Silicon DRG (Q=100k), Micro-HRG (Q=1M), and Space HRG (Q=5M): 0.05–0.10% step accuracy, 98–122 dB quad rejection, 1-LSB limit cycles, and 30 s PRNG vs. pure fixed-point ADEV.</p>
+  </a>
+
+  <a class="card" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
+    <div class="tag gold">Bring-Up Postmortem · Bug #02</div>
+    <h2>KSZ9131RNX PHY &amp; RGMII TXC 2 ns DLL Bypass</h2>
+    <p class="desc">How JTAG forensics caught an unsupported PHY OUI (0x0022) in lwip220 and the asymmetric MMD2 0x4D TXC DLL bypass (0x16D1 &rarr; 0x06D1), with an interactive RGMII eye diagram.</p>
+  </a>
+
+  <a class="card" href="bugs/bug01_a53_r5f_ddr_collision.html">
+    <div class="tag" style="color:#f87171">Bring-Up Postmortem · Bug #01</div>
+    <h2>A53 / R5F LPDDR4 Memory Collision &amp; Fix</h2>
+    <p class="desc">Visual Before/After memory map, interactive JTAG boot-crash timeline, and the exact Vitis lscript.ld partition + lwIP IRQ fix.</p>
+  </a>
 </div>
 </body>
 </html>

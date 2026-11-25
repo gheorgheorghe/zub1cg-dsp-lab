@@ -191,12 +191,11 @@ int main(void) {
 
         switch (state) {
             case ST_IDLE:
-                /* Wait for host/preset to assert RUN, then either join active FTR or sweep */
+                /* Wait for host/preset to assert RUN, then either join active loop or sweep */
                 if ((ctrl & CTRL_RUN) && !(ctrl & CTRL_SOFT_RST)) {
-                    if ((ctrl & (CTRL_PLL | CTRL_AGC | CTRL_CLQ | CTRL_FTR)) ==
-                        (CTRL_PLL | CTRL_AGC | CTRL_CLQ | CTRL_FTR)) {
-                        /* Host already armed full closed-loop -> qualify lock directly */
-                        state = ST_PLL_ACQUIRE;
+                    if ((ctrl & (CTRL_PLL | CTRL_AGC)) == (CTRL_PLL | CTRL_AGC)) {
+                        /* Host already armed PLL+AGC (e.g., step/quad/adev test): monitor without overriding */
+                        state = (ctrl & CTRL_FTR) ? ST_FTR_ACTIVE : ST_PLL_ACQUIRE;
                     } else {
                         sweep_nom_ftw  = reg_rd(S1_REG_BASE_FTW);
                         sweep_best_ftw = sweep_nom_ftw;
@@ -292,9 +291,6 @@ int main(void) {
                 }
                 if (iabs32(dy) > TH_DY_UNLOCK) {
                     fault_mask |= FLT_PLL_UNLOCK;
-                }
-                if (status & (1U << 3)) {
-                    fault_mask |= FLT_STREAM_OVF;
                 }
                 if (fault_mask != 0U) {
                     state = ST_FAULT;

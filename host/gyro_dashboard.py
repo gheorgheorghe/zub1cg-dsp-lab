@@ -503,7 +503,7 @@ def main() -> None:
 
     params = PRESETS[args.preset]
     out_dir = Path(args.out_dir)
-    client = ZUBoardClient(host=args.host, port=args.port, mock=args.mock)
+    client = ZUBoardClient(host=args.host, port=args.port, timeout=6.0, mock=args.mock)
 
     if not args.mock:
         ver = client.reg_read(0xEC)

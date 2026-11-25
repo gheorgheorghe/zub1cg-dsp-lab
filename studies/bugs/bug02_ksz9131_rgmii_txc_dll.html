@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bring-Up Bug #02: KSZ9131RNX PHY &amp; RGMII TXC 2 ns DLL Bypass</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back {
+    display: inline-block;
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  header {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #271a0e 0%, #141c2f 100%);
+    border: 1px solid #593b1a;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  .kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.8vw, 31px); line-height: 1.16; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    margin: 0 0 10px;
+    font-size: 19px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(248,113,113,0.16);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.38);
+    flex-shrink: 0;
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.blue { background: rgba(56,189,248,0.16); color: var(--blue); border-color: rgba(56,189,248,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .fig {
+    background: #090d14;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .fig svg { width: 100%; height: auto; display: block; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  pre {
+    background: #090d14;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 10px;
+    padding: 11px 12px;
+    overflow-x: auto;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12.6px;
+    line-height: 1.45;
+    color: #dbeafe;
+    margin: 10px 0;
+  }
+  code {
+    background: rgba(56,189,248,0.12);
+    color: #bae6fd;
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+  .stat {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .stat .lbl { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .val { font-size: 20px; font-weight: 700; margin-top: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+  .stat .sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 8px; }
+  button.btn {
+    border: 1px solid var(--border);
+    background: var(--card2);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.btn.active-red { background: rgba(248,113,113,0.18); border-color: var(--red); color: #fecaca; }
+  button.btn.active-green { background: rgba(52,211,153,0.18); border-color: var(--green); color: #a7f3d0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13.5px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ok { color: var(--green); font-weight: 700; }
+  .bad { color: var(--red); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">ZUBoard 1CG Hardware Bring-Up · Bug #02</div>
+    <h1>Microchip KSZ9131RNX PHY &amp; The 1-Bit RGMII TXC 2 ns DLL Trap</h1>
+    <p>How JTAG register forensics caught two consecutive bare-metal Ethernet bugs on GEM2: an unsupported PHY OUI (<code>0x0022</code>) in AMD <code>lwip220</code>, and an asymmetric power-on strap where RX worked at 1000 Mbps while 100% of TX frames vanished on the wire.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge">Act 1</span> Unrecognized KSZ9131 PHY Crashed <code>lwip220</code></h2>
+    <p>Right after fixing the A53/R5F DDR4 collision (Bug #01), JTAG showed Cortex-A53 #0 halted inside <code>Xil_Assert</code> (<code>PC = 0x1499c</code>, line <code>0x35a</code>) with backtrace:</p>
+    <pre>main() -> netif_add() -> xemacpsif_init() -> init_emacps()
+  -> get_IEEE_phy_speed() -> get_Marvell_phy_speed()  [WRONG PHY!]
+  -> XEmacPs_SetOperatingSpeed(speed = 0) -> Xil_Assert()  [DEAD]</pre>
+    <p>AMD's stock <code>lwip220</code> (<code>xemacpsif_physpeed.c</code>) checks for Marvell, TI, Realtek, and ADI PHYs — but <strong>not</strong> the Avnet ZUBoard 1CG's Microchip <strong>KSZ9131RNX</strong> (<code>PHY_ID1 = 0x0022</code>, <code>PHY_ID2 = 0x1642</code> @ MDIO addr <code>7</code>). It fell through into <code>get_Marvell_phy_speed()</code>, read a bogus Marvell register, returned speed <code>0</code>, and asserted.</p>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">Act 2</span> The Half-Duplex Mystery: RX = 100% Clean, TX = 0%</h2>
+    <p>After patching <code>get_Micrel_phy_speed()</code> with standard IEEE 802.3 Clause 22 auto-negotiation, A53 booted cleanly, linked at <strong>1000 Mbps Full Duplex</strong>, and entered its <code>while(1)</code> loop. Yet <code>ping 192.168.1.10</code> still failed ARP!</p>
+
+    <div class="grid2">
+      <div class="stat">
+        <div class="lbl">ZUBoard GEM2 RX_FRAMES (0xFF0D0158)</div>
+        <div class="val" style="color:var(--green)">19 frames · 0 FCS err</div>
+        <div class="sub">Every ARP request arrived cleanly and fired GIC IRQ</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">ZUBoard GEM2 TX_FRAMES (0xFF0D0108)</div>
+        <div class="val" style="color:var(--amber)">9 ARP replies sent</div>
+        <div class="sub">Host NIC (enx0050b6272d04) RX counter increased by <strong style="color:var(--red)">0</strong>!</div>
+      </div>
+    </div>
+
+    <p>That single pair of counters proved <strong>RX (PHY &rarr; Zynq GEM2)</strong> was 100% solid while <strong>TX (Zynq GEM2 &rarr; PHY)</strong> was corrupting every frame on the RGMII pins between the MPSoC and KSZ9131.</p>
+  </section>
+
+  <section>
+    <h2><span class="badge">Act 3</span> Smoking Gun in KSZ9131 MMD 2 Registers</h2>
+    <p>Reading the KSZ9131's Clause 45 MMD Device <code>2</code> registers live over JTAG through GEM2's <code>PHY_MAINT</code> register (<code>0xFF0D0034</code>) exposed the exact single-bit fault immediately:</p>
+    <table>
+      <thead>
+        <tr><th>Register</th><th>Power-On Value</th><th>Bit 12 (DLL Bypass)</th><th>Result on 1000BASE-T RGMII</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>MMD2 0x4C</code> (RXC DLL)</td><td><code>0x06D1</code></td><td class="ok">0 (2 ns DLL ON)</td><td class="ok">RX clock centered in eye (0 FCS err)</td></tr>
+        <tr><td><code>MMD2 0x4D</code> (TXC DLL)</td><td><code>0x16D1</code></td><td class="bad">1 (BYPASSED!)</td><td class="bad">0 ns skew &rarr; every TX frame corrupted</td></tr>
+      </tbody>
+    </table>
+
+    <div class="controls">
+      <button id="btnBroken" class="btn active-red" onclick="setMode('broken')">Before: MMD2 0x4D = 0x16D1 (TXC DLL Bypassed)</button>
+      <button id="btnFixed" class="btn" onclick="setMode('fixed')">After: MMD2 0x4D = 0x06D1 (TXC 2 ns DLL Enabled)</button>
+    </div>
+
+    <div class="fig">
+      <svg id="rgmiiSvg" viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+        <rect width="760" height="230" fill="#090d14" rx="8"/>
+        <!-- Labels -->
+        <text x="16" y="48" fill="#93a4be" font-size="13" font-weight="700" font-family="monospace">TXD[3:0]</text>
+        <text x="16" y="64" fill="#64748b" font-size="11" font-family="monospace">DDR 4 ns/bit</text>
+        <text x="16" y="138" fill="#38bdf8" font-size="13" font-weight="700" font-family="monospace">TXC (125 MHz)</text>
+        <text id="clkSub" x="16" y="154" fill="#f87171" font-size="11" font-family="monospace">0 ns skew (BAD)</text>
+
+        <!-- Data Eye (4 ns = 120 px per DDR half-cycle) -->
+        <g stroke="#e2e8f0" stroke-width="2.2" fill="rgba(56,189,248,0.09)">
+          <polygon points="150,55 162,32 258,32 270,55 258,78 162,78"/>
+          <polygon points="270,55 282,32 378,32 390,55 378,78 282,78"/>
+          <polygon points="390,55 402,32 498,32 510,55 498,78 402,78"/>
+          <polygon points="510,55 522,32 618,32 630,55 618,78 522,78"/>
+          <polygon points="630,55 642,32 725,32 737,55 725,78 642,78"/>
+        </g>
+        <g fill="#cbd5e1" font-size="12" font-family="monospace" text-anchor="middle">
+          <text x="210" y="59">NIB 0 (Rise)</text>
+          <text x="330" y="59">NIB 1 (Fall)</text>
+          <text x="450" y="59">NIB 2 (Rise)</text>
+          <text x="570" y="59">NIB 3 (Fall)</text>
+          <text x="683" y="59">NIB 4</text>
+        </g>
+
+        <!-- Dynamic Clock + Sample Arrows -->
+        <g id="clkGroup">
+          <polyline id="clkWave" fill="none" stroke="#f87171" stroke-width="2.8"
+            points="120,162 150,162 150,112 270,112 270,162 390,162 390,112 510,112 510,162 630,162 630,112 740,112"/>
+          <!-- Sampling verticals -->
+          <g id="sampleLines" stroke="#f87171" stroke-width="1.6" stroke-dasharray="5,4">
+            <line x1="150" y1="24" x2="150" y2="175"/>
+            <line x1="270" y1="24" x2="270" y2="175"/>
+            <line x1="390" y1="24" x2="390" y2="175"/>
+            <line x1="510" y1="24" x2="510" y2="175"/>
+            <line x1="630" y1="24" x2="630" y2="175"/>
+          </g>
+        </g>
+
+        <!-- Status banner inside SVG -->
+        <rect id="statusBox" x="150" y="186" width="585" height="32" rx="8" fill="rgba(248,113,113,0.16)" stroke="#f87171"/>
+        <text id="statusTxt" x="442" y="207" fill="#fecaca" font-size="13" font-weight="700" font-family="sans-serif" text-anchor="middle">
+          SETUP / HOLD VIOLATION: TXC samples right on TXD transitions &rarr; 100% TX frames lost!
+        </text>
+      </svg>
+      <div class="cap">At 1000BASE-T RGMII (125 MHz DDR), each nibble lasts 4.0 ns. Enabling the KSZ9131's internal 2.0 ns TXC DLL shifts sampling straight into the center of the data eye.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Permanent Fix</span> Automated in <code>sw/build_vitis.py</code></h2>
+    <p>Clearing bit 12 (<code>0x1000</code>) on both <code>MMD2 0x4C</code> and <code>MMD2 0x4D</code> inside <code>get_Micrel_phy_speed()</code> (patched automatically into <code>lwip220</code> on every <code>make sw</code>) permanently enables full <code>rgmii-id</code> internal delays on boot:</p>
+    <pre>/* Enable RGMII-ID 2 ns DLL delays on both RXC (MMD2 0x4C) and TXC (MMD2 0x4D) */
+rxc_dll = ksz9131_mmd_read(xemacpsp, phy_addr, 2, 0x4C);
+txc_dll = ksz9131_mmd_read(xemacpsp, phy_addr, 2, 0x4D);
+ksz9131_mmd_write(xemacpsp, phy_addr, 2, 0x4C, (u16_t)(rxc_dll &amp; ~0x1000U));
+ksz9131_mmd_write(xemacpsp, phy_addr, 2, 0x4D, (u16_t)(txc_dll &amp; ~0x1000U));</pre>
+
+    <div class="grid2">
+      <div class="stat">
+        <div class="lbl">Cold JTAG Boot &rarr; Ping RTT</div>
+        <div class="val" style="color:var(--green)">0.356 ms · 0% loss</div>
+        <div class="sub">Zero manual MDIO steps needed after <code>make boot</code></div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Live Stage 1.5 Silicon Telemetry</div>
+        <div class="val" style="color:var(--blue)">0.10% err · 120.6 dB</div>
+        <div class="sub">AXI-DMA S2MM bursts streaming cleanly over GbE UDP</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+function setMode(mode) {
+  const broken = (mode === 'broken');
+  const shift = broken ? 0 : 60; // 60px = 2.0 ns (half of 120px DDR nibble)
+  const col = broken ? '#f87171' : '#34d399';
+  document.getElementById('btnBroken').className = 'btn' + (broken ? ' active-red' : '');
+  document.getElementById('btnFixed').className = 'btn' + (!broken ? ' active-green' : '');
+
+  const pts = [
+    [120,162], [150+shift,162], [150+shift,112],
+    [270+shift,112], [270+shift,162],
+    [390+shift,162], [390+shift,112],
+    [510+shift,112], [510+shift,162],
+    [630+shift,162], [630+shift,112], [740,112]
+  ].map(p => p[0] + ',' + p[1]).join(' ');
+
+  const wave = document.getElementById('clkWave');
+  wave.setAttribute('points', pts);
+  wave.setAttribute('stroke', col);
+
+  const lines = document.querySelectorAll('#sampleLines line');
+  const xs = [150, 270, 390, 510, 630];
+  lines.forEach((ln, i) => {
+    const x = xs[i] + shift;
+    ln.setAttribute('x1', x);
+    ln.setAttribute('x2', x);
+    ln.setAttribute('stroke', col);
+  });
+
+  const sub = document.getElementById('clkSub');
+  sub.textContent = broken ? '0 ns skew (BAD)' : '+2.0 ns DLL (CENTERED)';
+  sub.setAttribute('fill', col);
+
+  const box = document.getElementById('statusBox');
+  box.setAttribute('fill', broken ? 'rgba(248,113,113,0.16)' : 'rgba(52,211,153,0.16)');
+  box.setAttribute('stroke', col);
+
+  const txt = document.getElementById('statusTxt');
+  txt.setAttribute('fill', broken ? '#fecaca' : '#a7f3d0');
+  txt.textContent = broken
+    ? 'SETUP / HOLD VIOLATION: TXC samples right on TXD transitions → 100% TX frames lost!'
+    : 'VALID RGMII-ID TIMING: +2.0 ns DLL centers TXC in the 4 ns eye → 0.356 ms ping, 0% loss!';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Live ZUBoard 1CG Silicon: Fixed-Point RTL vs. Float64 Rounding Study</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #0f2438 0%, #161d2f 100%);
+    border: 1px solid #24486b;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.8vw, 31px); line-height: 1.16; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  @media (max-width: 680px) { .grid3 { grid-template-columns: 1fr; } }
+  .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .val { font-size: 20px; font-weight: 700; margin-top: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+  .stat .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .plot {
+    background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 12px 0;
+  }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+  th, td { padding: 8px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tbl-wrap { overflow-x: auto; }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; }
+  .ok { color: var(--green); font-weight: 700; }
+  .warn { color: var(--amber); font-weight: 700; }
+  .bad { color: var(--red); font-weight: 700; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Live XCZU1CG Silicon Verification · Stage 1.5</div>
+    <h1>Does FPGA Fixed-Point Arithmetic Cause Rounding Error?</h1>
+    <p>Measured live on physical ZUBoard 1CG hardware (<code>VERSION = 0x5A550101</code>, 1 MHz HIL physics, GbE UDP + AXI-DMA) across all 3 gyro presets against the 64-bit <code>float64</code> Python golden model.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge green">TL;DR</span> Short Answer from Real Silicon</h2>
+    <div class="grid3">
+      <div class="stat">
+        <div class="lbl">Macro Scale Factor (100 °/s)</div>
+        <div class="val" style="color:var(--green)">+0.05% – +0.10%</div>
+        <div class="sub"><strong>Negligible error!</strong> 48-bit <code>Q4.44</code> state @ 1 MHz actually beats 200 kHz float64 (+0.54%).</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Quadrature Nulling (CLQ)</div>
+        <div class="val" style="color:var(--blue)">97.7 – 121.9 dB</div>
+        <div class="sub">Cleanly rejects 10–120 °/s stiffness quadrature across Q=100k to Q=5M.</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Where Rounding DOES Bite</div>
+        <div class="val" style="color:var(--amber)">15.7 – 22.5 °/hr / LSB</div>
+        <div class="sub"><code>Q10.14 FTRAdj</code> limits noise-free ADEV to <code>~2.75 °/hr</code> and causes ±1 LSB limit cycles!</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge">Live Data</span> 3-Preset FPGA Fixed-Point vs. Float64</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Preset (Live Hardware)</th>
+            <th>100 °/s HW Err</th>
+            <th>Quad Rej</th>
+            <th><code>Q2.34</code> &gamma;<sub>x</sub> LSBs (Err)</th>
+            <th><code>Q2.34</code> g<sub>xy</sub> LSBs</th>
+            <th><code>Q10.14</code> 1 LSB</th>
+            <th>Zero-Rate RMS (No Noise)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Silicon DRG</strong> (11 kHz, Q=100k)</td>
+            <td class="ok">+0.098%</td>
+            <td class="ok">121.9 dB</td>
+            <td class="ok">5,937 (0.001%)</td>
+            <td>6.00 LSB</td>
+            <td class="warn">15.7 °/hr</td>
+            <td>43.4 °/hr (1 Hz hunt)</td>
+          </tr>
+          <tr>
+            <td><strong>Micro-HRG</strong> (11 kHz, Q=1M)</td>
+            <td class="ok">+0.052%</td>
+            <td class="ok">107.2 dB</td>
+            <td class="ok">594 (0.052%)</td>
+            <td class="bad">0.42 &rarr; 0!</td>
+            <td class="warn">22.5 °/hr</td>
+            <td>0.05 °/hr (-25 °/hr static)</td>
+          </tr>
+          <tr>
+            <td><strong>Space HRG</strong> (4.2 kHz, Q=5M)</td>
+            <td class="ok">+0.052%</td>
+            <td class="ok">97.7 dB</td>
+            <td class="warn">45.3 (0.74%)</td>
+            <td class="bad">0.04 &rarr; 0!</td>
+            <td class="warn">22.5 °/hr</td>
+            <td>10.3 °/hr (±0.5 LSB sawtooth)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="plot">
+      <img src="hw_fpga_vs_float_error.png" alt="Live ZUBoard 1CG Fixed-Point vs Float64 across 3 presets" />
+      <div class="cap"><strong>Left:</strong> Noise-free 100 °/s step on live XCZU1CG silicon vs. float64 golden model (notice the FPGA's 1 MHz Strang-split integrator has less overshoot and 10&times; smaller steady-state error than the 200 kHz Python loop). <strong>Right:</strong> Zoomed zero-rate residual in °/hr showing exact 1-LSB <code>Q10.14</code> quantization steps and the textbook ±0.5 LSB limit cycle on the Q=5M Space HRG.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">30 s ADEV</span> Pure Fixed-Point Floor vs. On-Chip PRNG Noise</h2>
+    <p>Capturing 30 seconds at 200 Hz (6,000 live DMA frames after discarding a 2.5 s warmup burst) directly separates the FPGA's fixed-point quantization noise floor from the on-chip thermal + RRW noise engine:</p>
+    <div class="plot">
+      <img src="hw_adev_30s_clean.png" alt="30s Live Hardware ADEV comparing PRNG ON vs PRNG OFF" />
+      <div class="cap"><strong>Red (PRNG OFF):</strong> Pure fixed-point floor bottoms at <code>2.75 °/hr</code> at &tau;=7.5 s, with textbook <code>sinc</code> notches at &tau;=0.95 s, 1.9 s, 2.85 s from a ~1.05 Hz 1-LSB digital PI hunting limit cycle. <strong>Blue (PRNG ON):</strong> Thermal white noise dithers the limit cycle away smoothly, hitting a bias-instability minimum of <code>8.77 °/hr</code> at &tau;=4.3 s before the 52-bit RRW bias walk turns the curve upward!</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge">Live 12-Panel</span> Silicon DRG Step Capture (XCZU1CG)</h2>
+    <div class="plot">
+      <img src="hw_step_silicon.png" alt="12-panel live hardware step response from ZUBoard 1CG" />
+      <div class="cap">Real-time 12-panel telemetry streamed from ZUBoard 1CG AXI-DMA S2MM over Gigabit Ethernet UDP (<code>100.0 °/s</code> step, <code>FTR_ss = 100.100 °/s</code>, Feedforward rate tracks instantaneously with 10&times; smaller transient angle error).</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge red">Takeaways</span> Exact Bit-Width Bottlenecks &amp; Upgrades</h2>
+    <ul>
+      <li><strong><code>Q4.44</code> 48-bit Strang-Split Plant State — ROCK SOLID:</strong> <code>1 LSB = 5.7&times;10<sup>-14</sup></code> (&minus;265 dB). Zero noticeable integration drift or energy leak even at <code>Q = 5,000,000</code>.</li>
+      <li><strong><code>Q10.14</code> 24-bit FTR / CLQ Output — #1 BOTTLENECK FOR BIAS STABILITY:</strong> <code>1 LSB = 15.7 °/hr</code> (DRG) or <code>22.5 °/hr</code> (HRG). Fine for 100 °/s rate steps (<code>0.05%</code>), but creates a <code>~2.75 °/hr</code> fixed-point ADEV floor and ±1 LSB zero-rate limit cycles when undithered. <em>Upgrade path:</em> widening PI outputs from <code>Q10.14</code> to <code>Q10.22</code> (32-bit) cuts quantization by <strong>256&times;</strong> to <code>0.06 °/hr/LSB</code>!</li>
+      <li><strong><code>Q2.34</code> Plant Coefficients at Q &ge; 1M — TINY DAMPING TRUNCATION:</strong> For Space HRG (<code>Q = 5M</code>), <code>0.5&middot;&gamma;&middot;dt</code> is <code>45.3 LSBs</code> (<code>0.74%</code> Q rounding error) and <code>0.0005 °/s</code> anisodamping <code>g_xy</code> is <code>0.04 LSBs</code> (truncates to 0). <em>Upgrade path:</em> widen <code>g_xy</code> / <code>gamma</code> registers to <code>Q2.42</code> (44-bit) for navigation/space-grade HRG fidelity.</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>

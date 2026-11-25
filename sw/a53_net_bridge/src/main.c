@@ -14,11 +14,14 @@
 #include "xil_printf.h"
 #include "xil_io.h"
 #include "xil_cache.h"
+#include "xil_exception.h"
+#include "xiltimer.h"
 #include "xaxidma.h"
 #include "xparameters.h"
 
 #include "lwip/init.h"
 #include "lwip/udp.h"
+#include "lwip/etharp.h"
 #include "netif/xadapter.h"
 
 /* Must match hw/scripts/create_bd.tcl address assignment */
@@ -50,6 +53,18 @@ static int init_dma(void) {
     XAxiDma_IntrDisable(&axi_dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
     XAxiDma_IntrDisable(&axi_dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
     return XST_SUCCESS;
+}
+
+static void reset_dma_s2mm(void) {
+    XAxiDma_Reset(&axi_dma);
+    XTime t0, now;
+    XTime_GetTime(&t0);
+    while (!XAxiDma_ResetIsDone(&axi_dma)) {
+        XTime_GetTime(&now);
+        if ((now - t0) > (XTime)(COUNTS_PER_SECOND / 10U)) break;
+    }
+    XAxiDma_IntrDisable(&axi_dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+    XAxiDma_IntrDisable(&axi_dma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
 }
 
 static void send_udp_words(struct udp_pcb *pcb, const ip_addr_t *addr, u16_t port,
@@ -86,6 +101,10 @@ static void udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
         uint32_t offset = req[1] & 0xFCU;
         uint32_t val    = req[2];
         Xil_Out32(DSP_SLOT_BASEADDR + offset, val);
+        /* Keep AXI-DMA S2MM FIFO aligned whenever host asserts PL soft_rst */
+        if (offset == 0x00U && (val & 0x20U)) {
+            reset_dma_s2mm();
+        }
         uint32_t rsp[2] = {0x82U, Xil_In32(DSP_SLOT_BASEADDR + offset)};
         send_udp_words(pcb, addr, port, rsp, 2);
 
@@ -93,6 +112,12 @@ static void udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
         uint32_t n_words = req[1];
         if (n_words == 0) n_words = 1024;
         if (n_words > MAX_CAPTURE_SAMPLES) n_words = MAX_CAPTURE_SAMPLES;
+
+        /* Auto-recover AXI-DMA if a previous burst left S2MM halted/errored */
+        uint32_t s2mm_sr = XAxiDma_ReadReg(axi_dma.RegBase + XAXIDMA_RX_OFFSET, XAXIDMA_SR_OFFSET);
+        if (s2mm_sr & XAXIDMA_ERR_ALL_MASK) {
+            reset_dma_s2mm();
+        }
 
         uint32_t ver_stage = (Xil_In32(DSP_SLOT_BASEADDR + 0xECU) >> 8) & 0xFFU;
         uint32_t ctrl = Xil_In32(DSP_SLOT_BASEADDR + 0x00U);
@@ -118,8 +143,27 @@ static void udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
             if (ver_stage != 0x01U) {
                 Xil_Out32(DSP_SLOT_BASEADDR + 0x00U, ctrl | 0x1U);
             }
+            XTime t0, now;
+            XTime_GetTime(&t0);
+            int dma_ok = 1;
             while (XAxiDma_Busy(&axi_dma, XAXIDMA_DEVICE_TO_DMA)) {
-                /* Poll S2MM */
+                uint32_t sr = XAxiDma_ReadReg(axi_dma.RegBase + XAXIDMA_RX_OFFSET, XAXIDMA_SR_OFFSET);
+                if (sr & XAXIDMA_ERR_ALL_MASK) {
+                    xil_printf("WARN: AXI-DMA S2MM error SR=0x%08X, resetting DMA\r\n", sr);
+                    reset_dma_s2mm();
+                    dma_ok = 0;
+                    break;
+                }
+                XTime_GetTime(&now);
+                if ((now - t0) > (XTime)(5ULL * COUNTS_PER_SECOND)) {
+                    xil_printf("WARN: AXI-DMA S2MM timeout, resetting DMA\r\n");
+                    reset_dma_s2mm();
+                    dma_ok = 0;
+                    break;
+                }
+            }
+            if (!dma_ok) {
+                return;
             }
             Xil_DCacheInvalidateRange((INTPTR)dma_rx_buf, nbytes);
 
@@ -168,14 +212,22 @@ int main(void) {
     }
     netif_set_default(&server_netif);
     netif_set_up(&server_netif);
+    Xil_ExceptionEnable();
 
     struct udp_pcb *pcb = udp_new();
     udp_bind(pcb, IP_ADDR_ANY, UDP_PORT);
     udp_recv(pcb, udp_recv_cb, NULL);
 
     xil_printf("UDP server listening on 192.168.1.10:%u\r\n", UDP_PORT);
+    XTime last_arp_t, now_t;
+    XTime_GetTime(&last_arp_t);
     while (1) {
         xemacif_input(&server_netif);
+        XTime_GetTime(&now_t);
+        if ((now_t - last_arp_t) >= (XTime)COUNTS_PER_SECOND) {
+            last_arp_t = now_t;
+            etharp_tmr();
+        }
     }
     return 0;
 }
