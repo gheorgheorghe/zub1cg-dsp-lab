@@ -6,6 +6,26 @@ See [docs/PLAN.md](docs/PLAN.md) for the complete Stage 0 → Stage 3 roadmap (R
 
 ---
 
+## Interactive Study Notes & Live Silicon Reports
+
+All engineering explainers, interactive browser simulators, hardware bring-up postmortems, and live ZUBoard 1CG plots are hosted live on **GitHub Pages**:
+
+👉 **[Browse All Study Notes (Mobile-Friendly Index)](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/)**
+
+| Topic | Live Interactive Page | Source |
+|---|---|---|
+| **Start Here — Gyro-Land Master Summary** | [Stage 0 & Stage 1 Executive Summary](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/gyro_land_summary.html) | [studies/gyro_land_summary.html](studies/gyro_land_summary.html) |
+| **Live Silicon Results (v1 → v2 High-Q)** | [Fixed-Point Rounding, High-Q v2 & +30 °C Thermal Ramp](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/fpga_fixed_point_vs_float64.html) | [studies/fpga_fixed_point_vs_float64.html](studies/fpga_fixed_point_vs_float64.html) |
+| **Nav-Grade MEMS DRG Hurdles** | [Why Si DRGs Stall at 0.2 °/hr + Interactive ADEV Lab](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/nav_grade_drg_hurdles.html) | [studies/nav_grade_drg_hurdles.html](studies/nav_grade_drg_hurdles.html) |
+| **Advanced CVG Physics** | [Electrostatic Softening, Duffing Overdrive & Whole-Angle HRG](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/advanced_gyro_physics.html) | [studies/advanced_gyro_physics.html](studies/advanced_gyro_physics.html) |
+| **Control Theory (Interactive Lab)** | [Wait: PI, but no D? (Demodulation + Feedforward)](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/pi_vs_pid_cvg_explainer.html) | [studies/pi_vs_pid_cvg_explainer.html](studies/pi_vs_pid_cvg_explainer.html) |
+| **MEMS Physics & Vacuum Packaging** | [100+ °/s Quadrature & Gold Getter Vacuum Packages](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/drg_quadrature_and_vacuum_explainer.html) | [studies/drg_quadrature_and_vacuum_explainer.html](studies/drg_quadrature_and_vacuum_explainer.html) |
+| **ADEV Comparison Chart** | [Silicon vs. Quartz DRG vs. Micro-HRG vs. Space HRG](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/adev_presets_comparison.png) | [studies/adev_presets_comparison.png](studies/adev_presets_comparison.png) |
+| **Bring-Up Postmortem · Bug #01** | [A53 / R5F LPDDR4 Memory Collision & Fix](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/bugs/bug01_a53_r5f_ddr_collision.html) | [studies/bugs/bug01_a53_r5f_ddr_collision.html](studies/bugs/bug01_a53_r5f_ddr_collision.html) |
+| **Bring-Up Postmortem · Bug #02** | [KSZ9131RNX PHY & RGMII TXC 2 ns DLL Bypass](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/bugs/bug02_ksz9131_rgmii_txc_dll.html) | [studies/bugs/bug02_ksz9131_rgmii_txc_dll.html](studies/bugs/bug02_ksz9131_rgmii_txc_dll.html) |
+
+---
+
 ## Quick Start (Linux)
 
 ### 1. Install Open-Source RTL Simulation & Python Tools
