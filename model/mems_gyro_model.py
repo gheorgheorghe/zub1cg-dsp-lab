@@ -102,6 +102,19 @@ PRESETS: dict[str, GyroParams] = {
         arw_deg_sqrt_hr=0.005,
         readout_noise_rms=5e-8,
     ),
+    "quartz_drg_12khz_q800k": GyroParams(
+        name="Quartz MEMS DRG (12 kHz, Q=800k)",
+        f0_hz=12_000.0,
+        q_x=800_000.0,
+        q_y=785_000.0,
+        mode_split_hz=0.10,
+        angular_gain=0.40,
+        quad_equiv_dps=40.0,
+        anisodamp_bias_dps=0.008,
+        tcf_ppm_per_c=-4.0,       # Low-TED crystalline/fused quartz near turnover (~ -0.048 Hz/C)
+        arw_deg_sqrt_hr=0.004,
+        readout_noise_rms=3e-8,
+    ),
     "hrg_micro_11khz_q1m": GyroParams(
         name="Fused-Silica Micro-HRG (11 kHz, Q=1M)",
         f0_hz=11_000.0,
