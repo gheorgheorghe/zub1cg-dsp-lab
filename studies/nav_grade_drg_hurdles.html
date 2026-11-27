@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hurdles to Nav-Grade MEMS DRG Bias Stability (&le; 0.01 °/hr)</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.55; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #2b121c 0%, #141c32 55%, #0e2823 100%);
+    border: 1px solid #3c3059; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.8vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 12px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--amber);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #fde68a; overflow-x: auto;
+  }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .hurdle {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .hurdle h3 { margin: 0 0 6px; font-size: 16.5px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .hurdle p { margin: 6px 0; font-size: 14.5px; color: #d1dcf0; }
+  .fix {
+    margin-top: 8px; padding: 9px 11px; border-radius: 10px;
+    background: rgba(52,211,153,0.09); border: 1px solid rgba(52,211,153,0.28);
+    font-size: 14px; color: #d1fae5;
+  }
+  /* Interactive Simulator */
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 12px; }
+  @media (max-width: 640px) { .toggles { grid-template-columns: 1fr; } }
+  label.tog {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px; cursor: pointer; user-select: none;
+  }
+  label.tog.on { border-color: var(--green); background: rgba(52,211,153,0.09); }
+  label.tog input { margin-top: 3px; width: 18px; height: 18px; accent-color: #34d399; flex-shrink: 0; }
+  .tog-title { font-size: 14px; font-weight: 700; color: #fff; }
+  .tog-sub { font-size: 12px; color: var(--muted); }
+  .readouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  @media (max-width: 640px) { .readouts { grid-template-columns: 1fr 1fr; } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+  .rd .l { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .rd .v { font-size: 17px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+  .status-pill {
+    display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800;
+  }
+  .canvas-box { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  canvas { width: 100%; display: block; border-radius: 8px; }
+  .quick-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  button.qbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 11px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.qbtn:hover { border-color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Inertial Physics Deep Dive · Road to 0.01 °/hr</div>
+    <h1>Biggest Hurdles to Navigation-Grade MEMS DRG Bias Stability</h1>
+    <p>Why tactical Silicon DRGs stall around <code>0.15&ndash;0.30 °/hr</code>, the 5 physical mechanisms holding them back from the <code>&le; 0.01 °/hr</code> navigation-grade bar, and how each engineering breakthrough drops the Allan Deviation bathtub.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge green">ADEV Waterfall</span> Tactical Silicon DRG &rarr; Navigation-Grade DRG</h2>
+    <p>Closing the ~30&ndash;50&times; bias stability gap requires attacking <strong>all three regions of the ADEV bathtub simultaneously</strong>: short-&tau; thermal ARW (<code>&minus;1/2</code> slope), mid-&tau; flicker/phase-leakage BI (<code>0</code> slope), and long-&tau; thermal/anisodamping RRW (<code>+1/2</code> slope).</p>
+    <div class="plot">
+      <img src="nav_grade_drg_hurdles_adev.png" alt="ADEV waterfall showing each engineering improvement from Tactical Si DRG to Nav-Grade DRG" />
+      <div class="cap">Cumulative overlapping ADEV waterfall generated by <code>model/plot_nav_grade_hurdles.py</code>: combining Quartz High-Q, Closed-Loop Quad Nulling, Mode Reversal (Virtual Carousel), and Self-Thermometry + HF-Carrier 24-bit DSP drives Bias Instability below the <code>0.01 °/hr</code> navigation-grade line.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Interactive Lab</span> Toggle Improvements &amp; Watch ADEV Drop Live</h2>
+    <p style="font-size:14.5px; color:var(--muted); margin-top:0;">Tap any combination of the 5 engineering upgrades below to see why <em>no single fix alone</em> reaches navigation grade &mdash; you must stack substrate Q, quad nulling, mode reversal, and thermal/electronic stabilization.</p>
+
+    <div class="quick-btns">
+      <button class="qbtn" onclick="applyPreset([0,0,0,0,0])">Baseline Si DRG</button>
+      <button class="qbtn" onclick="applyPreset([1,0,0,0,0])">+ Quartz Only</button>
+      <button class="qbtn" onclick="applyPreset([1,1,0,0,0])">+ Quad Null</button>
+      <button class="qbtn" onclick="applyPreset([1,1,1,0,0])">+ Mode Reversal</button>
+      <button class="qbtn" onclick="applyPreset([1,1,1,1,1])" style="border-color:#34d399; color:#a7f3d0;">All 5 (Nav-Grade!)</button>
+    </div>
+
+    <div class="toggles" id="toggleGrid">
+      <label class="tog" id="lbl0"><input type="checkbox" id="cb0" onchange="redraw()" /><div><div class="tog-title">1. Quartz Low-TED (Q=800k) + &lt;1 &micro;Torr Getter</div><div class="tog-sub">Cuts Brownian ARW ~3.3&times; and damping asymmetry ~3&times;</div></div></label>
+      <label class="tog" id="lbl1"><input type="checkbox" id="cb1" onchange="redraw()" /><div><div class="tog-title">2. Closed-Loop Quad Null (CLQ &gt;68 dB)</div><div class="tog-sub">Kills 120 °/s &times; &Delta;&phi; demodulator phase-leakage bias</div></div></label>
+      <label class="tog" id="lbl2"><input type="checkbox" id="cb2" onchange="redraw()" /><div><div class="tog-title">3. Mode Reversal / Virtual Carouseling</div><div class="tog-sub">Chops in-phase anisodamping &Delta;(1/&tau;) bias to AC zero</div></div></label>
+      <label class="tog" id="lbl3"><input type="checkbox" id="cb3" onchange="redraw()" /><div><div class="tog-title">4. Self-Thermometry (0.006 °C) + Micro-Oven</div><div class="tog-sub">Crushes long-&tau; thermal/stress RRW (+1/2 slope)</div></div></label>
+      <label class="tog" id="lbl4"><input type="checkbox" id="cb4" onchange="redraw()" /><div><div class="tog-title">5. HF-Carrier Pickoff + 24-bit v2 DSP</div><div class="tog-sub">Eliminates op-amp 1/f corner, C<sub>par</sub> feedthrough &amp; Q10.14 floor</div></div></label>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">ARW (-1/2)</div><div class="v" id="rdArw" style="color:var(--blue)">0.015 °/&radic;hr</div></div>
+      <div class="rd"><div class="l">Bias Instability</div><div class="v" id="rdBi" style="color:var(--amber)">0.250 °/hr</div></div>
+      <div class="rd"><div class="l">RRW (+1/2)</div><div class="v" id="rdRrw" style="color:var(--purple)">1.60 °/hr/&radic;hr</div></div>
+      <div class="rd"><div class="l">Grade Status</div><div class="v" id="rdGrade"><span class="status-pill" style="background:rgba(248,113,113,0.2);color:#fca5a5;">TACTICAL</span></div></div>
+    </div>
+
+    <div class="canvas-box">
+      <canvas id="adevCanvas" data-h="320"></canvas>
+    </div>
+    <div class="cap">Analytical root-sum-square ADEV model: &sigma;&sup2;(&tau;) = N&sup2;/&tau; + (0.664&middot;B)&sup2; + K&sup2;&tau;/3. Dashed red = Baseline Silicon DRG; solid curve = your active upgrade stack.</div>
+  </section>
+
+  <section>
+    <h2><span class="badge red">The 5 Hurdles</span> Root-Cause Physics &amp; Proven Fixes</h2>
+
+    <div class="hurdle">
+      <h3><span class="badge amber">Hurdle 1</span> Thermoelastic Damping (TED) &amp; the Q = 100k Silicon Wall</h3>
+      <p>Flexing silicon rings heats the compressed side and cools the stretched side; irreversible heat flow across the ring thickness creates <strong>Thermoelastic Damping (TED)</strong>, capping single-crystal Si DRGs near <code>Q &approx; 100k</code>. Low Q hurts twice: Brownian noise scales as <code>1/&radic;Q</code>, and anisodamping bias scales as <code>1/Q</code>.</p>
+      <div class="eq">Q<sub>TED</sub><sup>&minus;1</sup> &propto; (E &middot; &alpha;&sup2; &middot; T) / C<sub>v</sub> &nbsp;&nbsp;&rarr;&nbsp;&nbsp; &Omega;<sub>ARW</sub> &propto; 1 / (A<sub>drive</sub> &middot; &radic;(m &middot; &omega;<sub>0</sub> &middot; Q))</div>
+      <div class="fix"><strong>Fix:</strong> Fabricate DRGs in low-TED <strong>fused/crystalline Quartz</strong> (<code>Q = 800k&ndash;2M</code>, near-zero TCF) or epitaxial SiC (<code>Q = 500k</code>) inside a <code>&lt; 1 &micro;Torr</code> gold-lid NEG getter vacuum package so gas damping never touches Q.</div>
+    </div>
+
+    <div class="hurdle">
+      <h3><span class="badge purple">Hurdle 2</span> Quadrature-to-Rate Phase Leakage (<code>120 °/s &times; &Delta;&phi;</code>)</h3>
+      <p>Etch taper and crystal anisotropy create <code>10&ndash;120 °/s</code> of stiffness quadrature (90° out of phase with Coriolis). Any tiny electronic phase drift <code>&Delta;&phi;(T)</code> in the pickoff TIA, ADC, or PLL leaks quadrature straight into the rate channel:</p>
+      <div class="eq">&Omega;<sub>bias</sub> = &Omega;<sub>quad</sub> &middot; sin(&Delta;&phi;) &nbsp;&nbsp;&rarr;&nbsp;&nbsp; 120 °/s &times; 0.001° (17 &micro;rad) = 7.5 °/hr bias!</div>
+      <p>That is <strong>750&times; larger</strong> than the <code>0.01 °/hr</code> nav-grade limit from just one-thousandth of a degree of analog phase drift!</p>
+      <div class="fix"><strong>Fix:</strong> Dedicated DC electrostatic quadrature-trim electrodes + closed-loop FPGA CLQ nulling (<code>&gt; 68 dB</code> mechanical nulling, or <code>229 dB</code> in our live ZUBoard v2!), reducing residual quadrature to <code>&lt; 0.05 °/s</code> before demodulation.</div>
+    </div>
+
+    <div class="hurdle">
+      <h3><span class="badge blue">Hurdle 3</span> Anisodamping &Delta;(1/&tau;) &mdash; The Un-Null-able In-Phase Bias</h3>
+      <p>Unlike stiffness quadrature (90° out of phase), <strong>damping asymmetry</strong> between the two principal damping axes produces a force <strong>strictly in-phase</strong> with Coriolis &mdash; indistinguishable from true rotation:</p>
+      <div class="eq">&Omega;<sub>anisodamp</sub> = (1 / 4 A<sub>g</sub>) &middot; (1/&tau;<sub>1</sub> &minus; 1/&tau;<sub>2</sub>) &middot; sin(2&theta;<sub>&tau;</sub>)</div>
+      <p>Even a 1% Q-asymmetry on a Q=100k DRG creates ~10 °/hr of bias, and any anchor-stress shift in <code>&theta;<sub>&tau;</sub>(T)</code> turns directly into uncalibrated BI &amp; RRW drift.</p>
+      <div class="fix"><strong>Fix (The DARPA PRIGM Breakthrough):</strong> <strong>Mode Reversal / Virtual Carouseling</strong> &mdash; electronically swapping Drive &harr; Sense axes (or continuously rotating the standing wave angle &theta;) modulates structural anisodamping into an AC wave that averages to <strong>zero</strong>, while true inertial rotation remains DC!</div>
+    </div>
+
+    <div class="hurdle">
+      <h3><span class="badge amber">Hurdle 4</span> Thermal Drift, Package Stress &amp; Mode Split &Delta;f(T)</h3>
+      <p>Silicon's <code>&minus;30 ppm/°C</code> TCF shifts f<sub>0</sub> by <code>&minus;0.33 Hz/°C</code>, and CTE mismatch between the die and ceramic LCC package bends the center anchor stem, driving long-&tau; Rate Random Walk (<code>+1/2</code> ADEV uptick above 100 s).</p>
+      <div class="fix"><strong>Fix:</strong> Stress-isolated single center anchor + <strong>in-situ resonator self-thermometry</strong> using the 40-bit PLL frequency readout (verified to <strong>0.006 °C RMS</strong> live on our ZUBoard 1CG!) + micro-ovenization (&plusmn;0.01 °C) to freeze die stress and TCF completely.</div>
+    </div>
+
+    <div class="hurdle">
+      <h3><span class="badge green">Hurdle 5</span> Front-End 1/f Noise, Capacitive Feedthrough &amp; Digital Quantization</h3>
+      <p>Femtofarad parasitic capacitance couples the large AC drive voltage directly into the sense node, op-amp <code>1/f</code> flicker noise creates an electronic BI floor, and coarse digital controllers (like our Stage 1 v1 <code>Q10.14</code> FTR) impose a <code>2.75 °/hr</code> fixed-point floor!</p>
+      <div class="fix"><strong>Fix:</strong> High-frequency electromechanical carrier modulation (1&ndash;5 MHz HF pickoff, cleanly separating sense signal from drive feedthrough &amp; op-amp 1/f corner) + <strong>24-bit &Delta;&Sigma; ADC &amp; 32-bit <code>Q10.22</code> FTR</strong> (just like our ZUBoard Stage 1 v2 upgrade, which dropped our FPGA floor <strong>100&times;</strong> to <code>0.027 °/hr</code>!).</div>
+    </div>
+  </section>
+</div>
+
+<script>
+function getParams() {
+  const on = [0,1,2,3,4].map(i => document.getElementById('cb'+i).checked);
+  for (let i = 0; i < 5; i++) {
+    document.getElementById('lbl'+i).className = 'tog' + (on[i] ? ' on' : '');
+  }
+  // Independent physical noise/drift contributors combined in quadrature (RSS)!
+  // Baseline Silicon DRG:
+  //   ARW: Brownian (0.0145) + Electronic (0.0038)
+  const arwBrown = on[0] ? 0.0038 : 0.0145;
+  const arwElec  = on[4] ? 0.0009 : 0.0038;
+  const arw = Math.hypot(arwBrown, arwElec);
+
+  //   BI (deg/hr): Quadrature phase-leakage + Anisodamping drift + Thermal stress + Electronic 1/f & quant
+  let biQuad  = on[1] ? 0.0020 : (on[0] ? 0.065 : 0.160);
+  let biAniso = on[2] ? 0.0022 : (on[0] ? 0.032 : 0.120);
+  let biTherm = on[3] ? 0.0015 : (on[0] ? 0.018 : 0.060);
+  let biElec  = on[4] ? 0.0012 : 0.015;
+  const bi = Math.hypot(biQuad, biAniso, biTherm, biElec);
+
+  //   RRW (deg/hr/sqrt(hr)): Thermal stress + Anisodamping walk + Quad phase walk
+  let rrwTherm = on[3] ? 0.006 : (on[0] ? 0.25 : 1.10);
+  let rrwAniso = on[2] ? 0.008 : (on[0] ? 0.18 : 0.85);
+  let rrwQuad  = on[1] ? 0.005 : 0.45;
+  const rrw = Math.hypot(rrwTherm, rrwAniso, rrwQuad);
+
+  return { arw, bi, rrw, on };
+}
+
+function adevVal(tau, arw, bi, rrw) {
+  // arw in deg/rt-hr -> sigma_arw(tau) in deg/hr = arw * 60 / sqrt(tau)
+  const sArw = (arw * 60.0) / Math.sqrt(tau);
+  const sBi  = 0.664 * bi;
+  // rrw in deg/hr/rt-hr -> sigma_rrw(tau) in deg/hr = rrw * sqrt((tau/3600)/3)
+  const sRrw = rrw * Math.sqrt((tau / 3600.0) / 3.0);
+  return Math.sqrt(sArw*sArw + sBi*sBi + sRrw*sRrw);
+}
+
+function applyPreset(arr) {
+  for (let i = 0; i < 5; i++) document.getElementById('cb'+i).checked = !!arr[i];
+  redraw();
+}
+
+function redraw() {
+  const { arw, bi, rrw } = getParams();
+  document.getElementById('rdArw').textContent = arw.toFixed(4) + ' °/√hr';
+  document.getElementById('rdBi').textContent  = bi.toFixed(4) + ' °/hr';
+  document.getElementById('rdRrw').textContent = rrw.toFixed(3) + ' °/hr/√hr';
+
+  const g = document.getElementById('rdGrade');
+  if (bi <= 0.01) {
+    g.innerHTML = '<span class="status-pill" style="background:rgba(52,211,153,0.22);color:#6ee7b7;">NAV-GRADE ✓</span>';
+  } else if (bi <= 0.05) {
+    g.innerHTML = '<span class="status-pill" style="background:rgba(56,189,248,0.22);color:#7dd3fc;">NEAR-NAV</span>';
+  } else {
+    g.innerHTML = '<span class="status-pill" style="background:rgba(251,191,36,0.2);color:#fde68a;">TACTICAL</span>';
+  }
+
+  const c = document.getElementById('adevCanvas');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cssW = c.parentElement.clientWidth - 16;
+  const cssH = parseInt(c.dataset.h, 10) || 320;
+  if (c.width !== Math.round(cssW * dpr) || c.height !== Math.round(cssH * dpr)) {
+    c.width = Math.round(cssW * dpr);
+    c.height = Math.round(cssH * dpr);
+    c.style.height = cssH + 'px';
+  }
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const W = cssW, H = cssH;
+  const pad = { l: 58, r: 18, t: 22, b: 40 };
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  ctx.fillStyle = '#090d14';
+  ctx.fillRect(0, 0, W, H);
+
+  const xMin = Math.log10(0.05), xMax = Math.log10(1000);
+  const yMin = Math.log10(1e-3), yMax = Math.log10(10);
+  const tx = v => pad.l + ((Math.log10(v) - xMin) / (xMax - xMin)) * pw;
+  const ty = v => pad.t + (1 - (Math.log10(v) - yMin) / (yMax - yMin)) * ph;
+
+  // Nav-grade shaded region
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.11)';
+  ctx.fillRect(pad.l, ty(0.01), pw, ty(1e-3) - ty(0.01));
+
+  // Grid lines
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for (const xv of [0.1, 1, 10, 100, 1000]) {
+    const x = tx(xv);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(xv + 's', x, H - 18);
+  }
+  for (const yv of [1e-3, 1e-2, 1e-1, 1, 10]) {
+    const y = ty(yv);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(yv >= 1 ? yv.toString() : yv.toString(), pad.l - 6, y + 4);
+  }
+
+  // Nav-Grade line
+  ctx.strokeStyle = '#34d399';
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(pad.l, ty(0.01)); ctx.lineTo(pad.l + pw, ty(0.01)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#34d399'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('NAV-GRADE (0.01 °/hr)', pad.l + 6, ty(0.01) - 5);
+
+  // Baseline Silicon DRG dashed curve
+  const bArw = Math.hypot(0.0145, 0.0038);
+  const bBi  = Math.hypot(0.160, 0.120, 0.060, 0.015);
+  const bRrw = Math.hypot(1.10, 0.85, 0.45);
+
+  ctx.strokeStyle = 'rgba(248, 113, 113, 0.55)';
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 140; i++) {
+    const tau = Math.pow(10, xMin + (i / 140) * (xMax - xMin));
+    const y = ty(Math.max(1e-3, Math.min(10, adevVal(tau, bArw, bBi, bRrw))));
+    if (i === 0) ctx.moveTo(tx(tau), y); else ctx.lineTo(tx(tau), y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Active curve
+  let minY = 1e9, minTau = 1;
+  ctx.strokeStyle = bi <= 0.01 ? '#34d399' : (bi <= 0.05 ? '#38bdf8' : '#fbbf24');
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let i = 0; i <= 160; i++) {
+    const tau = Math.pow(10, xMin + (i / 160) * (xMax - xMin));
+    const v = adevVal(tau, arw, bi, rrw);
+    if (v < minY) { minY = v; minTau = tau; }
+    const y = ty(Math.max(1e-3, Math.min(10, v)));
+    if (i === 0) ctx.moveTo(tx(tau), y); else ctx.lineTo(tx(tau), y);
+  }
+  ctx.stroke();
+
+  // Minimum dot
+  ctx.beginPath();
+  ctx.arc(tx(minTau), ty(Math.max(1e-3, minY)), 5.5, 0, Math.PI * 2);
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fill();
+  ctx.strokeStyle = '#090d14'; ctx.lineWidth = 1.8; ctx.stroke();
+
+  // Axis titles
+  ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 11.5px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Cluster Averaging Time τ (s)', pad.l + pw / 2, H - 3);
+  ctx.save();
+  ctx.translate(14, pad.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('ADEV σ(τ) [°/hr]', 0, 0);
+  ctx.restore();
+}
+
+window.addEventListener('resize', redraw);
+applyPreset([0, 0, 0, 0, 0]);
+</script>
+</body>
+</html>
