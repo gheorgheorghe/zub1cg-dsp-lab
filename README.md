@@ -15,6 +15,7 @@ All engineering explainers, interactive browser simulators, hardware bring-up po
 | Topic | Live Interactive Page | Source |
 |---|---|---|
 | **Start Here — Gyro-Land Master Summary** | [Stage 0 & Stage 1 Executive Summary](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/gyro_land_summary.html) | [studies/gyro_land_summary.html](studies/gyro_land_summary.html) |
+| **CVG Crash Course (Newcomer Primer)** | [2D Wineglass Physics, DX/DY/SX/SY & ADEV Intuition](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/cvg_crash_course.html) | [studies/cvg_crash_course.html](studies/cvg_crash_course.html) |
 | **Live Silicon Results (v1 → v2 High-Q)** | [Fixed-Point Rounding, High-Q v2 & +30 °C Thermal Ramp](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/fpga_fixed_point_vs_float64.html) | [studies/fpga_fixed_point_vs_float64.html](studies/fpga_fixed_point_vs_float64.html) |
 | **Nav-Grade MEMS DRG Hurdles** | [Why Si DRGs Stall at 0.2 °/hr + Interactive ADEV Lab](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/nav_grade_drg_hurdles.html) | [studies/nav_grade_drg_hurdles.html](studies/nav_grade_drg_hurdles.html) |
 | **Advanced CVG Physics** | [Electrostatic Softening, Duffing Overdrive & Whole-Angle HRG](https://gheorgheorghe.github.io/zub1cg-dsp-lab/studies/advanced_gyro_physics.html) | [studies/advanced_gyro_physics.html](studies/advanced_gyro_physics.html) |

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CVG Crash Course · DRG/HRG Physics, DX/DY/SX/SY &amp; ADEV Intuition</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.58; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px 14px 60px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #0d2238 0%, #171834 55%, #0e2a24 100%);
+    border: 1px solid #2b4a6e; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 33px); line-height: 1.14; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .callout {
+    background: rgba(251,191,36,0.09); border: 1px solid rgba(251,191,36,0.32);
+    border-left: 4px solid var(--amber); border-radius: 12px; padding: 12px 14px; margin: 12px 0;
+    font-size: 14.5px; color: #fef3c7;
+  }
+  .callout.blue { background: rgba(56,189,248,0.09); border-color: rgba(56,189,248,0.32); border-left-color: var(--blue); color: #e0f2fe; }
+  .callout.green { background: rgba(52,211,153,0.09); border-color: rgba(52,211,153,0.32); border-left-color: var(--green); color: #d1fae5; }
+  .canvas-box { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin: 12px 0; }
+  canvas { width: 100%; display: block; border-radius: 8px; }
+  .fig { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin: 12px 0; }
+  .fig svg { width: 100%; height: auto; display: block; }
+  .cap { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 600px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+  }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+  .ctrl input[type=range] { width: 100%; accent-color: #38bdf8; }
+  .tog-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  button.tbtn {
+    border: 1px solid var(--border); background: var(--card2); color: var(--text);
+    padding: 8px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  button.tbtn.on { background: rgba(52,211,153,0.18); border-color: var(--green); color: #a7f3d0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .sigcard {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 13px; padding: 13px;
+  }
+  .sigcard .name { font-size: 17px; font-weight: 800; font-family: "SFMono-Regular", Menlo, Consolas, monospace; margin-bottom: 4px; }
+  .sigcard .role { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+  .sigcard p { margin: 0; font-size: 14px; color: #d5e0f2; }
+  .sigcard .target {
+    margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--border);
+    font-size: 12.5px; color: var(--muted);
+  }
+  .live-meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  @media (max-width: 600px) { .live-meters { grid-template-columns: 1fr 1fr; } }
+  .meter { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px; text-align: center; }
+  .meter .ml { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .meter .mv { font-size: 16px; font-weight: 800; font-family: monospace; margin-top: 2px; }
+  .adevs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  @media (max-width: 680px) { .adevs { grid-template-columns: 1fr; } }
+  .acard { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .acard .slope { font-size: 12px; font-weight: 800; font-family: monospace; margin-bottom: 4px; }
+  .acard h3 { margin: 0 0 6px; font-size: 15.5px; color: #fff; }
+  .acard p { margin: 0; font-size: 13.5px; color: #cdd9ec; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Newcomer Primer · 5-Minute Intuition Guide</div>
+    <h1>CVG Crash Course: Wineglass Gyros, <code>DX/DY/SX/SY</code> &amp; ADEV</h1>
+    <p>Everything you need to understand a 2D Disk Resonator Gyro (DRG) or Hemispherical Resonator Gyro (HRG) without drowning in differential equations &mdash; from why a vibrating ring senses rotation, to what every telemetry signal means, to reading an Allan Deviation bathtub like a pro.</p>
+  </header>
+
+  <!-- SECTION 1: 2D WINEGLASS RESONATOR -->
+  <section>
+    <h2><span class="badge">1. Physics</span> A Foucault Pendulum Shrunk Into a Wineglass</h2>
+    <p>When you rub the rim of a crystal wineglass, it rings in an <strong><code>n = 2</code> oval standing wave</strong> &mdash; stretching horizontally, then vertically, 11,000 times per second (<code>11 kHz</code>). Because a ring or hemisphere is circularly symmetric, it actually has <strong>two identical vibration modes</strong> tilted <strong>45° apart</strong>:</p>
+    <ul>
+      <li><strong>Drive Mode (<code>x</code>, 0° / 90°):</strong> We deliberately pump this mode so it oscillates continuously at a constant amplitude.</li>
+      <li><strong>Sense Mode (<code>y</code>, 45° / 135°):</strong> When the gyro is sitting still, this 45° mode stays quiet (<code>0</code>).</li>
+    </ul>
+    <p>Now <strong>spin the chip</strong> around its center at rate <code>&Omega;<sub>z</sub></code>. Just like a Foucault pendulum keeps swinging in the same inertial plane while the Earth turns underneath it, the vibrating standing wave resists turning with the chip. From the chip's point of view, the <strong>Coriolis force</strong> transfers energy from the 0° Drive mode into the 45° Sense mode! The wave lags behind the shell by <strong>Bryan's Factor</strong> (<code>A<sub>g</sub> &approx; 0.28</code> for HRG, <code>~0.40</code> for DRG).</p>
+
+    <div class="canvas-box">
+      <canvas id="ringCanvas" data-h="270"></canvas>
+      <div class="ctrl-grid">
+        <div class="ctrl">
+          <label><span>Rotation Rate &Omega;<sub>z</sub></span><span id="valRate" style="color:var(--blue)">+80 °/s</span></label>
+          <input id="slRate" type="range" min="-150" max="150" value="80" step="5" />
+        </div>
+        <div class="ctrl">
+          <label><span>Fabrication Quadrature</span><span id="valQuad" style="color:var(--amber)">40 °/s</span></label>
+          <input id="slQuad" type="range" min="0" max="120" value="40" step="5" />
+        </div>
+      </div>
+      <div class="tog-row">
+        <button id="btnClosed" class="tbtn" onclick="toggleClosed()">Closed-Loop FTR + CLQ: OFF (Open-Loop)</button>
+      </div>
+      <div class="live-meters">
+        <div class="meter"><div class="ml">DX (Drive Amp)</div><div class="mv" id="mDX" style="color:var(--blue)">1.000</div></div>
+        <div class="meter"><div class="ml">SX (Rate Err)</div><div class="mv" id="mSX" style="color:var(--green)">0.000</div></div>
+        <div class="meter"><div class="ml">SY (Quad Err)</div><div class="mv" id="mSY" style="color:var(--red)">0.000</div></div>
+        <div class="meter"><div class="ml">FTRAdj (Readout)</div><div class="mv" id="mFTR" style="color:var(--purple)">0 °/s</div></div>
+      </div>
+    </div>
+    <div class="cap">Play with the sliders: <strong>Spin Rate</strong> tilts the oval toward the green 45° Sense axis (in-phase Coriolis); <strong>Quadrature</strong> makes the wave <em>whirl</em> around the rim (90° out-of-phase!). Turn <strong>Closed-Loop FTR+CLQ ON</strong> to see the FPGA freeze the sense axis dead still while reading out the rate inside <code>FTRAdj</code>!</div>
+  </section>
+
+  <!-- SECTION 2: DX DY SX SY -->
+  <section>
+    <h2><span class="badge blue">2. Demodulation</span> The Strobe-Light Trick: What Are <code>DX, DY, SX, SY</code>?</h2>
+    <p>The ring vibrates at <strong>11,000 Hz</strong> &mdash; way too fast for a simple control loop to track directly. So the FPGA uses a <strong>Lock-In Demodulator</strong>: it multiplies the Drive (<code>x</code>) and Sense (<code>y</code>) pickoffs by a reference clock (<code>sin &phi;</code> and <code>cos &phi;</code>) and low-pass filters them.</p>
+    <div class="callout blue">
+      <strong>Strobe-Light Intuition:</strong> Imagine filming an 11 kHz vibrating guitar string with an 11 kHz strobe light. The fast vibration "freezes" into slow, smooth DC numbers! Taking two strobe snapshots 90° apart (<code>in-phase</code> and <code>quadrature</code>) splits both axes into four crystal-clear health numbers:
+    </div>
+
+    <div class="grid2">
+      <div class="sigcard" style="border-top: 3px solid var(--blue);">
+        <div class="name" style="color:var(--blue)">DX</div>
+        <div class="role">Drive In-Phase &middot; "How Big Is the Swing?"</div>
+        <p>Measures the amplitude of the 0° Drive vibration. If <code>DX</code> drops, the ring is losing energy; if it grows, we're overdriving it.</p>
+        <div class="target">Target: <code>1.000</code> &nbsp;|&nbsp; Controlled by: <strong>AGC</strong></div>
+      </div>
+
+      <div class="sigcard" style="border-top: 3px solid var(--amber);">
+        <div class="name" style="color:var(--amber)">DY</div>
+        <div class="role">Drive Quadrature &middot; "Is Our Timing Right?"</div>
+        <p>Measures phase error between our digital clock (NCO) and the ring's natural resonance. Like pushing a kid on a swing slightly too early or too late!</p>
+        <div class="target">Target: <code>0.000</code> &nbsp;|&nbsp; Controlled by: <strong>PLL</strong></div>
+      </div>
+
+      <div class="sigcard" style="border-top: 3px solid var(--green);">
+        <div class="name" style="color:var(--green)">SX</div>
+        <div class="role">Sense In-Phase &middot; "Did Coriolis Push Us?"</div>
+        <p>Measures 45° Sense motion that is <strong>in-phase</strong> with Drive velocity &mdash; the exact signature of true rotation <code>&Omega;<sub>z</sub></code>!</p>
+        <div class="target">Target: <code>0.000</code> (rebalanced) &nbsp;|&nbsp; Controlled by: <strong>FTR</strong></div>
+      </div>
+
+      <div class="sigcard" style="border-top: 3px solid var(--red);">
+        <div class="name" style="color:var(--red)">SY</div>
+        <div class="role">Sense Quadrature &middot; "Crooked-Spring Wobble"</div>
+        <p>Measures 45° Sense motion <strong>90° out of phase</strong> with Coriolis &mdash; caused by tiny micron-level manufacturing imperfections coupling Drive straight into Sense.</p>
+        <div class="target">Target: <code>0.000</code> &nbsp;|&nbsp; Controlled by: <strong>CLQ</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: LOOP ADJ SIGNALS -->
+  <section>
+    <h2><span class="badge green">3. Control Loops</span> The Bathroom-Scale Trick: <code>PLLAdj, AGCAdj, CLQAdj, FTRAdj</code></h2>
+    <p>Newcomers often ask: <em>"Wait &mdash; if the controller forces <code>SX = 0</code> all the time, how do we know how fast we're spinning?!"</em></p>
+    <div class="callout green">
+      <strong>Force-Rebalance Intuition:</strong> Think of holding a bowling ball perfectly still at chest height. Its position stays at <code>0</code> (<code>SX = 0</code>), so you don't measure how far it falls &mdash; you measure <strong>how hard your arms have to push up</strong> (<code>FTRAdj</code>) to hold it still! Every one of our four loop outputs is a free, calibrated physical sensor:
+    </div>
+
+    <div class="grid2">
+      <div class="sigcard">
+        <div class="name" style="color:var(--purple)">PLLAdj &nbsp;(Hz)</div>
+        <div class="role">Phase-Locked Loop &rarr; Built-In Thermometer!</div>
+        <p>Adjusts the NCO frequency so <code>DY = 0</code> (staying dead-center on resonance). Because Silicon softens with heat (<code>&minus;30 ppm/°C = &minus;0.33 Hz/°C</code>), <code>PLLAdj</code> doubles as a <strong>millikelvin thermometer</strong> (we measured <code>0.006 °C RMS</code> live on the ZUBoard!).</p>
+      </div>
+
+      <div class="sigcard">
+        <div class="name" style="color:var(--amber)">AGCAdj &nbsp;(Force)</div>
+        <div class="role">Automatic Gain Control &rarr; Vacuum / Q Health!</div>
+        <p>Pushes the Drive axis just enough to replace friction losses and hold <code>DX = 1.0</code>. Required force is <code>&omega;<sub>0</sub> / Q</code> &mdash; so if the vacuum package ever leaks and Q drops, <code>AGCAdj</code> immediately rises to warn you.</p>
+      </div>
+
+      <div class="sigcard">
+        <div class="name" style="color:var(--red)">CLQAdj &nbsp;(Force)</div>
+        <div class="role">Closed-Loop Quadrature &rarr; Symmetry Null!</div>
+        <p>Applies a 90°-phased counter-force to hold <code>SY = 0</code>, canceling <code>100+ °/s</code> of fabrication spring-wobble so it can never leak into your rotation readout.</p>
+      </div>
+
+      <div class="sigcard">
+        <div class="name" style="color:var(--green)">FTRAdj &nbsp;(Force)</div>
+        <div class="role">Force-to-Rebalance &rarr; THE GYRO RATE OUTPUT!</div>
+        <p>Applies an in-phase counter-force to cancel the Coriolis force and hold <code>SX = 0</code>. Since Coriolis force is <code>2 A<sub>g</sub> DX &Omega;<sub>z</sub></code>, dividing <code>FTRAdj</code> by <code>2 A<sub>g</sub> DX</code> gives your exact rotation rate in <strong>°/s</strong>!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: ADEV INTUITION -->
+  <section>
+    <h2><span class="badge purple">4. Noise &amp; Drift</span> Reading an Allan Deviation (ADEV) Bathtub Like a Pro</h2>
+    <p>How do engineers grade a gyroscope? Put it <strong>completely stationary</strong> on a granite table for an hour, record its rate output <code>&Omega;(t)</code>, and chop the recording into chunks of length <strong><code>&tau;</code></strong> (<code>0.1 s</code>, <code>1 s</code>, <code>10 s</code>, <code>100 s</code>, <code>1000 s</code>). Average each chunk, then measure how much <strong>adjacent chunk averages disagree with each other</strong>:</p>
+
+    <div class="fig">
+      <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="760" height="300" fill="#090d14" rx="10"/>
+        <!-- Shaded region bands -->
+        <rect x="65" y="25" width="235" height="225" fill="rgba(56,189,248,0.07)"/>
+        <rect x="300" y="25" width="215" height="225" fill="rgba(52,211,153,0.08)"/>
+        <rect x="515" y="25" width="220" height="225" fill="rgba(248,113,113,0.07)"/>
+
+        <!-- Axes -->
+        <line x1="65" y1="250" x2="735" y2="250" stroke="#475569" stroke-width="1.6"/>
+        <line x1="65" y1="25" x2="65" y2="250" stroke="#475569" stroke-width="1.6"/>
+
+        <!-- Dashed asymptotes -->
+        <line x1="80" y1="55" x2="360" y2="210" stroke="#38bdf8" stroke-width="1.6" stroke-dasharray="6,4" opacity="0.7"/>
+        <line x1="280" y1="186" x2="540" y2="186" stroke="#34d399" stroke-width="1.6" stroke-dasharray="6,4" opacity="0.8"/>
+        <line x1="470" y1="210" x2="720" y2="75" stroke="#f87171" stroke-width="1.6" stroke-dasharray="6,4" opacity="0.7"/>
+
+        <!-- Actual smooth bathtub curve -->
+        <path d="M 80 55 Q 230 138 335 174 Q 410 192 485 178 Q 590 154 720 82"
+              fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linecap="round"/>
+
+        <!-- BI minimum marker -->
+        <circle cx="412" cy="184" r="6.5" fill="#34d399" stroke="#090d14" stroke-width="2"/>
+        <line x1="412" y1="191" x2="412" y2="250" stroke="#34d399" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+        <!-- Region Labels -->
+        <text x="182" y="45" fill="#38bdf8" font-size="13" font-weight="700" text-anchor="middle">1. ARW (Slope &minus;1/2)</text>
+        <text x="182" y="61" fill="#94a3b8" font-size="11" text-anchor="middle">Fast white noise averages down</text>
+
+        <text x="408" y="45" fill="#34d399" font-size="13" font-weight="700" text-anchor="middle">2. Bias Instability (Slope 0)</text>
+        <text x="408" y="61" fill="#94a3b8" font-size="11" text-anchor="middle">1/f flicker floor &mdash; best possible!</text>
+
+        <text x="625" y="45" fill="#f87171" font-size="13" font-weight="700" text-anchor="middle">3. RRW (Slope +1/2)</text>
+        <text x="625" y="61" fill="#94a3b8" font-size="11" text-anchor="middle">Slow bias drift gets worse</text>
+
+        <!-- Callout on BI dot -->
+        <text x="412" y="216" fill="#6ee7b7" font-size="11.5" font-weight="700" text-anchor="middle">BI &approx; min(&sigma;) / 0.664</text>
+        <text x="412" y="232" fill="#94a3b8" font-size="10.5" text-anchor="middle">Optimal averaging &tau;</text>
+
+        <!-- Axis titles -->
+        <text x="400" y="282" fill="#cbd5e1" font-size="12.5" font-weight="700" text-anchor="middle">Averaging Time &tau; (log scale: 0.05 s &rarr; 1,000 s)</text>
+        <text x="24" y="142" fill="#cbd5e1" font-size="12.5" font-weight="700" text-anchor="middle" transform="rotate(-90 24 142)">ADEV &sigma;(&tau;) [°/hr]</text>
+      </svg>
+      <div class="cap">Every gyroscope ADEV forms a "bathtub" because short-term white noise averages away while long-term physical drift builds up.</div>
+    </div>
+
+    <div class="adevs">
+      <div class="acard" style="border-top: 3px solid var(--blue);">
+        <div class="slope" style="color:var(--blue)">LEFT WALL &middot; SLOPE &minus;1/2</div>
+        <h3>Angle Random Walk (ARW)</h3>
+        <p><strong>Cause:</strong> Fast random thermal molecules kicking the resonator (Brownian noise) + front-end amplifier hiss.<br/><strong>Intuition:</strong> Averaging 4&times; longer cuts error by 2&times; (<code>1/&radic;&tau;</code>). Higher <strong>Q</strong> and bigger <strong>DX</strong> pull this whole wall downward!</p>
+      </div>
+
+      <div class="acard" style="border-top: 3px solid var(--green);">
+        <div class="slope" style="color:var(--green)">BOTTOM &middot; SLOPE 0</div>
+        <h3>Bias Instability (BI)</h3>
+        <p><strong>Cause:</strong> Slow <code>1/f</code> flicker noise in electronics, residual quad phase jitter, and micro-fluctuations in damping.<br/><strong>Intuition:</strong> The flat bottom where averaging stops helping &mdash; the headline grade spec (<strong>Tactical ~0.1 °/hr</strong>, <strong>Nav-Grade &le; 0.01 °/hr</strong>).</p>
+      </div>
+
+      <div class="acard" style="border-top: 3px solid var(--red);">
+        <div class="slope" style="color:var(--red)">RIGHT WALL &middot; SLOPE +1/2 (or +1)</div>
+        <h3>Rate Random Walk (RRW) &amp; Drift</h3>
+        <p><strong>Cause:</strong> True <strong>bias wandering away</strong> over minutes/hours due to temperature gradients, package solder stress, and drifting anisodamping <code>&Delta;(1/&tau;)</code>.<br/><strong>Intuition:</strong> Like a drunkard's walk, waiting longer lets the zero-point wander farther (<code>&prop; &radic;&tau;</code>; linear thermal ramp gives slope <code>+1</code>).</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>The #1 Newcomer Gotcha &mdash; "Where Is Constant (DC) Bias on an ADEV Plot?!"</strong><br/>
+      <strong>It isn't there!</strong> Because Allan Deviation subtracts adjacent window averages (<code>&Omega;<sub>k+1</sub> &minus; &Omega;<sub>k</sub></code>), a fixed DC offset (even <code>+50 °/hr</code>!) cancels out to <strong>exact zero</strong>. Factory calibration can subtract a <em>constant</em> bias once &mdash; what kills inertial navigation is <strong>bias that refuses to stay constant</strong> (BI at the bottom + RRW on the right wall), which is why ADEV isolates the uncalibratable drift!
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Next Steps</span> Ready to Go Deeper?</h2>
+    <p style="margin:0; font-size:14.5px; color:#cbd5e1;">Now that you know the 2D wineglass, <code>DX/DY/SX/SY</code>, the 4 loop forces, and the ADEV bathtub, explore the next interactive labs:</p>
+    <ul style="margin:8px 0 0; font-size:14.5px;">
+      <li><a href="pi_vs_pid_cvg_explainer.html" style="color:var(--blue)">Wait: PI, but no D?</a> &mdash; why lock-in demodulation turns a 2nd-order ring into a 1st-order plant.</li>
+      <li><a href="drg_quadrature_and_vacuum_explainer.html" style="color:var(--blue)">100+ °/s Quadrature &amp; Gold Getter Vacuum</a> &mdash; how micron flaws &amp; vacuum pressure govern Q.</li>
+      <li><a href="nav_grade_drg_hurdles.html" style="color:var(--blue)">Hurdles to Nav-Grade MEMS DRGs</a> &mdash; interactive ADEV upgrade lab crossing <code>0.01 °/hr</code>.</li>
+      <li><a href="fpga_fixed_point_vs_float64.html" style="color:var(--blue)">Live ZUBoard 1CG Silicon Results</a> &mdash; real FPGA captures (`0.05%` error, `0.006 °C` self-thermometry!).</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+let closedLoop = false;
+let tSim = 0;
+
+function toggleClosed() {
+  closedLoop = !closedLoop;
+  const b = document.getElementById('btnClosed');
+  b.className = 'tbtn' + (closedLoop ? ' on' : '');
+  b.textContent = closedLoop
+    ? 'Closed-Loop FTR + CLQ: ON (Sense Frozen, Rate in FTRAdj!)'
+    : 'Closed-Loop FTR + CLQ: OFF (Open-Loop)';
+}
+
+function drawRing() {
+  const c = document.getElementById('ringCanvas');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cssW = c.parentElement.clientWidth - 20;
+  const cssH = parseInt(c.dataset.h, 10) || 270;
+  if (c.width !== Math.round(cssW * dpr) || c.height !== Math.round(cssH * dpr)) {
+    c.width = Math.round(cssW * dpr);
+    c.height = Math.round(cssH * dpr);
+    c.style.height = cssH + 'px';
+  }
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const W = cssW, H = cssH;
+  ctx.fillStyle = '#090d14';
+  ctx.fillRect(0, 0, W, H);
+
+  const rate = parseFloat(document.getElementById('slRate').value);
+  const quad = parseFloat(document.getElementById('slQuad').value);
+  document.getElementById('valRate').textContent = (rate >= 0 ? '+' : '') + rate.toFixed(0) + ' °/s';
+  document.getElementById('valQuad').textContent = quad.toFixed(0) + ' °/s';
+
+  // Visual amplitudes: in open-loop, rate & quad deflect sense axis; in closed-loop, FTR & CLQ null SX/SY!
+  const sx = closedLoop ? 0.0 : (rate / 150.0) * 0.45;
+  const sy = closedLoop ? 0.0 : (quad / 120.0) * 0.40;
+  const ftrRead = closedLoop ? rate : 0.0;
+
+  document.getElementById('mDX').textContent  = '1.000';
+  document.getElementById('mSX').textContent  = (sx >= 0 ? '+' : '') + sx.toFixed(3);
+  document.getElementById('mSY').textContent  = (sy >= 0 ? '+' : '') + sy.toFixed(3);
+  document.getElementById('mFTR').textContent = (ftrRead >= 0 ? '+' : '') + ftrRead.toFixed(0) + ' °/s';
+
+  const cx = W * 0.5, cy = H * 0.52;
+  const R = Math.min(W, H) * 0.34;
+  const phase = tSim * 3.8; // slow-motion carrier for eye-friendly animation
+
+  // Draw Drive (0°/90°) and Sense (45°/135°) axes
+  ctx.save();
+  ctx.strokeStyle = 'rgba(56,189,248,0.28)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(cx - R * 1.35, cy); ctx.lineTo(cx + R * 1.35, cy);
+  ctx.moveTo(cx, cy - R * 1.35); ctx.lineTo(cx, cy + R * 1.35);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(52,211,153,0.30)';
+  const d45 = R * 1.32 * Math.SQRT1_2;
+  ctx.beginPath();
+  ctx.moveTo(cx - d45, cy - d45); ctx.lineTo(cx + d45, cy + d45);
+  ctx.moveTo(cx - d45, cy + d45); ctx.lineTo(cx + d45, cy - d45);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axis labels
+  ctx.font = 'bold 11.5px monospace';
+  ctx.fillStyle = '#38bdf8';
+  ctx.textAlign = 'left';
+  ctx.fillText('Drive (0°)', cx + R * 1.06, cy - 6);
+  ctx.fillStyle = '#34d399';
+  ctx.fillText('Sense (45°)', cx + d45 * 0.72, cy - d45 * 0.82);
+
+  // Rest circle
+  ctx.strokeStyle = 'rgba(148,163,184,0.22)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+
+  // Instantaneous n=2 modal coordinates:
+  //   x(t) = DX * sin(phi)
+  //   y(t) = SX * sin(phi) + SY * cos(phi)
+  const xInst = 1.0 * Math.sin(phase);
+  const yInst = sx * Math.sin(phase) + sy * Math.cos(phase);
+  const ampScale = R * 0.24;
+
+  // Draw vibrating n=2 wineglass ring
+  ctx.beginPath();
+  const N = 160;
+  for (let i = 0; i <= N; i++) {
+    const th = (i / N) * Math.PI * 2;
+    const dr = ampScale * (xInst * Math.cos(2 * th) + yInst * Math.sin(2 * th));
+    const px = cx + (R + dr) * Math.cos(th);
+    const py = cy - (R + dr) * Math.sin(th);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = closedLoop ? 'rgba(52,211,153,0.10)' : 'rgba(56,189,248,0.11)';
+  ctx.fill();
+  ctx.strokeStyle = closedLoop ? '#34d399' : '#38bdf8';
+  ctx.lineWidth = 3.2;
+  ctx.stroke();
+
+  // Draw sense-axis rebound arrows when closed-loop is active
+  if (closedLoop && (Math.abs(rate) > 1 || quad > 1)) {
+    ctx.fillStyle = '#a7f3d0';
+    ctx.font = 'bold 11.5px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('FTR & CLQ actively nulling 45° sense lobes → SX = 0, SY = 0', cx, 18);
+  } else {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11.5px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Slow-motion 11 kHz n=2 wineglass ring (blue = Drive, green = 45° Sense)', cx, 18);
+  }
+
+  // Center anchor dot
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.restore();
+
+  tSim += 0.016;
+  requestAnimationFrame(drawRing);
+}
+
+requestAnimationFrame(drawRing);
+</script>
+</body>
+</html>
