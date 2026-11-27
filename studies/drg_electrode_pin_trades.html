@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resonator Contact Points &amp; Sense-vs-Drive Pin Trades (MEMS DRG / HRG)</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.56; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #0d2137 0%, #151c33 55%, #0f2922 100%);
+    border: 1px solid #2b4566; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.6vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h3 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .verdict {
+    background: linear-gradient(135deg, rgba(52,211,153,0.12), rgba(56,189,248,0.08));
+    border: 1px solid rgba(52,211,153,0.42); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+  }
+  .verdict p { margin: 6px 0; font-size: 15px; color: #e6f7f0; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--blue);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #bae6fd; overflow-x: auto;
+  }
+  .eq.amber { border-left-color: var(--amber); color: #fde68a; }
+  .eq.red { border-left-color: var(--red); color: #fecaca; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 13px; }
+  .box p { margin: 6px 0 0; font-size: 14px; color: #cbd8ec; }
+  .gotcha {
+    background: var(--card2); border: 1px solid var(--border); border-left: 3px solid var(--red);
+    border-radius: 12px; padding: 13px; margin-bottom: 10px;
+  }
+  .gotcha.amber { border-left-color: var(--amber); }
+  .gotcha p { margin: 6px 0; font-size: 14.3px; color: #d1dcf0; }
+  .fix {
+    margin-top: 8px; padding: 8px 11px; border-radius: 9px;
+    background: rgba(52,211,153,0.09); border: 1px solid rgba(52,211,153,0.28);
+    font-size: 13.8px; color: #d1fae5;
+  }
+
+  /* Interactive Controls */
+  .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 680px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+  }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #cbd8ec; margin-bottom: 6px; }
+  .ctrl select, .ctrl input[type="range"] { width: 100%; }
+  .ctrl select {
+    background: #0b0f17; color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 8px; font-size: 13.5px;
+  }
+  .ctrl input[type="range"] { accent-color: var(--blue); }
+  .presets { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.pbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 11px; border-radius: 8px; font-size: 12.8px; font-weight: 600; cursor: pointer;
+  }
+  button.pbtn:hover { border-color: var(--blue); }
+  button.pbtn.best { border-color: var(--green); color: #a7f3d0; background: rgba(52,211,153,0.1); }
+
+  .readouts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 640px) { .readouts { grid-template-columns: 1fr 1fr; } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 9px; text-align: center; }
+  .rd .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .rd .v { font-size: 15.5px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  .canvas-pair { display: grid; grid-template-columns: 1fr 1.15fr; gap: 10px; }
+  @media (max-width: 760px) { .canvas-pair { grid-template-columns: 1fr; } }
+  .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  .cbox canvas { width: 100%; display: block; border-radius: 8px; }
+  .cap { font-size: 12.3px; color: var(--muted); margin-top: 7px; text-align: center; }
+
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: #93a4be; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; background: #0e1420; }
+  td code { font-size: 12.5px; }
+  .legend-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; font-size: 12px; color: #cbd8ec; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Transducer Architecture &amp; Readout Physics · DRG / HRG</div>
+    <h1>More Resonator Contact Points &amp; Sense vs. Drive Pin Trades</h1>
+    <p>How scaling from 8 &rarr; 16 &rarr; 24 &rarr; 32+ electrodes improves a 2D wineglass gyro, why <strong>more sense pins win decisively</strong> on high-Q resonators, and the 4 subtle engineering traps (<code>C<sub>pad</sub></code> saturation, DAC clipping, feedthrough, and X/Y softening asymmetry) that define the true optimum.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge green">The Short Answer</span> My Take: Your Finding Is Right &mdash; With One Crucial Twist</h2>
+    <div class="verdict">
+      <p><strong>1. Yes &mdash; More Sense Pins Win (Usually ~70&ndash;85% Pickoff / 15&ndash;30% Forcer):</strong> On a high-Q DRG or HRG (<code>Q = 100k&ndash;5M</code>), the resonator is an enormous mechanical amplifier on the drive side. Sustaining full linear amplitude (<code>x<sub>max</sub></code>) takes only <strong>a few millivolts</strong> on 1 differential drive pair! Every extra drive electrode past the minimum sits nearly idle &mdash; whereas every extra sense electrode directly lifts tiny femto-amp Coriolis currents out of TIA/C2V thermal &amp; <code>1/f</code> noise.</p>
+      <p><strong>2. The Bonus Most People Miss (Smaller Forcers = Quieter DACs!):</strong> If your forcer DAC has a fixed voltage rail &amp; noise floor (<code>e<sub>DAC</sub></code>), over-provisioning drive/FTR electrodes actually <em>amplifies</em> DAC voltage noise into mechanical force noise (<code>F<sub>n</sub> = N<sub>D</sub> &middot; &eta;<sub>0</sub> &middot; e<sub>DAC</sub></code>). Shrinking drive pins down toward the minimum needed for full-scale spin rate &amp; fast startup makes <em>both</em> pickoff SNR and DAC force noise better at the same time!</p>
+      <p><strong>3. The Crucial Architectural Twist &mdash; Skew <em>Pickoff vs. Forcer</em>, NOT <em>Sense-Axis vs. Drive-Axis</em>:</strong> If you naively put 14 electrodes on the 45&deg; Sense axis and only 2 on the 0&deg; Drive axis, electrostatic softening (<code>&Delta;f &prop; &minus;(N<sub>S</sub>&minus;N<sub>D</sub>)V<sub>p</sub>&sup2;</code>) creates a voltage-sensitive mode split <em>and</em> kills <strong>Mode Reversal</strong>. The gold-standard fix is <strong>symmetric X &amp; Y axes</strong> where <em>each</em> axis is split ~75% Pickoff / ~25% Forcer (with sectors combined on-die to avoid paying the <code>C<sub>pad</sub></code> bondpad tax).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge">Interactive Lab</span> Electrode Ring &amp; Sense/Drive Budget Explorer</h2>
+    <p style="font-size:14.2px; color:var(--muted); margin-top:0;">Dial the total contact count, sense/drive split, front-end wiring, and layout symmetry below. Watch the live <code>n=2</code> DRG electrode ring, ARW tradeoff curve, DAC clip margin, and Mode-Reversal compatibility update in real time.</p>
+
+    <div class="presets">
+      <button class="pbtn" onclick="setPreset(8, 50, 'tia', 'sym', 'si')">Minimal 8-Elec (50/50)</button>
+      <button class="pbtn" onclick="setPreset(16, 50, 'tia', 'sym', 'si')">16-Elec Equal (50/50)</button>
+      <button class="pbtn" onclick="setPreset(16, 85, 'c2v_pin', 'asym', 'si')">Naive 14S / 2D Asym</button>
+      <button class="pbtn best" onclick="setPreset(16, 75, 'c2v_die', 'sym', 'si')">16-Elec Symmetric 75/25 (Sweet Spot!)</button>
+      <button class="pbtn best" onclick="setPreset(24, 75, 'c2v_die', 'sym', 'quartz')">24-Elec Quartz Nav-Grade</button>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label><span>Total Electrode Sectors (N<sub>tot</sub>)</span><span id="valNtot" style="color:var(--blue)">16</span></label>
+        <input type="range" id="slNtot" min="8" max="32" step="4" value="16" oninput="updateLab()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Pickoff / Sense Allocation (%)</span><span id="valPct" style="color:var(--green)">75% (12S / 4D)</span></label>
+        <input type="range" id="slPct" min="25" max="90" step="5" value="75" oninput="updateLab()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Pickoff Front-End &amp; Wiring</span></label>
+        <select id="selFe" onchange="updateLab()">
+          <option value="tia">TIA Resistor-Limited (1 M&Omega;, &prop; 1/N_S)</option>
+          <option value="c2v_pin">C2V Per-Pin Bondpads &rarr; 1 Amp (C_pad wall)</option>
+          <option value="c2v_die" selected>C2V On-Die Combined Sectors &rarr; 1 Pad (Best!)</option>
+          <option value="c2v_par">Parallel Amps per Pin + DSP Sum (&prop; 1/&radic;N_S)</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label><span>Axis Symmetry &amp; Resonator</span></label>
+        <div style="display:flex; gap:6px;">
+          <select id="selSym" onchange="updateLab()" style="flex:1.25;">
+            <option value="sym" selected>Symmetric Per-Axis (MR Ready)</option>
+            <option value="asym">Naive Axis-Asymmetric (Skew Y vs X)</option>
+          </select>
+          <select id="selRes" onchange="updateLab()" style="flex:0.95;">
+            <option value="si" selected>Si DRG (Q=100k)</option>
+            <option value="quartz">Quartz (Q=800k)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">Total RSS ARW</div><div class="v" id="rdArw" style="color:var(--green)">0.017 °/&radic;hr</div></div>
+      <div class="rd"><div class="l">Elec / Brownian</div><div class="v" id="rdRatio" style="color:var(--blue)">0.42&times;</div></div>
+      <div class="rd"><div class="l">Steady Drive V<sub>ac</sub></div><div class="v" id="rdVss" style="color:var(--amber)">6.4 mV<sub>pk</sub></div></div>
+      <div class="rd"><div class="l">20 ms Spin-Up V<sub>ac</sub></div><div class="v" id="rdVstart" style="color:var(--purple)">0.92 V<sub>pk</sub></div></div>
+      <div class="rd"><div class="l">V<sub>p</sub> Softening &Delta;f<sub>e</sub></div><div class="v" id="rdDf" style="color:var(--green)">0.00 Hz</div></div>
+      <div class="rd"><div class="l">Mode Reversal</div><div class="v" id="rdMr" style="color:var(--green)">READY</div></div>
+    </div>
+
+    <div class="canvas-pair">
+      <div class="cbox">
+        <canvas id="ringCanvas"></canvas>
+        <div class="legend-row">
+          <span><i class="dot" style="background:#38bdf8"></i>Pickoff / Sense</span>
+          <span><i class="dot" style="background:#fbbf24"></i>Drive / Forcer</span>
+          <span><i class="dot" style="background:#34d399"></i>Guard Shield</span>
+        </div>
+      </div>
+      <div class="cbox">
+        <canvas id="curveCanvas"></canvas>
+        <div class="cap">Live Total ARW (green), Pickoff Elec ARW (cyan), and DAC Force Noise (amber) vs. Sense Allocation.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge purple">Part 1</span> How More Resonator Contact Points Help (8 &rarr; 16 &rarr; 24 &rarr; 32+)</h2>
+    <p>Before splitting pins between Sense and Drive, why does having <em>more total electrodes / contact points</em> around an <code>n=2</code> DRG (outer rim + nested interior rings) or HRG hemisphere help so much?</p>
+    <div class="grid2">
+      <div class="box">
+        <h3>1. Linear Transduction Gain (&eta; &prop; N)</h3>
+        <p>Every parallel electrode arc or inner-ring finger adds capacitive area <code>A</code>, boosting electromechanical coupling <code>&eta; = V<sub>p</sub>(&part;C/&part;x) = V<sub>p</sub>C<sub>0</sub>/d<sub>0</sub></code> linearly. More area means bigger motional current <code>i<sub>s</sub> = &eta;&middot;&dot;y</code> per picometer of Coriolis deflection.</p>
+      </div>
+      <div class="box">
+        <h3>2. Differential Push-Pull Cancellation</h3>
+        <p>Going from 4 to 8+ pins unlocks true differential pairs (<code>0&deg;/180&deg;</code> vs. <code>90&deg;/270&deg;</code>). Push-pull cancels <strong>common-mode electrical feedthrough</strong>, suppresses <strong>2nd-order electrostatic force nonlinearity (<code>x&sup2;</code>)</strong>, and rejects external <strong><code>n=1</code> linear vibration / shock</strong>.</p>
+      </div>
+      <div class="box">
+        <h3>3. Spatial Fourier Mode Filtering (n=2 Only!)</h3>
+        <p>A 4- or 8-electrode ring has coarse angular sampling that leaks drive energy into parasitic <code>n=0, 1, 3, 4</code> modes. Packing 16&ndash;32 discrete sectors around <code>360&deg;</code> acts as a <strong>spatial matched filter</strong> for <code>cos(2&theta;)</code> and <code>sin(2&theta;)</code> while staying orthogonal to parasitic modes.</p>
+      </div>
+      <div class="box">
+        <h3>4. Dedicated DC Trim &amp; Guard Shield Pins</h3>
+        <p>High-pin-count packages (24&ndash;44 pin LCC) let you dedicate separate electrodes to <strong>DC quadrature nulling (<code>22.5&deg;</code>)</strong>, <strong>DC mode-matching (<code>0&deg;/45&deg;</code>)</strong>, and <strong>grounded AC guard pins</strong> separating Drive from Sense (cutting parasitic feedthrough <code>C<sub>ft</sub></code> by 20&ndash;40 dB).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Part 2</span> Quantitative 4-Panel Trade Analysis</h2>
+    <p>Simulated for our calibrated Silicon DRG baseline (<code>f<sub>0</sub> = 11 kHz</code>, <code>Q = 100k</code>, <code>m<sub>eff</sub> = 2 mg</code>, <code>d<sub>0</sub> = 2 &mu;m</code>, <code>V<sub>p</sub> = 15 V</code>, <code>x<sub>max</sub> = 0.30 &mu;m</code>, Brownian floor <code>0.0157 °/&radic;hr</code>):</p>
+    <div class="plot">
+      <img src="electrode_allocation_trades.png" alt="4-panel quantitative trade study of MEMS DRG electrode count and sense vs drive allocation" />
+      <div class="cap">Generated by <code>model/plot_electrode_trades.py</code>: (A) Fixed 16-electrode budget optimal split, (B) On-die combining vs. C<sub>pad</sub> saturation wall, (C) Drive/FTR voltage needed vs. N<sub>D</sub>, and (D) System ADEV comparing naive skew vs. symmetric per-axis 75/25 + Mode Reversal.</div>
+    </div>
+    <div class="eq">
+      F<sub>drive,ss</sub> = m&omega;<sub>0</sub>&sup2;x<sub>max</sub> / Q &approx; 28.6 nN &nbsp;&rarr;&nbsp; ONLY 6.4 mV<sub>pk</sub> on 1 differential pair (N<sub>D</sub> = 2)!<br/>
+      F<sub>n,DAC</sub> = N<sub>D</sub> &middot; &eta;<sub>0</sub> &middot; e<sub>DAC</sub> &nbsp;&nbsp;(fixed-rail DAC noise grows linearly with unused drive area!)
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge red">Part 3</span> The 4 Physical Limits Where "More Sense Pins" Hits a Wall</h2>
+    <p>Knowing why more sense pins win is step 1; knowing <strong>where that rule breaks down</strong> is what separates a good layout from a navigation-grade one:</p>
+
+    <div class="gotcha">
+      <h3>1. The Capacitive Bondpad Saturation Wall (<code>C<sub>pad</sub></code> Tax)</h3>
+      <p>In a Charge Amplifier (C2V), input-referred displacement noise scales with <em>total</em> capacitance on the summing node: <code>y<sub>n</sub> &prop; e<sub>n</sub> &middot; [C<sub>par</sub> + N<sub>S</sub>(C<sub>0</sub> + C<sub>pad</sub>)] / N<sub>S</sub></code>. If you route <code>N<sub>S</sub></code> separate resonator electrodes out to <code>N<sub>S</sub></code> separate bondpads/package pins and short them together at ONE PCB op-amp, every pin adds <code>~1&ndash;1.5 pF</code> of ESD/pad/trace capacitance &mdash; causing SNR to hit a flat asymptote (red curve in Panel B)!</p>
+      <div class="fix"><strong>Fix:</strong> Combine same-phase sense sectors <strong>on-die (in silicon/metal routing)</strong> into a single differential pair of bondpads so you pay <code>1&times; C<sub>pad</sub></code> instead of <code>N<sub>S</sub>&times; C<sub>pad</sub></code> (blue curve in Panel B) &mdash; or use parallel front-ends summed in DSP (<code>1/&radic;N<sub>S</sub></code> scaling at higher power).</div>
+    </div>
+
+    <div class="gotcha amber">
+      <h3>2. FTR High-Rate Clipping &amp; Spin-Up Ceiling (<code>N<sub>D,min</sub></code>)</h3>
+      <p>Steady-state drive only needs millivolts, so it's tempting to shrink drive/forcer down to 1 tiny finger. Don't! Your minimum forcer count <code>N<sub>D,min</sub></code> is set by the <strong>worst-case transient</strong>, not steady state: (a) fast spin-up from rest to <code>x<sub>max</sub></code> in <code>&lt;20&ndash;50 ms</code>, (b) closed-loop FTR rebalancing <code>&plusmn;300&ndash;1000 °/s</code> bursts + <code>120 °/s</code> quadrature without clipping a 3.3 V / 10 V DAC, and (c) keeping <code>N<sub>D</sub> &ge; 2</code> per axis for differential push-pull cancellation.</p>
+      <div class="fix"><strong>Fix:</strong> Size <code>N<sub>D</sub></code> to hit ~60&ndash;80% of DAC full scale at your worst-case <code>&Omega;<sub>max</sub></code> / startup spec (typically <code>15&ndash;25%</code> of electrode area, i.e., 1 differential pair per axis), then give the remaining <code>75&ndash;85%</code> to Pickoff!</div>
+    </div>
+
+    <div class="gotcha">
+      <h3>3. Asymmetric Electrostatic Softening &amp; Losing Mode Reversal</h3>
+      <p>Every electrode biased at <code>V<sub>p</sub></code> adds negative electrostatic spring stiffness <code>k<sub>e</sub> = &minus;N<sub>axis</sub>&varepsilon;<sub>0</sub>A<sub>0</sub>V<sub>p</sub>&sup2;/d<sub>0</sub>&sup3;</code>. If you naively allocate 14 electrodes to the 45&deg; Sense axis and only 2 to the 0&deg; Drive axis, the Sense axis softens much more than Drive, creating a built-in frequency split <code>&Delta;f<sub>e</sub> &prop; &minus;(N<sub>S</sub>&minus;N<sub>D</sub>)V<sub>p</sub>&sup2;</code>! Any microvolt drift in <code>V<sub>p</sub></code> now shifts <code>&Delta;f</code> (raising mid/long-&tau; bias drift in Panel D) &mdash; <strong>and you can no longer run Mode Reversal</strong> because swapping axes would drop you to a terrible 2-pin pickoff!</p>
+      <div class="fix"><strong>Fix (The Gold Standard):</strong> Keep <strong>Axis 1 (0&deg;/90&deg;)</strong> and <strong>Axis 2 (45&deg;/135&deg;)</strong> 100% geometrically symmetric! Inside <em>each</em> axis, allocate <strong>75% area to Pickoff</strong> and <strong>25% area to Forcer</strong>. You get high sense SNR, ultra-low PLL phase noise on Drive pickoff, zero <code>V<sub>p</sub></code> softening split, and full Mode-Reversal / Whole-Angle compatibility!</div>
+    </div>
+
+    <div class="gotcha amber">
+      <h3>4. High-Voltage Package Feedthrough (<code>i<sub>ft</sub> = j&omega;<sub>0</sub> C<sub>ft</sub> v<sub>drive</sub></code>)</h3>
+      <p>Shrinking <code>N<sub>D</sub></code> by 4&times; forces your AC drive/FTR voltage <code>v<sub>drive</sub></code> up by 4&times; to deliver the same force. While on-die overlap scales down, pin-to-pin package mutual capacitance <code>C<sub>ft,pkg</sub></code> does <em>not</em> &mdash; so a single high-voltage drive pin next to a sense pin can actually inject <em>more</em> electrical feedthrough bias.</p>
+      <div class="fix"><strong>Fix:</strong> Spend 2&ndash;4 package pins on <strong>AC-ground guard shields</strong> flanking every Drive/Forcer pin, keep Drive strictly differential (<code>+v</code> and <code>&minus;v</code> cancel far-field E-fields), and use HF-carrier pickoff modulation so feedthrough at <code>f<sub>0</sub></code> falls outside the carrier passband.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Part 4</span> Practical Pinout Blueprints (16 / 24 / 32-Pin DRG Packages)</h2>
+    <p style="font-size:14.2px; color:var(--muted); margin-top:0;">How the <strong>Symmetric Per-Axis 75/25 + On-Die Combining + Guard Shield</strong> recipe maps cleanly onto real LCC ceramic vacuum packages:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Package Class</th>
+            <th>Axis 1 (0&deg;/90&deg;)</th>
+            <th>Axis 2 (45&deg;/135&deg;)</th>
+            <th>DC Trim &amp; Proof Mass</th>
+            <th>Guard / Shield</th>
+            <th>Best Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>16-Pin Minimal</strong></td>
+            <td>2 Pickoff (<code>+ / &minus;</code>, 75% die area)<br/>2 Forcer (<code>+ / &minus;</code>, 25% area)</td>
+            <td>2 Pickoff (<code>+ / &minus;</code>, 75% die area)<br/>2 Forcer (<code>+ / &minus;</code>, 25% area)</td>
+            <td>1 <code>V<sub>p</sub></code> mass + 3 DC tune/quad</td>
+            <td>4 GND guards</td>
+            <td>Compact tactical DRG; on-die combining unlocks 75/25 SNR in 16 pins</td>
+          </tr>
+          <tr>
+            <td><strong>24-Pin Sweet Spot</strong></td>
+            <td>4 Pickoff (2 diff pairs or on-die)<br/>2 Forcer (diff pair)</td>
+            <td>4 Pickoff (2 diff pairs or on-die)<br/>2 Forcer (diff pair)</td>
+            <td>2 <code>V<sub>p</sub></code> (Kelvin) + 4 DC quad/freq (22.5&deg;)</td>
+            <td>6 GND guards</td>
+            <td>High-precision DRG with full DC mode-match, quad trim &amp; Mode Reversal</td>
+          </tr>
+          <tr>
+            <td><strong>32+ Pin Nav-Grade</strong></td>
+            <td>6 Pickoff (parallel TIAs or wide on-die)<br/>2 Forcer (diff pair)</td>
+            <td>6 Pickoff (parallel TIAs or wide on-die)<br/>2 Forcer (diff pair)</td>
+            <td>2 <code>V<sub>p</sub></code> + 6 fine DC trim + 2 temp/getter</td>
+            <td>8+ coaxial GND guards</td>
+            <td>Nav-grade Quartz DRG / Micro-HRG (&le;0.01 °/hr) &amp; Whole-Angle HRG</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const K_B = 1.380649e-23, T_K = 300.0, RAD2DEG = 180.0 / Math.PI;
+const M_EFF = 2.0e-6, A_G = 0.40, D0 = 2.0e-6, X_MAX = 0.30e-6, V_P = 15.0;
+const C0 = 0.30e-12, ETA0 = V_P * C0 / D0;
+const R_F = 1.0e6, E_N_TIA = 6.0e-9, E_N_C2V = 110.0e-9;
+const C_PAR = 8.0e-12, C_PAD = 1.20e-12, E_DAC = 15.0e-9, V_DAC_MAX = 3.0;
+
+function getParams() {
+  const res = document.getElementById('selRes').value;
+  if (res === 'quartz') {
+    return { f0: 12000, Q: 800000, df: 0.10, name: 'Quartz DRG' };
+  }
+  return { f0: 11000, Q: 100000, df: 0.50, name: 'Si DRG' };
+}
+
+function psdToArw(sOmega) {
+  return (Math.sqrt(sOmega) * RAD2DEG / Math.SQRT2) * 60.0;
+}
+
+function calcMetrics(nTot, nS, fe, sym, p) {
+  const nD = Math.max(1, nTot - nS);
+  const w0 = 2 * Math.PI * p.f0;
+  const gammaY = w0 / p.Q;
+  const corF = 2 * M_EFF * A_G * w0 * X_MAX;
+
+  // Brownian floor
+  const sFth = 4 * K_B * T_K * M_EFF * w0 / p.Q;
+  const arwBr = psdToArw(2 * sFth / (corF * corF));
+
+  // Asymmetric electrostatic softening split if naive skew
+  // k_e per electrode = eps0*A0*Vp^2 / d0^3 = C0 * Vp^2 / d0^2
+  // df_e per extra electrode = (k_e / (2 * m * w0^2)) * f0
+  const kePerElec = C0 * V_P * V_P / (D0 * D0);
+  const dfPerElec = (kePerElec / (2 * M_EFF * w0 * w0)) * p.f0;
+  const dfAsym = (sym === 'asym') ? Math.abs(nS - nD) * dfPerElec : 0.0;
+  const dfEff = p.df + 0.15 * dfAsym; // residual uncalibrated Vp-induced mode split
+
+  // Effective pickoff count on active sense axis:
+  // In 'sym' mode, both axes share the total budget symmetrically (nS/2 per axis for pickoff, nD/2 per axis for forcer),
+  // BUT here nTot represents the single-axis equivalent or total ring; keep 1:1 with Panel A where nS = sense sectors on sense axis
+  // (or half if split across both axes — scale cleanly so comparison between sym & asym is apples-to-apples!).
+  const nSeff = (sym === 'sym') ? Math.max(1, nS * 0.72) : nS;
+  const nDeff = (sym === 'sym') ? Math.max(1, nD * 0.72) : nD;
+
+  const dw = 2 * Math.PI * dfEff;
+  const mechInv = Math.hypot(gammaY, 2 * dw);
+  const sensDen = 2 * A_G * X_MAX;
+
+  let yN = 0;
+  if (fe === 'tia') {
+    const iNr = Math.sqrt(4 * K_B * T_K / R_F);
+    const cTot = C_PAR + nSeff * (C0 + C_PAD);
+    const iNe = E_N_TIA * w0 * cTot;
+    yN = Math.hypot(iNr, iNe) / (w0 * nSeff * ETA0);
+  } else if (fe === 'c2v_pin') {
+    const cTot = C_PAR + nSeff * (C0 + C_PAD);
+    yN = (E_N_C2V * cTot) / (nSeff * ETA0);
+  } else if (fe === 'c2v_die') {
+    const cTot = C_PAR + C_PAD + nSeff * C0;
+    yN = (E_N_C2V * cTot) / (nSeff * ETA0);
+  } else {
+    const cCh = 2.5e-12 + C_PAD + C0;
+    yN = ((E_N_C2V * cCh) / ETA0) / Math.sqrt(nSeff);
+  }
+  const omegaElec = (mechInv / sensDen) * yN;
+  const arwElec = psdToArw(2 * omegaElec * omegaElec);
+
+  // DAC forcer noise
+  const fNdac = nDeff * ETA0 * E_DAC;
+  const arwDac = psdToArw(2 * Math.pow(fNdac / corF, 2));
+
+  const arwTot = Math.sqrt(arwBr * arwBr + arwElec * arwElec + arwDac * arwDac);
+
+  // Voltages
+  const fSs = M_EFF * w0 * w0 * X_MAX / p.Q;
+  const vSs = fSs / (nDeff * ETA0);
+  const fStart = 2 * M_EFF * w0 * X_MAX / 0.020;
+  const vStart = fStart / (nDeff * ETA0);
+
+  return { arwBr, arwElec, arwDac, arwTot, vSs, vStart, dfAsym, nD };
+}
+
+function sizeCanvas(canvas, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(240, Math.floor(canvas.parentElement.clientWidth - 16));
+  canvas.style.width = w + 'px';
+  canvas.style.height = cssH + 'px';
+  if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h: cssH };
+}
+
+let animT = 0;
+let state = { nTot: 16, nS: 12, fe: 'c2v_die', sym: 'sym', p: getParams() };
+
+function drawRing() {
+  const canvas = document.getElementById('ringCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 280);
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) * 0.34;
+  const nTot = state.nTot;
+  const nS = state.nS;
+  const nD = nTot - nS;
+
+  // Background guide axes (Drive 0/90 dashed, Sense 45/135 dashed)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(148,163,184,0.18)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  for (let a = 0; a < 4; a++) {
+    const ang = a * Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx - Math.cos(ang) * (R + 36), cy - Math.sin(ang) * (R + 36));
+    ctx.lineTo(cx + Math.cos(ang) * (R + 36), cy + Math.sin(ang) * (R + 36));
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Assign each of nTot sectors as 'S' (Pickoff) or 'D' (Forcer)
+  const roles = new Array(nTot).fill('S');
+  if (state.sym === 'sym') {
+    // Distribute nD evenly across both X (0/90) and Y (45/135) quadrants
+    for (let i = 0; i < nD; i++) {
+      const idx = Math.floor((i * nTot) / nD) % nTot;
+      roles[idx] = 'D';
+    }
+  } else {
+    // Naive asymmetric: put drive electrodes strictly near 0/180/90/270
+    const indices = [];
+    for (let k = 0; k < nTot; k++) {
+      const ang = (k / nTot) * 2 * Math.PI;
+      const driveAlignment = Math.abs(Math.cos(2 * ang)); // 1 on drive axis, 0 on sense axis
+      indices.push({ k, score: driveAlignment });
+    }
+    indices.sort((a, b) => b.score - a.score);
+    for (let i = 0; i < nD; i++) roles[indices[i].k] = 'D';
+  }
+
+  // Draw electrode arcs
+  const step = (2 * Math.PI) / nTot;
+  const gapAng = Math.min(0.08, step * 0.18);
+  for (let k = 0; k < nTot; k++) {
+    const a0 = k * step - step / 2 + gapAng / 2;
+    const a1 = k * step + step / 2 - gapAng / 2;
+    const isS = roles[k] === 'S';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 17, a0, a1);
+    ctx.strokeStyle = isS ? '#38bdf8' : '#fbbf24';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+
+    // Draw guard pin tick between S and D boundaries
+    const nextK = (k + 1) % nTot;
+    if (roles[k] !== roles[nextK]) {
+      const bAng = (k + 0.5) * step;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(bAng) * (R + 9), cy + Math.sin(bAng) * (R + 9));
+      ctx.lineTo(cx + Math.cos(bAng) * (R + 26), cy + Math.sin(bAng) * (R + 26));
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+  }
+
+  // Animated n=2 wineglass ring
+  const breath = Math.sin(animT) * 0.14;
+  const coriolis = Math.cos(animT) * 0.045;
+  ctx.beginPath();
+  for (let i = 0; i <= 140; i++) {
+    const th = (i / 140) * 2 * Math.PI;
+    const r = R * (1 + breath * Math.cos(2 * th) + coriolis * Math.sin(2 * th));
+    const x = cx + r * Math.cos(th);
+    const y = cy + r * Math.sin(th);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 3.2;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(56,189,248,0.08)';
+  ctx.fill();
+
+  // Inner concentric DRG rings (visual cue)
+  for (const frac of [0.76, 0.55]) {
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const th = (i / 100) * 2 * Math.PI;
+      const r = R * frac * (1 + breath * 0.7 * Math.cos(2 * th) + coriolis * 0.7 * Math.sin(2 * th));
+      const x = cx + r * Math.cos(th);
+      const y = cy + r * Math.sin(th);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(148,163,184,0.38)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  // Central anchor
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.18, 0, 2 * Math.PI);
+  ctx.fillStyle = '#1e293b';
+  ctx.fill();
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('n=2 DRG', cx, cy + 4);
+
+  // Axis labels
+  ctx.font = 'bold 10.5px sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('0° (Axis 1)', cx + R + 54, cy + 4);
+  ctx.fillText('45° (Axis 2)', cx + (R + 40) * 0.72, cy - (R + 34) * 0.72);
+}
+
+function drawCurve() {
+  const canvas = document.getElementById('curveCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 280);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = { l: 48, r: 16, t: 22, b: 36 };
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+
+  const nTot = state.nTot;
+  const pts = [];
+  let yMax = 0.01;
+  for (let ns = 1; ns <= nTot - 1; ns++) {
+    const m = calcMetrics(nTot, ns, state.fe, state.sym, state.p);
+    pts.push({ ns, pct: (ns / nTot) * 100, m });
+    yMax = Math.max(yMax, Math.min(m.arwTot, 0.08));
+  }
+  yMax = Math.max(yMax * 1.15, state.p.Q > 400000 ? 0.025 : 0.06);
+
+  const xOf = (ns) => pad.l + ((ns - 1) / Math.max(1, nTot - 2)) * pw;
+  const yOf = (v) => pad.t + ph * (1 - Math.min(v, yMax) / yMax);
+
+  // Drive-starved wall (nD < 2 -> ns > nTot - 2)
+  const xWall = xOf(nTot - 2);
+  ctx.fillStyle = 'rgba(248,113,113,0.16)';
+  ctx.fillRect(xWall, pad.t, pad.l + pw - xWall, ph);
+  ctx.strokeStyle = 'rgba(248,113,113,0.7)';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(xWall, pad.t); ctx.lineTo(xWall, pad.t + ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Grid lines
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const yv = (yMax * i) / 4;
+    const yp = yOf(yv);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(yv.toFixed(3), pad.l - 6, yp + 3);
+  }
+
+  // Brownian floor
+  const yBr = yOf(pts[0].m.arwBr);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(pad.l, yBr); ctx.lineTo(pad.l + pw, yBr); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Brownian ' + pts[0].m.arwBr.toFixed(3), pad.l + 5, yBr - 5);
+
+  const plotLine = (key, color, lw) => {
+    ctx.beginPath();
+    pts.forEach((pt, idx) => {
+      const x = xOf(pt.ns), y = yOf(pt.m[key]);
+      if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+  };
+  plotLine('arwElec', '#38bdf8', 2.0);
+  plotLine('arwDac', '#fbbf24', 1.8);
+  plotLine('arwTot', '#34d399', 2.8);
+
+  // Current slider marker
+  const cur = pts.find(pt => pt.ns === state.nS) || pts[pts.length - 1];
+  const mx = xOf(cur.ns), my = yOf(cur.m.arwTot);
+  ctx.beginPath();
+  ctx.arc(mx, my, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#34d399';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Axes & labels
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Sense Electrodes N_S (out of ' + nTot + ')', pad.l + pw / 2, h - 7);
+  ctx.fillStyle = '#fca5a5';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('N_D<2 Wall', pad.l + pw - 3, pad.t + 13);
+
+  // X ticks
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  const tickStep = nTot > 20 ? 4 : 2;
+  for (let ns = 2; ns <= nTot - 1; ns += tickStep) {
+    ctx.fillText(String(ns), xOf(ns), pad.t + ph + 13);
+  }
+}
+
+function updateLab() {
+  const nTot = parseInt(document.getElementById('slNtot').value, 10);
+  const pct = parseInt(document.getElementById('slPct').value, 10);
+  const fe = document.getElementById('selFe').value;
+  const sym = document.getElementById('selSym').value;
+  const p = getParams();
+
+  let nS = Math.round((pct / 100) * nTot);
+  nS = Math.max(1, Math.min(nTot - 1, nS));
+  const nD = nTot - nS;
+  state = { nTot, nS, fe, sym, p };
+
+  document.getElementById('valNtot').textContent = String(nTot);
+  document.getElementById('valPct').textContent = `${Math.round(nS / nTot * 100)}% (${nS}S / ${nD}D)`;
+
+  const m = calcMetrics(nTot, nS, fe, sym, p);
+  document.getElementById('rdArw').textContent = m.arwTot.toFixed(4) + ' °/√hr';
+  document.getElementById('rdArw').style.color = m.arwTot < m.arwBr * 1.35 ? 'var(--green)' : (m.arwTot < m.arwBr * 2.0 ? 'var(--amber)' : 'var(--red)');
+
+  const ratio = m.arwElec / m.arwBr;
+  document.getElementById('rdRatio').textContent = ratio.toFixed(2) + '×';
+  document.getElementById('rdRatio').style.color = ratio <= 0.7 ? 'var(--green)' : (ratio <= 1.2 ? 'var(--amber)' : 'var(--red)');
+
+  document.getElementById('rdVss').textContent = (m.vSs * 1e3).toFixed(2) + ' mVpk';
+
+  const vStartEl = document.getElementById('rdVstart');
+  vStartEl.textContent = m.vStart.toFixed(2) + ' Vpk' + (m.vStart > V_DAC_MAX ? ' CLIP!' : '');
+  vStartEl.style.color = m.vStart > V_DAC_MAX ? 'var(--red)' : (m.vStart > 2.0 ? 'var(--amber)' : 'var(--green)');
+
+  const dfEl = document.getElementById('rdDf');
+  dfEl.textContent = m.dfAsym.toFixed(2) + ' Hz';
+  dfEl.style.color = m.dfAsym < 0.01 ? 'var(--green)' : (m.dfAsym < 2.0 ? 'var(--amber)' : 'var(--red)');
+
+  const mrEl = document.getElementById('rdMr');
+  if (sym === 'sym' && nD >= 2) {
+    mrEl.textContent = 'READY';
+    mrEl.style.color = 'var(--green)';
+  } else if (nD < 2) {
+    mrEl.textContent = 'NO DIFF!';
+    mrEl.style.color = 'var(--red)';
+  } else {
+    mrEl.textContent = 'BROKEN';
+    mrEl.style.color = 'var(--red)';
+  }
+
+  drawCurve();
+  drawRing();
+}
+
+function setPreset(nTot, pct, fe, sym, res) {
+  document.getElementById('slNtot').value = nTot;
+  document.getElementById('slPct').value = pct;
+  document.getElementById('selFe').value = fe;
+  document.getElementById('selSym').value = sym;
+  document.getElementById('selRes').value = res;
+  updateLab();
+}
+
+function tick() {
+  animT += 0.055;
+  drawRing();
+  requestAnimationFrame(tick);
+}
+
+window.addEventListener('resize', () => { drawCurve(); drawRing(); });
+updateLab();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
