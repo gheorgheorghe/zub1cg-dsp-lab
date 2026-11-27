@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Differential Electrode Pairs (Push-Pull Sensing &amp; Actuation in MEMS DRG/HRG)</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.56; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #1b1335 0%, #122139 55%, #0e2b24 100%);
+    border: 1px solid #35476e; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--purple); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.6vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h3 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .callout {
+    background: linear-gradient(135deg, rgba(192,132,252,0.12), rgba(56,189,248,0.08));
+    border: 1px solid rgba(192,132,252,0.42); border-radius: 14px; padding: 14px 16px;
+  }
+  .callout p { margin: 6px 0; font-size: 14.8px; color: #e9e4fa; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--blue);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #bae6fd; overflow-x: auto;
+  }
+  .eq.green { border-left-color: var(--green); color: #a7f3d0; }
+  .eq.red { border-left-color: var(--red); color: #fecaca; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 13px; }
+  .box p { margin: 6px 0 0; font-size: 14.2px; color: #cbd8ec; }
+
+  /* Interactive Controls */
+  .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 680px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #cbd8ec; margin-bottom: 6px; }
+  .ctrl input[type="range"] { width: 100%; accent-color: var(--purple); }
+  .mode-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.mbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 12px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  button.mbtn.active { border-color: var(--green); background: rgba(52,211,153,0.16); color: #a7f3d0; }
+  button.mbtn.warn.active { border-color: var(--red); background: rgba(248,113,113,0.16); color: #fecaca; }
+
+  .readouts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 640px) { .readouts { grid-template-columns: 1fr 1fr; } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 9px; text-align: center; }
+  .rd .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .rd .v { font-size: 15.5px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  .canvas-pair { display: grid; grid-template-columns: 1.05fr 1fr; gap: 10px; }
+  @media (max-width: 760px) { .canvas-pair { grid-template-columns: 1fr; } }
+  .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  .cbox canvas { width: 100%; display: block; border-radius: 8px; }
+  .cap { font-size: 12.3px; color: var(--muted); margin-top: 7px; text-align: center; }
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.6px; margin-top: 8px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: #93a4be; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; background: #0e1420; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Capacitive Transducer Physics · Push-Pull vs. Single-Ended</div>
+    <h1>Differential Electrode Pairs in MEMS DRG &amp; HRG</h1>
+    <p>Why opposing push-pull pairs (<code>+ / &minus;</code>) &mdash; and 4-quadrant <code>0&deg;/180&deg; vs. 90&deg;/270&deg;</code> wiring &mdash; are mandatory for navigation-grade gyros, what happens with real DRIE gap mismatch (<code>&delta;</code>), and what our ZUBoard 1CG simulation models today vs. what an explicit gap-transducer upgrade adds.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge purple">Sim Status</span> Does Our ZUBoard 1CG Sim Have Differential Electrode Pairs?</h2>
+    <div class="callout">
+      <p><strong>Short answer: Implicitly YES (ideal), Explicitly NO (not yet as individual nonlinear gaps).</strong></p>
+      <p>Both our Python golden model (<code>model/mems_gyro_model.py</code>) and our 48-bit FPGA RTL plant (<code>rtl/mems_hil/mems_plant_2dof.sv</code>) operate directly in <strong>clean linear modal coordinates</strong> (<code>x, y</code>) with bipolar linear modal accelerations (<code>u<sub>x</sub>, u<sub>y</sub></code>) and linear pickoffs (<code>x<sub>q22</sub>, y<sub>q22</sub></code>).</p>
+      <p><strong>Physically, that means our current sim assumes perfectly matched (<code>&delta; = 0%</code>) differential push-pull pairs</strong> &mdash; where DC pull force (<code>V<sub>p</sub>&sup2;</code>), quadratic FTR distortion (<code>v<sub>d</sub>&sup2;</code>), even capacitive distortion (<code>x&sup2;</code>), common-mode feedthrough, and <code>n=1</code> linear shock have already cancelled to zero! Adding an explicit <code>d<sub>+</sub>(x), d<sub>&minus;</sub>(x)</code> capacitive transducer wrapper in Python lets us inject real single-ended distortion or finite DRIE etch mismatch (<code>&delta; = 0.5&ndash;2.5%</code>).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Interactive Lab</span> Push-Pull Gap &amp; Harmonic Cancellation Simulator</h2>
+    <p style="font-size:14.2px; color:var(--muted); margin-top:0;">Switch between <strong>Single-Ended</strong>, <strong>Differential Push-Pull</strong>, and <strong>4-Quadrant DRG Wiring</strong>. Crank up displacement amplitude, DRIE etch mismatch (<code>&delta;</code>), or external <code>n=1</code> shock/feedthrough to watch the <code>2f<sub>0</sub></code> spike and shock leakage vanish in real time!</p>
+
+    <div class="mode-btns">
+      <button class="mbtn warn" id="btnSE" onclick="setMode('se')">1. Single-Ended (C+ only)</button>
+      <button class="mbtn active" id="btnDiff" onclick="setMode('diff')">2. Differential Pair (C+ &minus; C&minus;)</button>
+      <button class="mbtn" id="btnQuad" onclick="setMode('quad')">3. 4-Quadrant n=2 (0&deg;/180&deg; &minus; 90&deg;/270&deg;)</button>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label><span>Vibration Amplitude (x<sub>max</sub> / d<sub>0</sub>)</span><span id="vAmp" style="color:var(--blue)">20%</span></label>
+        <input type="range" id="slAmp" min="5" max="35" step="1" value="20" oninput="update()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Fabrication Gap Mismatch (&delta; = &Delta;d<sub>0</sub>/2d<sub>0</sub>)</span><span id="vMis" style="color:var(--amber)">2.0%</span></label>
+        <input type="range" id="slMis" min="0" max="5" step="0.1" value="2.0" oninput="update()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Common-Mode Feedthrough / n=0 Drift</span><span id="vFt" style="color:var(--red)">30% of f<sub>0</sub></span></label>
+        <input type="range" id="slFt" min="0" max="60" step="2" value="30" oninput="update()" />
+      </div>
+      <div class="ctrl">
+        <label><span>External n=1 Lateral Shock / Vibration</span><span id="vShk" style="color:var(--purple)">10% gap</span></label>
+        <input type="range" id="slShk" min="0" max="20" step="1" value="10" oninput="update()" />
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">2f<sub>0</sub> Distortion</div><div class="v" id="rd2f0" style="color:var(--green)">&minus;44.1 dBc</div></div>
+      <div class="rd"><div class="l">3f<sub>0</sub> Cubic (Odd)</div><div class="v" id="rd3f0" style="color:var(--blue)">&minus;39.8 dBc</div></div>
+      <div class="rd"><div class="l">Feedthrough Leak</div><div class="v" id="rdFt" style="color:var(--green)">0.6%</div></div>
+      <div class="rd"><div class="l">n=1 Shock Leak</div><div class="v" id="rdShk" style="color:var(--amber)">10.0%</div></div>
+    </div>
+
+    <div class="canvas-pair">
+      <div class="cbox">
+        <canvas id="gapCanvas"></canvas>
+        <div class="cap">Live animated opposing capacitive plates (<code>d<sub>+</sub></code> shrinks while <code>d<sub>&minus;</sub></code> widens) + resultant pickoff waveform vs. ideal sine.</div>
+      </div>
+      <div class="cbox">
+        <canvas id="specCanvas"></canvas>
+        <div class="cap">Live FFT harmonic spectrum (dBc rel. to <code>f<sub>0</sub></code>): watch <code>DC</code>, <code>2f<sub>0</sub></code>, and <code>4f<sub>0</sub></code> collapse in Differential mode!</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">The Math</span> Why Push-Pull Kills Every Even-Order Garbage Term</h2>
+    <p>On an <code>n=2</code> wineglass resonator, when the <code>0&deg;/180&deg;</code> rim moves <strong>outward</strong> (<code>+x</code>, shrinking gap <code>d<sub>+</sub> = d<sub>0</sub> &minus; x</code>), the <code>90&deg;/270&deg;</code> rim moves <strong>inward</strong> by the exact same amount (<code>&minus;x</code>, widening gap <code>d<sub>&minus;</sub> = d<sub>0</sub> + x</code>). Applying <code>+v<sub>d</sub></code> on one side and <code>&minus;v<sub>d</sub></code> on the other gives:</p>
+    <div class="eq red">
+      Single-Ended Force: &nbsp; F<sub>+</sub> = (&epsilon;<sub>0</sub>A / 2d<sub>0</sub>&sup2;) &middot; [V<sub>p</sub>&sup2; + 2V<sub>p</sub>v<sub>d</sub> + v<sub>d</sub>&sup2;] &middot; [1 + 2(x/d<sub>0</sub>) + 3(x/d<sub>0</sub>)&sup2; + 4(x/d<sub>0</sub>)&sup3; + &hellip;]<br/>
+      &nbsp;&nbsp;&rarr; Contaminated by DC pull (V<sub>p</sub>&sup2;), quadratic FTR bow (v<sub>d</sub>&sup2;), asymmetric x&sup2;, and V<sub>p</sub> ripple!
+    </div>
+    <div class="eq green">
+      Differential Force (F<sub>+</sub> + F<sub>&minus;</sub>): &nbsp; ALL even terms (V<sub>p</sub>&sup2;, v<sub>d</sub>&sup2;, x&sup2;, &delta;V<sub>p</sub>) CANCEL IDENTICALLY!<br/>
+      F<sub>diff</sub> = (2&epsilon;<sub>0</sub>A V<sub>p</sub> / d<sub>0</sub>&sup2;) &middot; v<sub>d</sub> &nbsp;+&nbsp; (2&epsilon;<sub>0</sub>A V<sub>p</sub>&sup2; / d<sub>0</sub>&sup3;) &middot; x &nbsp;+&nbsp; O(x&sup3;) &nbsp;&nbsp;(pure odd symmetry + 2&times; gain!)
+    </div>
+
+    <div class="grid2" style="margin-top:12px;">
+      <div class="box">
+        <h3>Why 2-Electrode Differential Isn't Enough for Shock</h3>
+        <p>A 2-electrode pair (<code>0&deg;</code> minus <code>90&deg;</code>) cancels <code>x&sup2;</code>, <code>v<sub>d</sub>&sup2;</code>, and <code>n=0</code> common-mode feedthrough &mdash; <strong>but does NOT cancel <code>n=1</code> lateral shock</strong> (shaking the package sideways pushes the <code>0&deg;</code> wall closer while leaving <code>90&deg;</code> untouched!).</p>
+      </div>
+      <div class="box">
+        <h3>Why 4-Quadrant Wiring Cancels n=1 Shock Too!</h3>
+        <p>Wire <code>0&deg; + 180&deg;</code> together as <strong>Node <code>+</code></strong> and <code>90&deg; + 270&deg;</code> together as <strong>Node <code>&minus;</code></strong>! For the <code>n=2</code> gyro mode, <code>0&deg;</code> and <code>180&deg;</code> move in phase (signals ADD!). Under lateral <code>n=1</code> shock, <code>0&deg;</code> shrinks while <code>180&deg;</code> widens (shock CANCELS inside each node!).</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">Quantitative Plots</span> Exact Nonlinear Parallel-Plate Simulation</h2>
+    <div class="plot">
+      <img src="differential_electrode_pairs.png" alt="4-panel comparison of Single-Ended vs Mismatched Differential vs Ideal Differential electrode pairs" />
+      <div class="cap">Generated by <code>model/plot_differential_pairs.py</code>: (A) Pickoff linearity to &plusmn;35% gap, (B) Pickoff harmonic spectrum at 20% gap showing 2f<sub>0</sub> crushed from &minus;19.9 dBc to &minus;44.1 dBc (&delta;=2%) and &lt;&minus;110 dBc (ideal), (C) Rejection vs. DRIE gap mismatch &delta;, and (D) Closed-loop FTR rate error across &plusmn;500 °/s showing single-ended v<sub>FTR</sub>&sup2; parabolic bow.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Model Comparison</span> What Our Sim Models Today vs. Optional Transducer Upgrade</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Physical Effect</th>
+            <th>Single-Ended Hardware</th>
+            <th>Real Diff. Pair (&delta;=1&ndash;2%)</th>
+            <th>Current Modal Sim (Python + FPGA)</th>
+            <th>Easy to Add?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Even x&sup2; / 2f<sub>0</sub> Distortion</strong></td>
+            <td style="color:var(--red)">Severe (&minus;20 dBc @ 20% gap)</td>
+            <td style="color:var(--amber)">Small (&minus;44 to &minus;50 dBc)</td>
+            <td style="color:var(--green)">0 (ideal differential assumed)</td>
+            <td>~20 lines in Python wrapper</td>
+          </tr>
+          <tr>
+            <td><strong>FTR Quadratic Scale Error (v<sub>d</sub>&sup2;)</strong></td>
+            <td style="color:var(--red)">Huge parabolic &Omega;&sup2; bow</td>
+            <td style="color:var(--amber)">25&ndash;40 dB suppressed</td>
+            <td style="color:var(--green)">0 (linear u<sub>y</sub> actuation)</td>
+            <td>~10 lines in Python wrapper</td>
+          </tr>
+          <tr>
+            <td><strong>Common-Mode Feedthrough C<sub>ft</sub></strong></td>
+            <td style="color:var(--red)">Direct rate/quad bias</td>
+            <td style="color:var(--amber)">34&ndash;46 dB CMRR</td>
+            <td style="color:var(--green)">0 (ideal pickoff)</td>
+            <td>Add <code>+ k_ft * u_x</code> to <code>y</code></td>
+          </tr>
+          <tr>
+            <td><strong>n=1 Lateral Shock / Vib</strong></td>
+            <td style="color:var(--red)">Full 1&times; leakage</td>
+            <td style="color:var(--green)">4-Quad cancels by 30&ndash;45 dB</td>
+            <td style="color:var(--green)">0 (pure n=2 modal)</td>
+            <td>Inject <code>x_shock(t)</code> into 4 gaps</td>
+          </tr>
+          <tr>
+            <td><strong>Odd x&sup3; Duffing &amp; Softening</strong></td>
+            <td style="color:var(--amber)">Present (asymmetric)</td>
+            <td style="color:var(--amber)">Present (symmetric)</td>
+            <td style="color:var(--blue)">Modeled in <code>mems_gyro_advanced.py</code></td>
+            <td>Ready for FPGA v3 if wanted</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+let mode = 'diff';
+let animT = 0;
+
+function setMode(m) {
+  mode = m;
+  ['btnSE', 'btnDiff', 'btnQuad'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(m === 'se' ? 'btnSE' : (m === 'diff' ? 'btnDiff' : 'btnQuad')).classList.add('active');
+  update();
+}
+
+function sizeCanvas(canvas, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(240, Math.floor(canvas.parentElement.clientWidth - 16));
+  canvas.style.width = w + 'px';
+  canvas.style.height = cssH + 'px';
+  if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h: cssH };
+}
+
+function evalPickoff(u, delta, ftAmp, shkAmp) {
+  // u = x/d0 (n=2 gyro mode), shkAmp = n=1 lateral shock displacement/d0, ftAmp = CM feedthrough
+  if (mode === 'se') {
+    // Single electrode at 0 deg: sees u + shk + CM feedthrough
+    const g0 = Math.max(0.15, 1.0 + delta - (u + shkAmp));
+    return (1.0 / g0 - 1.0) + ftAmp;
+  } else if (mode === 'diff') {
+    // 2-electrode pair: 0 deg (+) minus 90 deg (-); shock along 0 deg hits 0 deg only!
+    const g0 = Math.max(0.15, 1.0 + delta - (u + shkAmp));
+    const g90 = Math.max(0.15, 1.0 - delta + u);
+    const cp = 1.0 / g0 + ftAmp * (1.0 + delta);
+    const cm = 1.0 / g90 + ftAmp * (1.0 - delta);
+    return 0.5 * (cp - cm);
+  } else {
+    // 4-quadrant: (0 deg + 180 deg) minus (90 deg + 270 deg)
+    // n=2 moves 0 & 180 by +u, 90 & 270 by -u; n=1 shock moves 0 by +shk and 180 by -shk!
+    const g0   = Math.max(0.15, 1.0 + delta - (u + shkAmp));
+    const g180 = Math.max(0.15, 1.0 - 0.5 * delta - (u - shkAmp));
+    const g90  = Math.max(0.15, 1.0 - delta + u);
+    const g270 = Math.max(0.15, 1.0 + 0.5 * delta + u);
+    const cp = 0.5 * (1.0 / g0 + 1.0 / g180) + ftAmp * (1.0 + 0.5 * delta);
+    const cm = 0.5 * (1.0 / g90 + 1.0 / g270) + ftAmp * (1.0 - 0.5 * delta);
+    return 0.5 * (cp - cm);
+  }
+}
+
+function computeHarmonics(amp, delta, ftFrac, shkAmp) {
+  const N = 256;
+  const sig = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    const th = (2 * Math.PI * i) / N;
+    const u = amp * Math.sin(th);
+    // Feedthrough is coherent with carrier f0 (worst case)
+    const ft = ftFrac * amp * Math.sin(th);
+    sig[i] = evalPickoff(u, delta, ft, 0.0);
+  }
+  // Exact DFT for harmonics h = 0..4
+  const mags = [];
+  for (let h = 0; h <= 4; h++) {
+    let re = 0, im = 0;
+    for (let i = 0; i < N; i++) {
+      const ang = (2 * Math.PI * h * i) / N;
+      re += sig[i] * Math.cos(ang);
+      im -= sig[i] * Math.sin(ang);
+    }
+    const scale = (h === 0) ? (1 / N) : (2 / N);
+    mags.push(Math.hypot(re, im) * scale);
+  }
+  const fund = Math.max(mags[1], 1e-12);
+  const dbc = mags.map(v => 20 * Math.log10(Math.max(v / fund, 1e-6)));
+
+  // Pure feedthrough leak fraction (ratio of output due to ft alone vs amp)
+  const ftOut = evalPickoff(0, delta, ftFrac * amp, 0) - evalPickoff(0, delta, 0, 0);
+  const ftLeakPct = (Math.abs(ftOut) / Math.max(amp, 1e-6)) * 100;
+
+  // Pure n=1 shock leak (displacement error / d0 in %)
+  const shkOut = evalPickoff(0, delta, 0, shkAmp) - evalPickoff(0, delta, 0, 0);
+  const shkLeakPct = Math.abs(shkOut) * 100;
+
+  return { sig, dbc, ftLeakPct, shkLeakPct };
+}
+
+let curStats = null;
+let curParams = { amp: 0.20, delta: 0.02, ftFrac: 0.30, shkAmp: 0.10 };
+
+function update() {
+  const amp = parseFloat(document.getElementById('slAmp').value) / 100.0;
+  const delta = parseFloat(document.getElementById('slMis').value) / 100.0;
+  const ftFrac = parseFloat(document.getElementById('slFt').value) / 100.0;
+  const shkAmp = parseFloat(document.getElementById('slShk').value) / 100.0;
+  curParams = { amp, delta, ftFrac, shkAmp };
+
+  document.getElementById('vAmp').textContent = Math.round(amp * 100) + '%';
+  document.getElementById('vMis').textContent = (delta * 100).toFixed(1) + '%';
+  document.getElementById('vFt').textContent = Math.round(ftFrac * 100) + '% of f₀';
+  document.getElementById('vShk').textContent = Math.round(shkAmp * 100) + '% gap';
+
+  curStats = computeHarmonics(amp, delta, ftFrac, shkAmp);
+
+  const d2 = curStats.dbc[2];
+  const rd2 = document.getElementById('rd2f0');
+  rd2.textContent = d2 <= -115 ? '< −115 dBc' : (d2.toFixed(1) + ' dBc');
+  rd2.style.color = d2 < -60 ? 'var(--green)' : (d2 < -35 ? 'var(--amber)' : 'var(--red)');
+
+  document.getElementById('rd3f0').textContent = curStats.dbc[3].toFixed(1) + ' dBc';
+
+  const rdFt = document.getElementById('rdFt');
+  rdFt.textContent = curStats.ftLeakPct.toFixed(2) + '%';
+  rdFt.style.color = curStats.ftLeakPct < 1.0 ? 'var(--green)' : (curStats.ftLeakPct < 5.0 ? 'var(--amber)' : 'var(--red)');
+
+  const rdShk = document.getElementById('rdShk');
+  rdShk.textContent = curStats.shkLeakPct.toFixed(2) + '%';
+  rdShk.style.color = curStats.shkLeakPct < 1.0 ? 'var(--green)' : (curStats.shkLeakPct < 4.0 ? 'var(--amber)' : 'var(--red)');
+
+  drawSpec();
+  drawGap();
+}
+
+function drawGap() {
+  const canvas = document.getElementById('gapCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 270);
+  ctx.clearRect(0, 0, w, h);
+
+  const { amp, delta, shkAmp } = curParams;
+  const uNow = amp * Math.sin(animT);
+  const cx = w / 2;
+  const plateY = 66;
+  const plateH = 54;
+  const maxShift = Math.min(w * 0.14, 48);
+  const gapPx = maxShift * 1.15;
+  const massW = 46;
+
+  // Left electrode (-), Center proof mass, Right electrode (+)
+  const dxPx = uNow * maxShift * 1.8;
+  const misPx = delta * maxShift * 4.0; // visually exaggerated slightly so mismatch is visible
+
+  const leftX = cx - massW / 2 - gapPx + misPx;
+  const rightX = cx + massW / 2 + gapPx + misPx;
+
+  // Draw Left Electrode (-): dimmed if single-ended
+  ctx.fillStyle = mode === 'se' ? 'rgba(100,116,139,0.22)' : '#fbbf24';
+  ctx.fillRect(leftX - 12, plateY - plateH / 2, 12, plateH);
+  ctx.fillStyle = mode === 'se' ? '#64748b' : '#fde68a';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(mode === 'se' ? 'Unused' : (mode === 'quad' ? '90°/270° (−)' : 'Elec −'), leftX - 6, plateY - plateH / 2 - 8);
+
+  // Draw Right Electrode (+)
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(rightX, plateY - plateH / 2, 12, plateH);
+  ctx.fillStyle = '#bae6fd';
+  ctx.fillText(mode === 'quad' ? '0°/180° (+)' : 'Elec +', rightX + 6, plateY - plateH / 2 - 8);
+
+  // Draw Moving Proof Mass (Resonator Rim)
+  const mx = cx + dxPx;
+  ctx.fillStyle = '#34d399';
+  ctx.fillRect(mx - massW / 2, plateY - plateH / 2 + 4, massW, plateH - 8);
+  ctx.fillStyle = '#062019';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('V_p', mx, plateY + 4);
+
+  // Gap dimension labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10.5px monospace';
+  if (mode !== 'se') {
+    ctx.fillText('d−=' + (1 - delta + uNow).toFixed(2), (leftX + mx - massW / 2) / 2, plateY + plateH / 2 + 15);
+  }
+  ctx.fillText('d+=' + (1 + delta - uNow).toFixed(2), (rightX + mx + massW / 2) / 2, plateY + plateH / 2 + 15);
+
+  // Waveform comparison plot in bottom half
+  const topY = 132, botY = h - 18;
+  const midY = (topY + botY) / 2;
+  const plotL = 16, plotR = w - 16;
+  const plotW = plotR - plotL;
+  const scaleY = (botY - topY) * 0.34 / Math.max(amp, 0.05);
+
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(plotL, midY); ctx.lineTo(plotR, midY); ctx.stroke();
+
+  // Ideal reference sine (dashed gray)
+  ctx.beginPath();
+  for (let i = 0; i <= 120; i++) {
+    const f = i / 120;
+    const th = f * 2 * Math.PI + animT;
+    const y = midY - (amp * Math.sin(th)) * scaleY;
+    const x = plotL + f * plotW;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#64748b';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Actual nonlinear pickoff waveform
+  ctx.beginPath();
+  for (let i = 0; i <= 120; i++) {
+    const f = i / 120;
+    const th = f * 2 * Math.PI + animT;
+    const u = amp * Math.sin(th);
+    const val = evalPickoff(u, delta, 0, shkAmp * 0.5) - evalPickoff(0, delta, 0, 0);
+    const y = Math.max(topY, Math.min(botY, midY - val * scaleY));
+    const x = plotL + f * plotW;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = mode === 'se' ? '#f87171' : '#34d399';
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '10.5px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Actual Pickoff vs. Ideal Linear Sine (dashed)', plotL, topY - 4);
+}
+
+function drawSpec() {
+  if (!curStats) return;
+  const canvas = document.getElementById('specCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 270);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = { l: 44, r: 14, t: 22, b: 36 };
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+  const floorDb = -110, topDb = 8;
+
+  const yOf = (db) => pad.t + ph * (1 - (Math.max(floorDb, Math.min(topDb, db)) - floorDb) / (topDb - floorDb));
+
+  // Grid
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for (const db of [-100, -80, -60, -40, -20, 0]) {
+    const yp = yOf(db);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(String(db), pad.l - 5, yp + 3);
+  }
+
+  const labels = ['DC', 'f₀', '2f₀', '3f₀', '4f₀'];
+  const colors = ['#c084fc', '#38bdf8', '#f87171', '#fbbf24', '#f472b6'];
+  const slotW = pw / 5;
+  const barW = Math.min(36, slotW * 0.56);
+
+  for (let i = 0; i < 5; i++) {
+    const db = curStats.dbc[i];
+    const cx = pad.l + (i + 0.5) * slotW;
+    const yt = yOf(db);
+    const yb = yOf(floorDb);
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(cx - barW / 2, yt, barW, Math.max(2, yb - yt));
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    const txt = db <= -109 ? '<−110' : db.toFixed(0);
+    ctx.fillText(txt, cx, Math.max(pad.t + 10, yt - 5));
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(labels[i], cx, pad.t + ph + 16);
+  }
+
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '10.5px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Pickoff Harmonic Spectrum (dBc)', pad.l + 4, pad.t - 6);
+}
+
+function tick() {
+  animT += 0.06;
+  drawGap();
+  requestAnimationFrame(tick);
+}
+
+window.addEventListener('resize', () => { drawSpec(); drawGap(); });
+update();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
