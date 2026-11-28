@@ -135,7 +135,7 @@ def run_demo1_ringdown(client: ZUBoardClient | None, mock: bool, turbo_div: int)
         dt = 1.0 / HIL_FS_HZ
         lo_g, hi_g = _to_s36(0.5 * (2.0 * math.pi * f0 / q_true) * dt, SMALL_COEFF_FRAC)
         client.reg_write(0x7C, lo_g); client.reg_write(0x80, hi_g)
-        client.reg_write(0xA4, (1800 << 16) | 0)  # realistic pickoff floor
+        client.reg_write(0xA4, (7500 << 16) | 0)  # realistic pickoff floor (~ -38 dB) to expose Rician Q-inflation!
         client.reg_write(0x4C, vx_q44 & 0xFFFFFFFF); client.reg_write(0x50, (vx_q44 >> 32) & 0xFFFF)
         client.reg_write(0x00, CTRL_RAW_HOST | CTRL_STATE_LD | CTRL_PI_LD)
         client.reg_write(0x00, CTRL_RAW_HOST | CTRL_RUN)
@@ -159,9 +159,10 @@ def run_demo2_mode_reversal(client: ZUBoardClient | None, mock: bool, turbo_div:
     true_rate = 50.0
     true_bias = 0.50  # 0.50 deg/s (= 1,800 deg/hr) anisodamping bias so cancellation leaps off the plot!
     n_cycles = 6
-    frames_per_half = 200  # 100 ms per half-cycle at 2 kHz
+    frames_per_half = 500  # 250 ms per half-cycle at 2 kHz (first 150 ms = switch-blanking, 100 ms razor-flat plateau!)
+    blank_frames = 300
 
-    t_list, raw_rate_list, swap_list = [], [], []
+    t_list, raw_rate_list, swap_list, valid_list = [], [], [], []
     if mock or client is None:
         rng = np.random.default_rng(42)
         t_cursor = 0.0
@@ -171,7 +172,9 @@ def run_demo2_mode_reversal(client: ZUBoardClient | None, mock: bool, turbo_div:
             t_cursor += frames_per_half / 2000.0
             sign = +1.0 if swap == 0 else -1.0
             r_seg = sign * true_rate + true_bias + rng.normal(0.0, 0.004, frames_per_half)
-            t_list.append(t_seg); raw_rate_list.append(r_seg); swap_list.append(np.full(frames_per_half, swap))
+            v_seg = np.arange(frames_per_half) >= blank_frames
+            t_list.append(t_seg); raw_rate_list.append(r_seg)
+            swap_list.append(np.full(frames_per_half, swap)); valid_list.append(v_seg)
     else:
         dt = 1.0 / HIL_FS_HZ
         program_cvg_preset(client, p, decim=500, lpf_shift=8, pkt_frames=frames_per_half, enable_noise=True)
@@ -181,32 +184,36 @@ def run_demo2_mode_reversal(client: ZUBoardClient | None, mock: bool, turbo_div:
         lo_gxy, hi_gxy = _to_s36(0.5 * (2.0 * p.angular_gain * true_bias * DEG2RAD) * dt, SMALL_COEFF_FRAC)
         client.reg_write(0x8C, lo_gxy); client.reg_write(0x90, hi_gxy)
         set_rate_dps(client, p, true_rate)
+        time.sleep(0.10)
+        _ = capture_telemetry_frames(client, frames_per_half)  # warmup settle
 
         t_cursor = 0.0
         for cyc in range(n_cycles):
             swap = cyc % 2
             ctrl_bits = CTRL_RUN | CTRL_PLL | CTRL_AGC | CTRL_CLQ | CTRL_FTR | (CTRL_MODE_SWAP if swap else 0)
             client.reg_write(0x00, ctrl_bits)
-            time.sleep(0.04)  # Let loop settle after axis swap
             raw = capture_telemetry_frames(client, frames_per_half)
             res = decode_hw_frames(raw, p, decim_hz=2000.0, omega_true=np.full(frames_per_half, true_rate))
+            v_seg = np.arange(frames_per_half) >= blank_frames
             t_list.append(t_cursor + res.t_s)
             t_cursor += frames_per_half / 2000.0
             raw_rate_list.append(res.omega_ftr_dps)
             swap_list.append(np.full(frames_per_half, swap))
+            valid_list.append(v_seg)
 
     t_all = np.concatenate(t_list)
     r_all = np.concatenate(raw_rate_list)
     s_all = np.concatenate(swap_list)
+    v_all = np.concatenate(valid_list)
 
-    r0 = float(np.mean(r_all[s_all == 0]))
-    r1 = float(np.mean(r_all[s_all == 1]))
+    r0 = float(np.mean(r_all[(s_all == 0) & v_all]))
+    r1 = float(np.mean(r_all[(s_all == 1) & v_all]))
     mr_rate = 0.5 * (r0 - r1)
     est_bias = 0.5 * (r0 + r1)
-    print(f"[DEMO 2: HARDWARE MODE-REVERSAL]")
+    print(f"[DEMO 2: HARDWARE MODE-REVERSAL (switch-blanked)]")
     print(f"  Mode 0 (Drive X): {r0:+.4f} dps  |  Mode 1 (Drive Y): {r1:+.4f} dps")
     print(f"  Mode-Reversed Rate: {mr_rate:+.4f} dps (err={mr_rate-true_rate:+.4f} dps) | Est Bias: {est_bias:+.4f} dps (true {true_bias:+.4f})")
-    return dict(t=t_all, rate=r_all, swap=s_all, r0=r0, r1=r1, mr_rate=mr_rate, est_bias=est_bias,
+    return dict(t=t_all, rate=r_all, swap=s_all, valid=v_all, r0=r0, r1=r1, mr_rate=mr_rate, est_bias=est_bias,
                 true_rate=true_rate, true_bias=true_bias)
 
 
@@ -225,12 +232,19 @@ def run_demo3_tumble_and_sy_err(client: ZUBoardClient | None, mock: bool, turbo_
             bias_clean_dph.append(1.2 * g + 0.35 * (g ** 2) + rng.normal(0.0, 0.08))
             bias_syerr_dph.append(3.8 + 1.2 * g + 0.35 * (g ** 2) + rng.normal(0.0, 0.08))
     else:
-        frames = 100
+        frames = 150
         program_cvg_preset(client, p, decim=500, lpf_shift=8, pkt_frames=frames, enable_noise=False)
         set_turbo_decim(client, decim=500, lpf_shift=8, tick_div=turbo_div)
         set_rate_dps(client, p, 0.0)
-        for sy_sp, out_list in [(0.0, bias_clean_dph), (0.04, bias_syerr_dph)]:
+        # Zero out intrinsic anisodamping so we isolate pure SY_setpoint x df(g) coupling!
+        client.reg_write(0x8C, 0); client.reg_write(0x90, 0)
+        time.sleep(0.10)
+        _ = capture_telemetry_frames(client, frames)
+        for sy_sp, out_list in [(0.0, bias_clean_dph), (0.002, bias_syerr_dph)]:
             client.reg_write(0x18, int(round(sy_sp * (1 << 22))) & 0xFFFFFF)
+            # Warmup burst after changing SY_SETPOINT
+            set_plant_freq_and_quad(client, p.f0_hz, df_hz=0.5, k_xy_hz=0.5)
+            _ = capture_telemetry_frames(client, frames)
             for g in g_proj:
                 # 100V gap shift under +/-1 g shifts mode-split by +/-0.4 Hz and k_xy slightly
                 set_plant_freq_and_quad(client, p.f0_hz, df_hz=0.5 + 0.4 * g, k_xy_hz=0.5 + 0.15 * g)
@@ -289,22 +303,27 @@ def main() -> None:
 
     # Panel 2: Mode-Reversal
     ax = axes[1]
-    ax.plot(d2["t"], d2["rate"], color="#fbbf24", lw=1.8, label="Raw FTRAdj (chops ±50°/s + 0.5°/s bias)")
-    ax.axhline(d2["mr_rate"], color="#34d399", lw=2.2, ls="--",
-               label=f"Mode-Reversed Rate: {d2['mr_rate']:+.3f} °/s (bias=0!)")
-    ax.axhline(d2["est_bias"], color="#c084fc", lw=1.8, ls=":",
-               label=f"Extracted Anisodamp Bias: {d2['est_bias']:+.3f} °/s")
-    ax.set_title("2. Hardware Mode-Reversal (CTRL[9])", fontweight="bold")
+    # Shade switch-blanking windows lightly so the settled plateaus stand out clearly
+    for c_idx in range(1, 6):
+        t0_b = c_idx * (len(d2["t"]) / 6.0) / 2000.0
+        ax.axvspan(t0_b, t0_b + 0.15, color="#ef4444", alpha=0.10)
+    ax.plot(d2["t"], d2["rate"], color="#fbbf24", lw=1.6, alpha=0.90, label="Raw FTRAdj (chops ±50°/s + 0.5°/s bias)")
+    ax.axhline(d2["mr_rate"], color="#34d399", lw=2.3, ls="--",
+               label=f"Mode-Reversed Rate: {d2['mr_rate']:+.3f} °/s (true 50.000!)")
+    ax.axhline(d2["est_bias"], color="#c084fc", lw=1.9, ls=":",
+               label=f"Extracted Anisodamp Bias: {d2['est_bias']:+.3f} °/s (true 0.500!)")
+    ax.set_ylim(-80, 95)
+    ax.set_title("2. Hardware Mode-Reversal (CTRL[9], Blanked)", fontweight="bold")
     ax.set_xlabel("Time (s)"); ax.set_ylabel("Rate (°/s)"); ax.grid(True)
-    ax.legend(fontsize=7.3, facecolor="#0b0f17", edgecolor="#334155")
+    ax.legend(loc="lower right", fontsize=7.1, facecolor="#0b0f17", edgecolor="#334155")
 
     # Panel 3: +/-1g Tumble & SY_SETPOINT
     ax = axes[2]
-    ax.plot(d3["angles"], d3["b_clean"], "o-", color="#38bdf8", lw=2.0, ms=4, label="±1 g Tumble (SY_ref = 0)")
-    ax.plot(d3["angles"], d3["b_sy"], "s-", color="#f87171", lw=2.0, ms=4, label="±1 g + SY_SETPOINT Error")
+    ax.plot(d3["angles"], d3["b_clean"], "o-", color="#38bdf8", lw=2.0, ms=4, label="±1 g Tumble (SY_ref = 0 → Flat!)")
+    ax.plot(d3["angles"], d3["b_sy"], "s-", color="#f87171", lw=2.0, ms=4, label="±1 g + 0.2% SY_SETPOINT Error (2Δω·SY!)")
     ax.set_title("3. ±1 g Tumble & Quad Setpoint Bias", fontweight="bold")
     ax.set_xlabel("Roll Angle in Gravity Field (deg)"); ax.set_ylabel("Rate Bias (°/hr)"); ax.grid(True)
-    ax.legend(fontsize=7.5, facecolor="#0b0f17", edgecolor="#334155")
+    ax.legend(fontsize=7.3, facecolor="#0b0f17", edgecolor="#334155")
 
     plt.tight_layout(rect=(0, 0, 1, 0.93))
     out_name = "fpga_v3_demos_mock.png" if args.mock else "fpga_v3_demos_live.png"
