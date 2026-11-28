@@ -73,6 +73,22 @@
   .ok { color: var(--green); font-weight: 700; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
   @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .study-list { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+  a.study-row {
+    display: flex; align-items: center; gap: 13px; text-decoration: none; color: inherit;
+    background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+    transition: border-color 0.15s ease;
+  }
+  a.study-row:hover { border-color: var(--blue); }
+  .sthumb {
+    width: 108px; height: 68px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+    background: #090d14; border: 1px solid #2a3952;
+  }
+  .sthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (max-width: 500px) { .sthumb { width: 88px; height: 58px; } }
+  .sbody { flex: 1; min-width: 0; }
+  .sbody .t { font-weight: 700; color: #fff; font-size: 14.8px; }
+  .sbody .d { color: var(--muted); font-size: 12.8px; margin-top: 3px; line-height: 1.4; }
   a.linkcard {
     display: block; text-decoration: none; color: inherit;
     background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
@@ -243,58 +259,58 @@
 
   <section>
     <h2><span class="badge blue">Deep Dives</span> All Gyro-Land Study Pages</h2>
-    <div class="grid2">
-      <a class="linkcard" href="cvg_crash_course.html">
-        <div class="t">&#x1F300; CVG Crash Course (Newcomer Primer)</div>
-        <div class="d">Animated wineglass physics, DX/DY/SX/SY intuition, 4 loop forces, and ADEV bathtub guide.</div>
+    <div class="study-list">
+      <a class="study-row" href="cvg_crash_course.html">
+        <div class="sthumb"><img src="thumbs/cvg_crash.png" alt="CVG Crash Course" loading="lazy" /></div>
+        <div class="sbody"><div class="t">CVG Crash Course (Newcomer Primer)</div><div class="d">Animated wineglass physics, DX/DY/SX/SY intuition, 4 loop forces, and ADEV bathtub guide.</div></div>
       </a>
-      <a class="linkcard" href="cloverleaf_64probe_pinning.html">
-        <div class="t">&#x1F340; 64-Probe Cloverleaf Ring-Up &amp; Mode Pinning</div>
-        <div class="d">Live 64-ADC die probe station watching the n=2 cloverleaf ring up, wobble, and lock onto &theta;_pin.</div>
+      <a class="study-row" href="cloverleaf_64probe_pinning.html">
+        <div class="sthumb"><img src="thumbs/cloverleaf64.png" alt="64-Probe Cloverleaf Pinning" loading="lazy" /></div>
+        <div class="sbody"><div class="t">64-Probe Cloverleaf Ring-Up &amp; Mode Pinning</div><div class="d">Live 64-ADC die probe station watching the n=2 cloverleaf ring up, wobble, and lock onto &theta;_pin.</div></div>
       </a>
-      <a class="linkcard" href="ringdown_qfit_and_bias_realism.html">
-        <div class="t">&#x1F4C9; Ringdown, Q-Fit, 100V &plusmn;20V Tuning &amp; Realism</div>
-        <div class="d">Interactive ringdown Q-fit bench demo + g-sensitivity, quad setpoint error, 100V charging &amp; Ohmic Q-loading.</div>
+      <a class="study-row" href="ringdown_qfit_and_bias_realism.html">
+        <div class="sthumb"><img src="thumbs/ringdown.png" alt="Ringdown and Q-Fit" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Ringdown, Q-Fit, 100V &plusmn;20V Tuning &amp; Realism</div><div class="d">Interactive ringdown Q-fit bench demo + g-sensitivity, quad setpoint error, 100V charging &amp; Ohmic Q-loading.</div></div>
       </a>
-      <a class="linkcard" href="nav_grade_drg_hurdles.html">
-        <div class="t">&#x1F3AF; Nav-Grade MEMS DRG Hurdles (Interactive)</div>
-        <div class="d">The 5 physics bottlenecks blocking 0.01 °/hr + live ADEV upgrade waterfall simulator.</div>
+      <a class="study-row" href="nav_grade_drg_hurdles.html">
+        <div class="sthumb"><img src="thumbs/nav_hurdles.png" alt="Nav-Grade Hurdles" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Nav-Grade MEMS DRG Hurdles (Interactive)</div><div class="d">The 5 physics bottlenecks blocking 0.01 °/hr + live ADEV upgrade waterfall simulator.</div></div>
       </a>
-      <a class="linkcard" href="silicon_drg_improvement_paths.html">
-        <div class="t">&#x1F52C; Improving Silicon DRGs (Beyond Quartz)</div>
-        <div class="d">Interactive Zener TED explorer: lumped-mass &lt;111&gt; Silicon (Q=750k, &tau;=80 s) vs. Quartz, SiC &amp; Diamond.</div>
+      <a class="study-row" href="silicon_drg_improvement_paths.html">
+        <div class="sthumb"><img src="thumbs/silicon_paths.png" alt="Improving Silicon DRGs" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Improving Silicon DRGs (Beyond Quartz)</div><div class="d">Interactive Zener TED explorer: lumped-mass &lt;111&gt; Silicon (Q=750k, &tau;=80 s) vs. Quartz, SiC &amp; Diamond.</div></div>
       </a>
-      <a class="linkcard" href="drg_electrode_pin_trades.html">
-        <div class="t">&#x2699;&#xFE0F; Contact Points &amp; Sense vs. Drive Pin Trades</div>
-        <div class="d">Interactive DRG ring &amp; ARW explorer: why ~75% Sense / 25% Drive wins, C_pad wall &amp; Mode Reversal symmetry.</div>
+      <a class="study-row" href="drg_electrode_pin_trades.html">
+        <div class="sthumb"><img src="thumbs/electrode_pins.png" alt="Electrode Pin Trades" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Contact Points &amp; Sense vs. Drive Pin Trades</div><div class="d">Interactive DRG ring &amp; ARW explorer: why ~75% Sense / 25% Drive wins, C_pad wall &amp; Mode Reversal symmetry.</div></div>
       </a>
-      <a class="linkcard" href="differential_electrode_pairs.html">
-        <div class="t">&#x26A1; Differential Electrode Pairs (Push-Pull Lab)</div>
-        <div class="d">Single-ended vs. push-pull &amp; 4-quadrant n=1 shock cancellation, DRIE gap mismatch, and current sim status.</div>
+      <a class="study-row" href="differential_electrode_pairs.html">
+        <div class="sthumb"><img src="thumbs/diff_pairs.png" alt="Differential Electrode Pairs" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Differential Electrode Pairs (Push-Pull Lab)</div><div class="d">Single-ended vs. push-pull &amp; 4-quadrant n=1 shock cancellation, DRIE gap mismatch, and current sim status.</div></div>
       </a>
-      <a class="linkcard" href="fpga_fixed_point_vs_float64.html">
-        <div class="t">&#x1F4DF; Fixed-Point v1 &rarr; v2 &amp; Thermal Ramp</div>
-        <div class="d">Full Before/After silicon tables, 3-preset error plots, and 30 s ADEV comparison.</div>
+      <a class="study-row" href="fpga_fixed_point_vs_float64.html">
+        <div class="sthumb"><img src="thumbs/fpga_v2.png" alt="Fixed-Point v1 to v2" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Fixed-Point v1 &rarr; v2 &amp; Thermal Ramp</div><div class="d">Full Before/After silicon tables, 3-preset error plots, and 30 s ADEV comparison.</div></div>
       </a>
-      <a class="linkcard" href="advanced_gyro_physics.html">
-        <div class="t">&#x1F30A; Softening, Duffing &amp; Whole-Angle HRG</div>
-        <div class="d">DC mode-matching, shark-fin bifurcation, and 500 °/s Lynch E/Q free precession.</div>
+      <a class="study-row" href="advanced_gyro_physics.html">
+        <div class="sthumb"><img src="thumbs/advanced_phys.png" alt="Advanced Gyro Physics" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Softening, Duffing &amp; Whole-Angle HRG</div><div class="d">DC mode-matching, shark-fin bifurcation, and 500 °/s Lynch E/Q free precession.</div></div>
       </a>
-      <a class="linkcard" href="pi_vs_pid_cvg_explainer.html">
-        <div class="t">&#x1F39B;&#xFE0F; Wait: PI, but no D? (Interactive)</div>
-        <div class="d">Live browser simulator showing why lock-in demodulation turns a 2nd-order resonator 1st-order.</div>
+      <a class="study-row" href="pi_vs_pid_cvg_explainer.html">
+        <div class="sthumb"><img src="thumbs/pi_vs_pid.png" alt="PI vs PID" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Wait: PI, but no D? (Interactive)</div><div class="d">Live browser simulator showing why lock-in demodulation turns a 2nd-order resonator 1st-order.</div></div>
       </a>
-      <a class="linkcard" href="drg_quadrature_and_vacuum_explainer.html">
-        <div class="t">&#x1F48E; Quadrature &amp; Gold Getter Vacuum</div>
-        <div class="d">Animated n=2 wineglass mode, phasor diagrams, and LCC NEG vacuum Q(P) curve.</div>
+      <a class="study-row" href="drg_quadrature_and_vacuum_explainer.html">
+        <div class="sthumb"><img src="thumbs/quad_vacuum.png" alt="Quadrature and Vacuum" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Quadrature &amp; Gold Getter Vacuum</div><div class="d">Animated n=2 wineglass mode, phasor diagrams, and LCC NEG vacuum Q(P) curve.</div></div>
       </a>
-      <a class="linkcard" href="bugs/bug01_a53_r5f_ddr_collision.html">
-        <div class="t">&#x1F41B; Bug #01: A53/R5F DDR4 Collision</div>
-        <div class="d">Memory map SVG, crash timeline, and Vitis linker partition fix.</div>
+      <a class="study-row" href="bugs/bug01_a53_r5f_ddr_collision.html">
+        <div class="sthumb"><img src="thumbs/bug01_ddr.png" alt="Bug 01 DDR Collision" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Bug #01: A53/R5F DDR4 Collision</div><div class="d">Memory map SVG, crash timeline, and Vitis linker partition fix.</div></div>
       </a>
-      <a class="linkcard" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
-        <div class="t">&#x1F527; Bug #02: KSZ9131 RGMII TXC DLL</div>
-        <div class="d">Interactive RGMII eye diagram showing MMD2 0x4D 0x16D1 &rarr; 0x06D1 fix.</div>
+      <a class="study-row" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
+        <div class="sthumb"><img src="thumbs/bug02_rgmii.png" alt="Bug 02 RGMII DLL" loading="lazy" /></div>
+        <div class="sbody"><div class="t">Bug #02: KSZ9131 RGMII TXC DLL</div><div class="d">Interactive RGMII eye diagram showing MMD2 0x4D 0x16D1 &rarr; 0x06D1 fix.</div></div>
       </a>
     </div>
   </section>
