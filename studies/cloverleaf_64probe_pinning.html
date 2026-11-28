@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>64-Probe Die ADC Simulator: Cloverleaf Ring-Up &amp; Mode Pinning</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.56; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #0d2538 0%, #1d1536 55%, #0e2c23 100%);
+    border: 1px solid #35476e; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.5vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h3 { margin: 0 0 6px; font-size: 15.8px; color: #fff; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--green);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #a7f3d0; overflow-x: auto;
+  }
+  .callout {
+    background: linear-gradient(135deg, rgba(56,189,248,0.11), rgba(192,132,252,0.09));
+    border: 1px solid rgba(56,189,248,0.38); border-radius: 14px; padding: 14px 16px;
+  }
+  .callout p { margin: 5px 0; font-size: 14.7px; color: #dce9f8; }
+
+  .presets { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.pbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 12px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  button.pbtn:hover { border-color: var(--blue); }
+  button.pbtn.kick { border-color: var(--amber); color: #fde68a; background: rgba(251,191,36,0.14); }
+  button.pbtn.best { border-color: var(--green); color: #a7f3d0; background: rgba(52,211,153,0.13); }
+
+  .ctrl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 12px; }
+  @media (max-width: 720px) { .ctrl-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 9px 11px; }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 12.4px; font-weight: 700; color: #cbd8ec; margin-bottom: 5px; }
+  .ctrl input[type="range"] { width: 100%; accent-color: var(--blue); }
+
+  .readouts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 680px) { .readouts { grid-template-columns: repeat(2, 1fr); } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .rd .l { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .rd .v { font-size: 14.5px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  .canvas-pair { display: grid; grid-template-columns: 1fr 1.12fr; gap: 10px; }
+  @media (max-width: 760px) { .canvas-pair { grid-template-columns: 1fr; } }
+  .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  .cbox canvas { width: 100%; display: block; border-radius: 8px; }
+  .cap { font-size: 12.2px; color: var(--muted); margin-top: 7px; text-align: center; }
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .box { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 13px; }
+  .box p { margin: 5px 0 0; font-size: 14px; color: #cbd8ec; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">64-Probe HITL Die Station · Standing-Wave Pattern Dynamics</div>
+    <h1>64-Probe Cloverleaf Ring-Up &amp; Fabrication Mode Pinning</h1>
+    <p>Watching all <strong>64 perimeter die ADC probes</strong> (every <code>5.625&deg;</code>) capture the <code>n=2</code> wineglass cloverleaf ringing up from an arbitrary kick angle, wobbling elliptically, and <strong>locking onto the fabrication pinning axis <code>&theta;<sub>pin</sub></code></strong> &mdash; plus how electrostatic trimming un-pins the wave!</p>
+  </header>
+
+  <section>
+    <h2><span class="badge purple">Sim Status</span> Are We Modeling Pinning From Fab Asymmetry Today?</h2>
+    <div class="callout">
+      <p><strong>Yes &mdash; implicitly via <code>mode_split_hz</code> (&Delta;f), <code>quad_equiv_dps</code> (k<sub>xy</sub>), and <code>anisodamp_bias_dps</code> (g<sub>xy</sub>) in both Python &amp; FPGA RTL!</strong></p>
+      <p>In closed-loop FTR mode, the <code>CLQ</code> and <code>FTR</code> loops forcibly hold the standing wave pinned at <code>0&deg;</code> (drive axis), hiding the natural pinning motion. When you run in <strong>open-loop / Whole-Angle / isotropic energy-sustain mode</strong> (like a 64-probe die test station!), the off-diagonal stiffness <code>k<sub>xy</sub></code> and damping asymmetry <code>&Delta;(1/&tau;)</code> physically rotate the 4-lobed cloverleaf until it settles onto the <strong>principal high-Q / stiffness pinning angle <code>&theta;<sub>pin</sub></code></strong>!</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Interactive 64-Probe Bench</span> Live Cloverleaf Ring-Up &amp; 64-Channel ADC Readout</h2>
+    <p style="font-size:14.1px; color:var(--muted); margin-top:0;">Hit <strong>Kick / Ring-Up!</strong> to launch the <code>n=2</code> cloverleaf from <code>&theta;<sub>init</sub></code> and watch all 64 ADC probes track it rotating into the green <strong>Pinning Axis <code>&theta;<sub>pin</sub></code></strong>! Crank up <strong>Spin Rate <code>&Omega;<sub>z</sub></code></strong> to see the standing wave stay <em>stuck in the dead-band</em> below <code>&Omega;<sub>lock</sub></code>, then break free once spin overcomes damping pinning (or toggle <strong>Trimmed</strong>)!</p>
+
+    <div class="presets">
+      <button class="pbtn kick" onclick="kickRingup()">&#x26A1; Kick / Ring-Up From &theta;<sub>init</sub>!</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.08, 0, false)">Fab Pinned (&theta;<sub>pin</sub>=28&deg;)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.05, 5, false)">Slow Spin (5 °/s &rarr; STUCK in Dead-Band!)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.05, 18, false)">Fast Spin (18 °/s &rarr; Breaks Free!)</button>
+      <button class="pbtn best" onclick="applyMode(28, 4, 2, 0.005, 10, true)">100V &plusmn;20V Trimmed (Free Precession!)</button>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label><span>Fab Pinning Angle &theta;<sub>pin</sub></span><span id="vPin" style="color:var(--green)">28&deg;</span></label>
+        <input type="range" id="slPin" min="0" max="45" step="1" value="28" oninput="readParams()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Launch Angle &theta;<sub>init</sub></span><span id="vInit" style="color:var(--amber)">4&deg;</span></label>
+        <input type="range" id="slInit" min="0" max="45" step="1" value="4" oninput="readParams()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Anisodamping &Delta;Q / Q (%)</span><span id="vDq" style="color:var(--red)">30%</span></label>
+        <input type="range" id="slDq" min="0" max="45" step="1" value="30" oninput="readParams()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Residual Mode Split &Delta;f (Hz)</span><span id="vDf" style="color:var(--purple)">0.08 Hz</span></label>
+        <input type="range" id="slDf" min="0" max="0.40" step="0.01" value="0.08" oninput="readParams()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Input Spin Rate &Omega;<sub>z</sub> (°/s)</span><span id="vOm" style="color:var(--blue)">0 °/s</span></label>
+        <input type="range" id="slOm" min="-30" max="30" step="1" value="0" oninput="readParams()" />
+      </div>
+      <div class="ctrl" style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:12.6px; font-weight:700; color:#cbd8ec;">64-Probe View &amp; Pause</span>
+        <button class="pbtn" id="btnPause" onclick="togglePause()" style="padding:5px 12px;">Pause</button>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">Live Pattern &theta;(t)</div><div class="v" id="rdTheta" style="color:var(--blue)">4.0&deg;</div></div>
+      <div class="rd"><div class="l">Target &theta;<sub>pin</sub></div><div class="v" id="rdPin" style="color:var(--green)">28.0&deg;</div></div>
+      <div class="rd"><div class="l">Amplitude |a|</div><div class="v" id="rdAmp" style="color:var(--amber)">0.10</div></div>
+      <div class="rd"><div class="l">Lock Dead-Band &Omega;<sub>lock</sub></div><div class="v" id="rdLock" style="color:var(--red)">12.4 °/s</div></div>
+      <div class="rd"><div class="l">Lock Status</div><div class="v" id="rdStat" style="color:var(--red)">PINNING</div></div>
+    </div>
+
+    <div class="canvas-pair">
+      <div class="cbox">
+        <canvas id="cloverCanvas"></canvas>
+        <div class="cap"><strong>64 Perimeter Die Probes (5.625&deg; pitch):</strong> Glowing cyan dots = live probe envelopes forming the <code>n=2</code> cloverleaf; green dashed = fab pinning axis <code>&theta;<sub>pin</sub></code>.</div>
+      </div>
+      <div class="cbox">
+        <canvas id="adcCanvas"></canvas>
+        <div class="cap"><strong>Live 64-Channel ADC Bar Scope (Probes #0&ndash;63):</strong> Watch the 4 cloverleaf peaks slide smoothly across ADC channels as the wave rotates and locks!</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">The Physics</span> Why Fabrication Asymmetry Pins a 2D Cloverleaf</h2>
+    <div class="eq">
+      Principal Stiffness Angle: &nbsp; tan(4&theta;<sub>&omega;</sub>) = f<sub>quad</sub> / &Delta;f<br/>
+      Whole-Angle Adler Pinning Law: &nbsp; d&theta;/dt = &minus;A<sub>g</sub>&Omega;<sub>z</sub> + &frac12;&Delta;(1/&tau;) &middot; sin(4(&theta; &minus; &theta;<sub>&tau;</sub>))<br/>
+      Dead-Band Lock Threshold: &nbsp; &Omega;<sub>lock</sub> = &Delta;(1/&tau;) / (2 A<sub>g</sub>)
+    </div>
+    <div class="grid2">
+      <div class="box">
+        <h3>1. Damping Pinning (&theta;<sub>&tau;</sub>): Survival of the Highest-Q Mode</h3>
+        <p>When one principal axis has slightly lower loss (<code>Q<sub>1</sub> &gt; Q<sub>2</sub></code>) due to anchor asymmetry, sidewall roughness, or uneven <code>R<sub>tune</sub></code> loading, the lossier orthogonal eigenmode decays faster during ring-up. Isotropic energy sustain amplifies the surviving high-Q eigenmode &mdash; physically rotating the entire cloverleaf until its 4 antinodes lock onto <code>&theta;<sub>&tau;</sub></code>!</p>
+      </div>
+      <div class="box">
+        <h3>2. Why 64 Probes on the Die Are Pure Gold in HITL</h3>
+        <p>With 64 radial ADCs spaced every <code>5.625&deg;</code>, a single spatial FFT directly resolves the <code>n=2</code> amplitude, exact pattern angle <code>&theta;(t)</code>, quadrature ellipticity <code>Q(t)</code>, AND parasitic <code>n=1</code> (lateral wobble) and <code>n=3</code> modes simultaneously &mdash; letting you map <code>&theta;<sub>pin</sub></code> in seconds and dial <code>100 V &plusmn; 20 V</code> trim voltages until pinning disappears!</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Python Reference Study</span> 64-Probe Polar Snapshots, ADC Waterfall &amp; Lock-In Curve</h2>
+    <div class="plot">
+      <img src="cloverleaf_64probe_pinning.png" alt="4-panel 64-probe die ADC cloverleaf ring-up, ADC waterfall heatmap, pattern angle pinning vs trimmed, and Adler dead-band" />
+      <div class="cap">Generated by <code>model/sim_64probe_pinning.py</code>: (A) 64-probe polar cloverleaf rotating from 4&deg; to 28&deg;, (B) 64-channel ADC waterfall showing the 4 lobes marching across channels #0..63, (C) pattern angle &theta;(t) pinned vs. trimmed, and (D) Whole-Angle Adler lock-in dead-band below &Omega;<sub>lock</sub>.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const N_PROBES = 64;
+const AG = 0.40;
+const F0 = 11000.0, W0 = 2 * Math.PI * F0, Q_MEAN = 45000.0;
+const GAMMA0 = W0 / Q_MEAN;
+
+let paused = false;
+let simT = 0;
+let axR = 0.08, axI = 0.0, ayR = 0.0, ayI = 0.0;
+let params = { pinDeg: 28, initDeg: 4, dqPct: 30, dfHz: 0.08, omDps: 0 };
+
+function readParams() {
+  params.pinDeg  = parseFloat(document.getElementById('slPin').value);
+  params.initDeg = parseFloat(document.getElementById('slInit').value);
+  params.dqPct   = parseFloat(document.getElementById('slDq').value);
+  params.dfHz    = parseFloat(document.getElementById('slDf').value);
+  params.omDps   = parseFloat(document.getElementById('slOm').value);
+
+  document.getElementById('vPin').textContent  = params.pinDeg.toFixed(0) + '°';
+  document.getElementById('vInit').textContent = params.initDeg.toFixed(0) + '°';
+  document.getElementById('vDq').textContent   = params.dqPct.toFixed(0) + '%';
+  document.getElementById('vDf').textContent   = params.dfHz.toFixed(2) + ' Hz';
+  document.getElementById('vOm').textContent   = (params.omDps >= 0 ? '+' : '') + params.omDps.toFixed(0) + ' °/s';
+  document.getElementById('rdPin').textContent = params.pinDeg.toFixed(1) + '°';
+}
+
+function kickRingup() {
+  readParams();
+  const a0 = (2 * params.initDeg) * Math.PI / 180;
+  axR = 0.08 * Math.cos(a0); axI = 0.0;
+  ayR = 0.08 * Math.sin(a0); ayI = 0.0;
+  simT = 0;
+  paused = false;
+  document.getElementById('btnPause').textContent = 'Pause';
+}
+
+function applyMode(pinDeg, initDeg, dqPct, dfHz, omDps, doKick) {
+  document.getElementById('slPin').value = pinDeg;
+  document.getElementById('slInit').value = initDeg;
+  document.getElementById('slDq').value = dqPct;
+  document.getElementById('slDf').value = dfHz;
+  document.getElementById('slOm').value = omDps;
+  readParams();
+  kickRingup();
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btnPause').textContent = paused ? 'Resume' : 'Pause';
+}
+
+function stepPhysics(dt) {
+  const dGamma = GAMMA0 * (params.dqPct / 100.0);
+  const dw = 2 * Math.PI * params.dfHz;
+  const aPin = (2 * params.pinDeg) * Math.PI / 180;
+  const c2 = Math.cos(2 * aPin), s2 = Math.sin(2 * aPin);
+
+  const gxx = GAMMA0 - 0.5 * dGamma * c2;
+  const gyy = GAMMA0 + 0.5 * dGamma * c2;
+  const gxy = -0.5 * dGamma * s2;
+  const wxx = -0.5 * dw * c2, wyy = 0.5 * dw * c2, wxy = -0.5 * dw * s2;
+  const cor = AG * (params.omDps * Math.PI / 180);
+
+  function deriv(xr, xi, yr, yi) {
+    const E = xr*xr + xi*xi + yr*yr + yi*yi;
+    const gs = 0.5 * GAMMA0 + 1.8 * (1.0 - E);
+    // dux = (gs - 0.5*gxx)*ux - 0.5*gxy*uy - j*(wxx*ux + wxy*uy) + 2*cor*uy
+    const dxr = (gs - 0.5*gxx)*xr - 0.5*gxy*yr + (wxx*xi + wxy*yi) + 2*cor*yr;
+    const dxi = (gs - 0.5*gxx)*xi - 0.5*gxy*yi - (wxx*xr + wxy*yr) + 2*cor*yi;
+    const dyr = (gs - 0.5*gyy)*yr - 0.5*gxy*xr + (wxy*xi + wyy*yi) - 2*cor*xr;
+    const dyi = (gs - 0.5*gyy)*yi - 0.5*gxy*xi - (wxy*xr + wyy*yr) - 2*cor*xi;
+    return [dxr, dxi, dyr, dyi];
+  }
+
+  const sub = 6, h = dt / sub;
+  for (let s = 0; s < sub; s++) {
+    const k1 = deriv(axR, axI, ayR, ayI);
+    const k2 = deriv(axR+0.5*h*k1[0], axI+0.5*h*k1[1], ayR+0.5*h*k1[2], ayI+0.5*h*k1[3]);
+    const k3 = deriv(axR+0.5*h*k2[0], axI+0.5*h*k2[1], ayR+0.5*h*k2[2], ayI+0.5*h*k2[3]);
+    const k4 = deriv(axR+h*k3[0], axI+h*k3[1], ayR+h*k3[2], ayI+h*k3[3]);
+    axR += (h/6)*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);
+    axI += (h/6)*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);
+    ayR += (h/6)*(k1[2]+2*k2[2]+2*k3[2]+k4[2]);
+    ayI += (h/6)*(k1[3]+2*k2[3]+2*k3[3]+k4[3]);
+  }
+  simT += dt;
+}
+
+function sizeCanvas(canvas, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(250, Math.floor(canvas.parentElement.clientWidth - 16));
+  canvas.style.width = w + 'px';
+  canvas.style.height = cssH + 'px';
+  if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h: cssH };
+}
+
+function render() {
+  // Compute Lynch invariants & 64 probe envelopes
+  const E = axR*axR + axI*axI + ayR*ayR + ayI*ayI;
+  const C = (axR*axR + axI*axI) - (ayR*ayR + ayI*ayI);
+  const S = 2 * (axR*ayR + axI*ayI);
+  let thetaDeg = 0.25 * Math.atan2(S, C) * 180 / Math.PI;
+  if (thetaDeg < 0) thetaDeg += 90;
+  const amp = Math.sqrt(E);
+
+  const dGamma = GAMMA0 * (params.dqPct / 100.0);
+  const omLockDps = (dGamma / (2 * AG)) * 180 / Math.PI;
+
+  document.getElementById('rdTheta').textContent = thetaDeg.toFixed(1) + '°';
+  document.getElementById('rdAmp').textContent = amp.toFixed(2);
+  document.getElementById('rdLock').textContent = omLockDps.toFixed(1) + ' °/s';
+
+  const stEl = document.getElementById('rdStat');
+  const diffAng = Math.abs(((thetaDeg - params.pinDeg + 45) % 90 + 90) % 90 - 45);
+  if (Math.abs(params.omDps) > omLockDps + 0.5) {
+    stEl.textContent = 'PRECESSING';
+    stEl.style.color = 'var(--blue)';
+  } else if (diffAng < 2.2 && params.dqPct > 3) {
+    stEl.textContent = 'LOCKED!';
+    stEl.style.color = 'var(--green)';
+  } else if (params.dqPct <= 3) {
+    stEl.textContent = 'FREE (TRIM)';
+    stEl.style.color = 'var(--green)';
+  } else {
+    stEl.textContent = 'PULLING...';
+    stEl.style.color = 'var(--amber)';
+  }
+
+  const probes = new Float64Array(N_PROBES);
+  for (let k = 0; k < N_PROBES; k++) {
+    const phi = (2 * Math.PI * k) / N_PROBES;
+    const c = Math.cos(2 * phi), s = Math.sin(2 * phi);
+    const pr = axR * c + ayR * s;
+    const pi = axI * c + ayI * s;
+    probes[k] = Math.hypot(pr, pi);
+  }
+
+  // --- 1. Polar 64-Probe Cloverleaf Canvas ---
+  const c1 = document.getElementById('cloverCanvas');
+  const { ctx: g1, w: w1, h: h1 } = sizeCanvas(c1, 290);
+  g1.clearRect(0, 0, w1, h1);
+  const cx = w1 / 2, cy = h1 / 2, R = Math.min(w1, h1) * 0.40;
+
+  // Polar grid circles
+  g1.strokeStyle = '#1e293b'; g1.lineWidth = 1;
+  for (const frac of [0.33, 0.66, 1.0]) {
+    g1.beginPath(); g1.arc(cx, cy, R * frac, 0, 2 * Math.PI); g1.stroke();
+  }
+  // Pinning axis (4 green dashed spokes)
+  g1.save();
+  g1.strokeStyle = 'rgba(52,211,153,0.75)';
+  g1.setLineDash([5, 4]); g1.lineWidth = 1.6;
+  for (let q = 0; q < 4; q++) {
+    const a = (params.pinDeg + q * 90) * Math.PI / 180;
+    g1.beginPath(); g1.moveTo(cx, cy); g1.lineTo(cx + Math.cos(a) * (R * 1.08), cy - Math.sin(a) * (R * 1.08)); g1.stroke();
+  }
+  g1.restore();
+
+  // Cloverleaf curve
+  g1.beginPath();
+  for (let k = 0; k <= N_PROBES; k++) {
+    const idx = k % N_PROBES;
+    const phi = (2 * Math.PI * idx) / N_PROBES;
+    const r = probes[idx] * R;
+    const x = cx + Math.cos(phi) * r, y = cy - Math.sin(phi) * r;
+    if (k === 0) g1.moveTo(x, y); else g1.lineTo(x, y);
+  }
+  g1.closePath();
+  g1.fillStyle = 'rgba(56,189,248,0.16)';
+  g1.fill();
+  g1.strokeStyle = '#38bdf8';
+  g1.lineWidth = 2.2;
+  g1.stroke();
+
+  // 64 individual die probe dots!
+  for (let k = 0; k < N_PROBES; k++) {
+    const phi = (2 * Math.PI * k) / N_PROBES;
+    const r = probes[k] * R;
+    const x = cx + Math.cos(phi) * r, y = cy - Math.sin(phi) * r;
+    g1.beginPath();
+    g1.arc(x, y, 2.7, 0, 2 * Math.PI);
+    g1.fillStyle = probes[k] > 0.75 ? '#fbbf24' : '#7dd3fc';
+    g1.fill();
+  }
+
+  // Outer perimeter ring of 64 probe pads
+  for (let k = 0; k < N_PROBES; k++) {
+    const phi = (2 * Math.PI * k) / N_PROBES;
+    const px = cx + Math.cos(phi) * (R * 1.09), py = cy - Math.sin(phi) * (R * 1.09);
+    g1.fillStyle = `rgba(251,191,36,${(0.15 + 0.85 * Math.min(1, probes[k])).toFixed(2)})`;
+    g1.fillRect(px - 1.5, py - 1.5, 3, 3);
+  }
+
+  g1.fillStyle = '#a7f3d0'; g1.font = 'bold 10.5px sans-serif'; g1.textAlign = 'left';
+  g1.fillText('Green = θ_pin (' + params.pinDeg + '°)', 8, 16);
+  g1.fillStyle = '#94a3b8'; g1.textAlign = 'right';
+  g1.fillText('t = ' + simT.toFixed(1) + ' s', w1 - 8, 16);
+
+  // --- 2. 64-Channel ADC Bar Scope ---
+  const c2 = document.getElementById('adcCanvas');
+  const { ctx: g2, w: w2, h: h2 } = sizeCanvas(c2, 290);
+  g2.clearRect(0, 0, w2, h2);
+  const pad = { l: 38, r: 10, t: 22, b: 34 };
+  const pw = w2 - pad.l - pad.r, ph = h2 - pad.t - pad.b;
+
+  g2.strokeStyle = '#1e293b'; g2.lineWidth = 1;
+  for (const v of [0, 0.25, 0.5, 0.75, 1.0]) {
+    const yp = pad.t + ph * (1 - v / 1.12);
+    g2.beginPath(); g2.moveTo(pad.l, yp); g2.lineTo(pad.l + pw, yp); g2.stroke();
+    g2.fillStyle = '#94a3b8'; g2.font = '9.5px monospace'; g2.textAlign = 'right';
+    g2.fillText(v.toFixed(2), pad.l - 4, yp + 3);
+  }
+
+  // Vertical green dashed pinning channel markers (4 lobes)
+  g2.save();
+  g2.strokeStyle = 'rgba(52,211,153,0.65)';
+  g2.setLineDash([4, 3]); g2.lineWidth = 1.2;
+  for (let q = 0; q < 4; q++) {
+    const pIdx = (((params.pinDeg + q * 90) % 360) / 360) * N_PROBES;
+    const xp = pad.l + (pIdx / N_PROBES) * pw;
+    g2.beginPath(); g2.moveTo(xp, pad.t); g2.lineTo(xp, pad.t + ph); g2.stroke();
+  }
+  g2.restore();
+
+  // 64 live ADC bars
+  const bw = Math.max(2, (pw / N_PROBES) - 1);
+  for (let k = 0; k < N_PROBES; k++) {
+    const v = Math.min(1.12, probes[k]);
+    const bh = (v / 1.12) * ph;
+    const x = pad.l + (k / N_PROBES) * pw;
+    const y = pad.t + ph - bh;
+    g2.fillStyle = v > 0.78 ? '#fbbf24' : (v > 0.45 ? '#38bdf8' : '#334155');
+    g2.fillRect(x, y, bw, bh);
+  }
+
+  g2.strokeStyle = '#334155'; g2.lineWidth = 1.2;
+  g2.strokeRect(pad.l, pad.t, pw, ph);
+  g2.fillStyle = '#94a3b8'; g2.font = '10px monospace'; g2.textAlign = 'center';
+  for (const ch of [0, 16, 32, 48, 63]) {
+    g2.fillText('#' + ch, pad.l + (ch / 63) * pw, pad.t + ph + 13);
+  }
+  g2.font = '10.5px sans-serif';
+  g2.fillText('64 Die ADC Probes (#0..#63 around 360°)', pad.l + pw / 2, h2 - 5);
+  g2.fillStyle = '#cbd5e1'; g2.textAlign = 'left';
+  g2.fillText('Live Probe Envelope |ADC_k|', pad.l + 4, pad.t - 6);
+}
+
+function loop() {
+  if (!paused) stepPhysics(0.045);
+  render();
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', render);
+kickRingup();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

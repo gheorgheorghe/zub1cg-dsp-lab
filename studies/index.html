@@ -12,20 +12,42 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     padding: 20px 16px;
   }
-  .wrap { max-width: 680px; margin: 0 auto; }
+  .wrap { max-width: 720px; margin: 0 auto; }
   h1 { font-size: 24px; margin: 0 0 6px; }
   p.sub { color: #93a4be; margin: 0 0 20px; font-size: 14.5px; }
   a.card {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
     text-decoration: none;
     color: inherit;
     background: #131a26;
     border: 1px solid #26334a;
     border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 14px;
+    padding: 15px 16px;
+    margin-bottom: 13px;
+    transition: border-color 0.15s ease, transform 0.12s ease;
   }
-  a.card:hover { border-color: #38bdf8; }
+  a.card:hover { border-color: #38bdf8; transform: translateY(-1px); }
+  .ico {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: rgba(56,189,248,0.12);
+    border: 1px solid rgba(56,189,248,0.28);
+    color: #38bdf8;
+  }
+  .ico.green  { background: rgba(52,211,153,0.13); border-color: rgba(52,211,153,0.32); color: #34d399; }
+  .ico.gold   { background: rgba(251,191,36,0.13); border-color: rgba(251,191,36,0.32); color: #fbbf24; }
+  .ico.purple { background: rgba(192,132,252,0.13); border-color: rgba(192,132,252,0.32); color: #c084fc; }
+  .ico.red    { background: rgba(248,113,113,0.13); border-color: rgba(248,113,113,0.32); color: #f87171; }
+  .ico svg { width: 24px; height: 24px; }
+  .body { flex: 1; min-width: 0; }
   .tag {
     display: inline-block;
     font-size: 11px;
@@ -33,100 +55,184 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: #38bdf8;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
   .tag.gold { color: #fbbf24; }
-  h2 { margin: 0 0 6px; font-size: 18px; color: #fff; }
-  .desc { margin: 0; color: #93a4be; font-size: 14px; line-height: 1.45; }
+  .tag.green { color: #34d399; }
+  .tag.purple { color: #c084fc; }
+  .tag.red { color: #f87171; }
+  h2 { margin: 0 0 5px; font-size: 17.5px; color: #fff; line-height: 1.25; }
+  .desc { margin: 0; color: #93a4be; font-size: 13.8px; line-height: 1.45; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>ZUBoard 1CG Study Notes</h1>
-  <p class="sub">Interactive offline engineering explainers &amp; live silicon reports for Stage 1 CVG / DRG / HRG.</p>
+  <p class="sub">Interactive offline engineering explainers, physics labs &amp; live silicon reports for Stage 1 CVG / DRG / HRG.</p>
 
   <a class="card" href="gyro_land_summary.html" style="border-color:#34d399; background:linear-gradient(135deg,#0f241f 0%,#131a26 100%);">
-    <div class="tag" style="color:#34d399">Start Here · Overall Progress Summary</div>
-    <h2>Gyro-Land Master Summary (Stage 0 &amp; Stage 1 Sign-Off)</h2>
-    <p class="desc">One-page executive summary of the entire ZUBoard 1CG gyro journey: system architecture SVG, live silicon KPIs, v1 &rarr; v2 fixed-point breakthrough, bring-up bugs slayed, live plots, and what's next in Stage 2.</p>
+    <div class="ico green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag green">Start Here · Overall Progress Summary</div>
+      <h2>Gyro-Land Master Summary (Stage 0 &amp; Stage 1 Sign-Off)</h2>
+      <p class="desc">One-page executive summary of the entire ZUBoard 1CG gyro journey: system architecture SVG, live silicon KPIs, v1 &rarr; v2/v3 breakthroughs, bring-up bugs slayed, live plots, and what's next.</p>
+    </div>
   </a>
 
   <a class="card" href="cvg_crash_course.html" style="border-color:#38bdf8; background:linear-gradient(135deg,#0d1e33 0%,#131a26 100%);">
-    <div class="tag">Newcomer Primer · Interactive Wineglass</div>
-    <h2>CVG Crash Course: 2D Resonator Physics, DX/DY/SX/SY &amp; ADEV</h2>
-    <p class="desc">Zero-jargon intuition for DRG/HRG wineglass standing waves (animated), strobe-light demodulation (DX, DY, SX, SY), the 4 loop forces (PLLAdj, AGCAdj, CLQAdj, FTRAdj), and how to read an ADEV bathtub &amp; where bias lives.</p>
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.8"/><ellipse cx="12" cy="12" rx="3.8" ry="9"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag">Newcomer Primer · Interactive Wineglass</div>
+      <h2>CVG Crash Course: 2D Resonator Physics, DX/DY/SX/SY &amp; ADEV</h2>
+      <p class="desc">Zero-jargon intuition for DRG/HRG wineglass standing waves (animated), strobe-light demodulation (DX, DY, SX, SY), the 4 loop forces (PLLAdj, AGCAdj, CLQAdj, FTRAdj), and how to read an ADEV bathtub &amp; where bias lives.</p>
+    </div>
   </a>
 
-  <a class="card" href="pi_vs_pid_cvg_explainer.html">
-    <div class="tag">Control Theory · Interactive Lab</div>
-    <h2>Wait: PI, but no D?</h2>
-    <p class="desc">Why demodulation turns a 2nd-order 11 kHz resonator into a 1st-order plant, live PI vs. PID noise blowup simulator, Feedforward rate/angle cancellation, and noise-gain Bode plot.</p>
-  </a>
-
-  <a class="card" href="drg_quadrature_and_vacuum_explainer.html">
-    <div class="tag gold">MEMS Physics &amp; Packaging · Animated</div>
-    <h2>100+ °/s Quadrature &amp; Gold Getter Vacuum Packages</h2>
-    <p class="desc">Animated n=2 wineglass DRG with DC quad-trim &amp; FPGA CLQ toggles, I/Q phase-leakage vs. anisodamping phasor diagram, and LCC NEG getter Q(P) vacuum curve.</p>
-  </a>
-
-  <a class="card" href="nav_grade_drg_hurdles.html">
-    <div class="tag gold">Inertial Roadmap · Interactive ADEV Lab</div>
-    <h2>Biggest Hurdles to Nav-Grade MEMS DRG Bias Stability (&le; 0.01 °/hr)</h2>
-    <p class="desc">Why Silicon DRGs stall at ~0.2 °/hr (TED, quad phase leakage, anisodamping, package stress, 1/f &amp; quantization) + interactive ADEV bathtub lab toggling Quartz, CLQ, Mode Reversal, Self-Thermometry, and 24-bit HF-Carrier DSP.</p>
-  </a>
-
-  <a class="card" href="silicon_drg_improvement_paths.html">
-    <div class="tag" style="color:#34d399">MEMS Material &amp; Geometry · Interactive TED Lab</div>
-    <h2>Improving Silicon MEMS DRGs: Is Quartz the Only Way?</h2>
-    <p class="desc">No! Interactive Zener TED Debye-peak explorer showing how lumped-mass &lt;111&gt; Silicon (12 &mu;m, 3 kHz) reaches Q<sub>TED</sub>=1.57M (&tau;&approx;80 s) &amp; &le;0.01 °/hr without Quartz, plus Silicon vs. Quartz vs. SiC vs. Diamond trade matrix.</p>
-  </a>
-
-  <a class="card" href="drg_electrode_pin_trades.html">
-    <div class="tag">Transducer Design · Interactive Pin-Budget Lab</div>
-    <h2>More Resonator Contact Points &amp; Sense vs. Drive Pin Trades</h2>
-    <p class="desc">Why scaling 8 &rarr; 16 &rarr; 32 electrodes helps, why ~75% Sense / 25% Drive wins on high-Q DRGs (plus the DAC noise bonus), the C<sub>pad</sub> saturation &amp; X/Y softening traps, and an interactive n=2 electrode ring simulator.</p>
-  </a>
-
-  <a class="card" href="differential_electrode_pairs.html">
-    <div class="tag" style="color:#c084fc">Transducer Physics · Interactive Push-Pull Lab</div>
-    <h2>Differential Electrode Pairs (Push-Pull &amp; 4-Quadrant Cancellation)</h2>
-    <p class="desc">Why opposing +/&minus; electrode pairs crush 2f<sub>0</sub> distortion, v<sub>FTR</sub>&sup2; scale bow, and feedthrough &mdash; why 4-quadrant wiring kills n=1 shock, how DRIE gap mismatch (&delta;) sets real CMRR, and what our ZUBoard sim models today.</p>
+  <a class="card" href="cloverleaf_64probe_pinning.html" style="border-color:#c084fc; background:linear-gradient(135deg,#1d1433 0%,#131a26 100%);">
+    <div class="ico purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c0-4.5 3.5-8 5.5-6S16 12 12 12zm0 0c4.5 0 8 3.5 6 5.5S12 16 12 12zm0 0c0 4.5-3.5 8-5.5 6S8 12 12 12zm0 0c-4.5 0-8-3.5-6-5.5S12 8 12 12z"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag purple">64-Probe HITL Station · Animated Cloverleaf</div>
+      <h2>64-Probe Cloverleaf Ring-Up &amp; Fabrication Mode Pinning</h2>
+      <p class="desc">Watch all 64 perimeter die ADC probes track an n=2 cloverleaf ringing up, wobbling, and locking onto the fab pinning angle &theta;<sub>pin</sub> &mdash; plus Whole-Angle Adler dead-band and electrostatic un-pinning.</p>
+    </div>
   </a>
 
   <a class="card" href="ringdown_qfit_and_bias_realism.html">
-    <div class="tag gold">Bench Demo · Ringdown, Q-Fit &amp; 100V Tuning</div>
-    <h2>Gyro Ringdown, Semi-Log Q-Fit, 100 V &plusmn; 20 V Tuning &amp; Bias Realism</h2>
-    <p class="desc">Interactive DRG ringdown bench simulator (dial V<sub>tune</sub> to kill beating, see Rician noise-floor Q-inflation &amp; 100 V tuning-resistor Ohmic Q-loading) + roadmap of g-sensitivity, quad setpoint error, dielectric charging &amp; thermal hysteresis.</p>
+    <div class="ico gold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c1.5-8 3-8 4.5 0s3 7 4.5 0 3-4.5 4.5 0 3 2.5 4.5 0"/><path d="M3 4c5 0 11 5 18 8" stroke-dasharray="2.5 2.5" opacity="0.65"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag gold">Bench Demo · Ringdown, Q-Fit &amp; 100V Tuning</div>
+      <h2>Gyro Ringdown, Semi-Log Q-Fit, 100 V &plusmn; 20 V Tuning &amp; Bias Realism</h2>
+      <p class="desc">Interactive DRG ringdown bench simulator (dial V<sub>tune</sub> to kill beating, see Rician noise-floor Q-inflation &amp; 100 V tuning-resistor Ohmic Q-loading) + roadmap of g-sensitivity, quad setpoint error, dielectric charging &amp; thermal hysteresis.</p>
+    </div>
+  </a>
+
+  <a class="card" href="pi_vs_pid_cvg_explainer.html">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="20" y2="20"/><line x1="4" y1="4" x2="4" y2="20"/><path d="M4 18c2-11 4-11 6-9s3 1 10 1"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag">Control Theory · Interactive Lab</div>
+      <h2>Wait: PI, but no D?</h2>
+      <p class="desc">Why demodulation turns a 2nd-order 11 kHz resonator into a 1st-order plant, live PI vs. PID noise blowup simulator, Feedforward rate/angle cancellation, and noise-gain Bode plot.</p>
+    </div>
+  </a>
+
+  <a class="card" href="drg_quadrature_and_vacuum_explainer.html">
+    <div class="ico gold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7v6a7 7 0 0 0 14 0V9a7 7 0 0 0-7-7z"/><path d="M8 14h8"/><circle cx="12" cy="9" r="2"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag gold">MEMS Physics &amp; Packaging · Animated</div>
+      <h2>100+ °/s Quadrature &amp; Gold Getter Vacuum Packages</h2>
+      <p class="desc">Animated n=2 wineglass DRG with DC quad-trim &amp; FPGA CLQ toggles, I/Q phase-leakage vs. anisodamping phasor diagram, and LCC NEG getter Q(P) vacuum curve.</p>
+    </div>
+  </a>
+
+  <a class="card" href="nav_grade_drg_hurdles.html">
+    <div class="ico gold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l5 9h8l5-6"/><line x1="3" y1="18" x2="21" y2="18" stroke-dasharray="3 2"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag gold">Inertial Roadmap · Interactive ADEV Lab</div>
+      <h2>Biggest Hurdles to Nav-Grade MEMS DRG Bias Stability (&le; 0.01 °/hr)</h2>
+      <p class="desc">Why Silicon DRGs stall at ~0.2 °/hr (TED, quad phase leakage, anisodamping, package stress, 1/f &amp; quantization) + interactive ADEV bathtub lab toggling Quartz, CLQ, Mode Reversal, Self-Thermometry, and 24-bit HF-Carrier DSP.</p>
+    </div>
+  </a>
+
+  <a class="card" href="silicon_drg_improvement_paths.html">
+    <div class="ico green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1v5M15 1v5M9 18v5M15 18v5M1 9h5M1 15h5M18 9h5M18 15h5"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag green">MEMS Material &amp; Geometry · Interactive TED Lab</div>
+      <h2>Improving Silicon MEMS DRGs: Is Quartz the Only Way?</h2>
+      <p class="desc">No! Interactive Zener TED Debye-peak explorer showing how lumped-mass &lt;111&gt; Silicon (12 &mu;m, 3 kHz) reaches Q<sub>TED</sub>=1.57M (&tau;&approx;80 s) &amp; &le;0.01 °/hr without Quartz, plus Silicon vs. Quartz vs. SiC vs. Diamond trade matrix.</p>
+    </div>
+  </a>
+
+  <a class="card" href="drg_electrode_pin_trades.html">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag">Transducer Design · Interactive Pin-Budget Lab</div>
+      <h2>More Resonator Contact Points &amp; Sense vs. Drive Pin Trades</h2>
+      <p class="desc">Why scaling 8 &rarr; 16 &rarr; 32 electrodes helps, why ~75% Sense / 25% Drive wins on high-Q DRGs (plus the DAC noise bonus), the C<sub>pad</sub> saturation &amp; X/Y softening traps, and an interactive n=2 electrode ring simulator.</p>
+    </div>
+  </a>
+
+  <a class="card" href="differential_electrode_pairs.html">
+    <div class="ico purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="5" y2="19"/><line x1="19" y1="5" x2="19" y2="19"/><rect x="10" y="7" width="4" height="10" rx="1"/><path d="M2 12h3M19 12h3"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag purple">Transducer Physics · Interactive Push-Pull Lab</div>
+      <h2>Differential Electrode Pairs (Push-Pull &amp; 4-Quadrant Cancellation)</h2>
+      <p class="desc">Why opposing +/&minus; electrode pairs crush 2f<sub>0</sub> distortion, v<sub>FTR</sub>&sup2; scale bow, and feedthrough &mdash; why 4-quadrant wiring kills n=1 shock, how DRIE gap mismatch (&delta;) sets real CMRR, and what our ZUBoard sim models today.</p>
+    </div>
   </a>
 
   <a class="card" href="adev_presets_comparison.png">
-    <div class="tag">Noise &amp; Stability · Plot</div>
-    <h2>Gyro ADEV Comparison (°/hr)</h2>
-    <p class="desc">Overlapping Allan Deviation bathtub curves across Consumer MEMS, Silicon DRG (Q=100k), Quartz MEMS DRG (Q=800k), Micro-HRG (Q=1M), and Space HRG (Q=5M).</p>
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 9 16 15 16 21 9"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag">Noise &amp; Stability · Plot</div>
+      <h2>Gyro ADEV Comparison (°/hr)</h2>
+      <p class="desc">Overlapping Allan Deviation bathtub curves across Consumer MEMS, Silicon DRG (Q=100k), Quartz MEMS DRG (Q=800k), Micro-HRG (Q=1M), and Space HRG (Q=5M).</p>
+    </div>
   </a>
 
   <a class="card" href="fpga_fixed_point_vs_float64.html">
-    <div class="tag" style="color:#34d399">Live Silicon Results · v1 &rarr; v2 Upgrade</div>
-    <h2>Live ZUBoard 1CG: Fixed-Point Rounding, High-Q v2 &amp; +30 °C Thermal Ramp</h2>
-    <p class="desc">Before/After live XCZU1CG measurements (v1 vs. v2 40-bit NCO + Q10.22 PI + 24-bit ADC + Q-6.42): 100&times; lower ADEV floor (0.027 °/hr), 229 dB quad rejection, 0.0005 °/s Space HRG bias resolved, and 0.006 °C RMS live self-thermometry.</p>
+    <div class="ico green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag green">Live Silicon Results · v1 &rarr; v2 Upgrade</div>
+      <h2>Live ZUBoard 1CG: Fixed-Point Rounding, High-Q v2 &amp; +30 °C Thermal Ramp</h2>
+      <p class="desc">Before/After live XCZU1CG measurements (v1 vs. v2 40-bit NCO + Q10.22 PI + 24-bit ADC + Q-6.42): 100&times; lower ADEV floor (0.027 °/hr), 229 dB quad rejection, 0.0005 °/s Space HRG bias resolved, and 0.006 °C RMS live self-thermometry.</p>
+    </div>
   </a>
 
   <a class="card" href="advanced_gyro_physics.html">
-    <div class="tag" style="color:#a78bfa">Advanced Physics · Golden Model</div>
-    <h2>Electrostatic Softening, Duffing Overdrive &amp; Whole-Angle HRG Mode</h2>
-    <p class="desc">DC mode-matching tuning curve (12.25 V), bent Duffing shark-fin bifurcation &amp; thermometry pull, plus Lynch E/Q Whole-Angle Micro-HRG surviving a +500 / &minus;300 °/s spin burst at 9.4 mdeg peak error.</p>
+    <div class="ico purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19c4 0 7-3 10-14 1.5 7 3.5 14 8 14"/><circle cx="13" cy="5" r="1.5" fill="currentColor"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag purple">Advanced Physics · Golden Model</div>
+      <h2>Electrostatic Softening, Duffing Overdrive &amp; Whole-Angle HRG Mode</h2>
+      <p class="desc">DC mode-matching tuning curve (12.25 V), bent Duffing shark-fin bifurcation &amp; thermometry pull, plus Lynch E/Q Whole-Angle Micro-HRG surviving a +500 / &minus;300 °/s spin burst at 9.4 mdeg peak error.</p>
+    </div>
   </a>
 
   <a class="card" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
-    <div class="tag gold">Bring-Up Postmortem · Bug #02</div>
-    <h2>KSZ9131RNX PHY &amp; RGMII TXC 2 ns DLL Bypass</h2>
-    <p class="desc">How JTAG forensics caught an unsupported PHY OUI (0x0022) in lwip220 and the asymmetric MMD2 0x4D TXC DLL bypass (0x16D1 &rarr; 0x06D1), with an interactive RGMII eye diagram.</p>
+    <div class="ico gold">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag gold">Bring-Up Postmortem · Bug #02</div>
+      <h2>KSZ9131RNX PHY &amp; RGMII TXC 2 ns DLL Bypass</h2>
+      <p class="desc">How JTAG forensics caught an unsupported PHY OUI (0x0022) in lwip220 and the asymmetric MMD2 0x4D TXC DLL bypass (0x16D1 &rarr; 0x06D1), with an interactive RGMII eye diagram.</p>
+    </div>
   </a>
 
   <a class="card" href="bugs/bug01_a53_r5f_ddr_collision.html">
-    <div class="tag" style="color:#f87171">Bring-Up Postmortem · Bug #01</div>
-    <h2>A53 / R5F LPDDR4 Memory Collision &amp; Fix</h2>
-    <p class="desc">Visual Before/After memory map, interactive JTAG boot-crash timeline, and the exact Vitis lscript.ld partition + lwIP IRQ fix.</p>
+    <div class="ico red">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="body">
+      <div class="tag red">Bring-Up Postmortem · Bug #01</div>
+      <h2>A53 / R5F LPDDR4 Memory Collision &amp; Fix</h2>
+      <p class="desc">Visual Before/After memory map, interactive JTAG boot-crash timeline, and the exact Vitis lscript.ld partition + lwIP IRQ fix.</p>
+    </div>
   </a>
 </div>
 </body>
