@@ -82,6 +82,10 @@
 
   .canvas-pair { display: grid; grid-template-columns: 1fr 1.12fr; gap: 10px; }
   @media (max-width: 760px) { .canvas-pair { grid-template-columns: 1fr; } }
+  .scope-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 760px) { .scope-pair { grid-template-columns: 1fr; } }
+  .scope-hdr { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 6px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 11px; }
+  .scope-pill { padding: 2px 6px; border-radius: 6px; background: #131a26; border: 1px solid #26334a; font-weight: 700; }
   .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
   .cbox canvas { width: 100%; display: block; border-radius: 8px; }
   .cap { font-size: 12.2px; color: var(--muted); margin-top: 7px; text-align: center; }
@@ -117,10 +121,11 @@
 
     <div class="presets">
       <button class="pbtn kick" onclick="kickRingup()">&#x26A1; Kick / Ring-Up From &theta;<sub>init</sub>!</button>
-      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.08, 0, false)">Fab Pinned (&theta;<sub>pin</sub>=28&deg;)</button>
-      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.05, 5, false)">Slow Spin (5 °/s &rarr; STUCK in Dead-Band!)</button>
-      <button class="pbtn" onclick="applyMode(28, 4, 30, 0.05, 18, false)">Fast Spin (18 °/s &rarr; Breaks Free!)</button>
-      <button class="pbtn best" onclick="applyMode(28, 4, 2, 0.005, 10, true)">100V &plusmn;20V Trimmed (Free Precession!)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 45, 30, 0.08, 0)">Fab Pinned (Q=45k)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 250, 30, 0.08, 0)">High-Q Slow Pin (Q=250k)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 45, 30, 0.05, 5)">Slow Spin (5 °/s &rarr; STUCK!)</button>
+      <button class="pbtn" onclick="applyMode(28, 4, 45, 30, 0.05, 18)">Fast Spin (18 °/s &rarr; Breaks Free!)</button>
+      <button class="pbtn best" onclick="applyMode(28, 4, 150, 2, 0.005, 10)">100V &plusmn;20V Trimmed (Free Precession!)</button>
     </div>
 
     <div class="ctrl-grid">
@@ -133,6 +138,10 @@
         <input type="range" id="slInit" min="0" max="45" step="1" value="4" oninput="readParams()" />
       </div>
       <div class="ctrl">
+        <label><span>Quality Factor Q</span><span id="vQ" style="color:var(--blue)">45k</span></label>
+        <input type="range" id="slQ" min="20" max="500" step="5" value="45" oninput="readParams()" />
+      </div>
+      <div class="ctrl">
         <label><span>Anisodamping &Delta;Q / Q (%)</span><span id="vDq" style="color:var(--red)">30%</span></label>
         <input type="range" id="slDq" min="0" max="45" step="1" value="30" oninput="readParams()" />
       </div>
@@ -141,12 +150,11 @@
         <input type="range" id="slDf" min="0" max="0.40" step="0.01" value="0.08" oninput="readParams()" />
       </div>
       <div class="ctrl">
-        <label><span>Input Spin Rate &Omega;<sub>z</sub> (°/s)</span><span id="vOm" style="color:var(--blue)">0 °/s</span></label>
-        <input type="range" id="slOm" min="-30" max="30" step="1" value="0" oninput="readParams()" />
-      </div>
-      <div class="ctrl" style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:12.6px; font-weight:700; color:#cbd8ec;">64-Probe View &amp; Pause</span>
-        <button class="pbtn" id="btnPause" onclick="togglePause()" style="padding:5px 12px;">Pause</button>
+        <label><span>Spin Rate &Omega;<sub>z</sub> (°/s) &amp; Pause</span><span id="vOm" style="color:var(--blue)">0 °/s</span></label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="range" id="slOm" min="-30" max="30" step="1" value="0" oninput="readParams()" style="flex:1;" />
+          <button class="pbtn" id="btnPause" onclick="togglePause()" style="padding:4px 10px; font-size:12px;">Pause</button>
+        </div>
       </div>
     </div>
 
@@ -166,6 +174,29 @@
       <div class="cbox">
         <canvas id="adcCanvas"></canvas>
         <div class="cap"><strong>Live 64-Channel ADC Bar Scope (Probes #0&ndash;63):</strong> Watch the 4 cloverleaf peaks slide smoothly across ADC channels as the wave rotates and locks!</div>
+      </div>
+    </div>
+
+    <div class="scope-pair">
+      <div class="cbox">
+        <div class="scope-hdr">
+          <span class="scope-pill" style="color:#38bdf8">DX: <span id="vDX">0.00</span></span>
+          <span class="scope-pill" style="color:#c084fc">DY: <span id="vDY">0.00</span></span>
+          <span class="scope-pill" style="color:#34d399">SX: <span id="vSX">0.00</span></span>
+          <span class="scope-pill" style="color:#f87171">SY: <span id="vSY">0.00</span></span>
+        </div>
+        <canvas id="scopeDxyCanvas"></canvas>
+        <div class="cap"><strong>Live Running Scope · Demodulated Pickoffs:</strong> Watch <code>DX/SX</code> trade energy as the cloverleaf rotates and <code>DY/SY</code> oscillate from <code>&Delta;f</code> beating.</div>
+      </div>
+      <div class="cbox">
+        <div class="scope-hdr">
+          <span class="scope-pill" style="color:#fbbf24">AGC: <span id="vAGC">0.00</span></span>
+          <span class="scope-pill" style="color:#c084fc">PLL: <span id="vPLL">0.00Hz</span></span>
+          <span class="scope-pill" style="color:#f87171">CLQ: <span id="vCLQ">0.00</span></span>
+          <span class="scope-pill" style="color:#34d399">FTR: <span id="vFTR">0.0°/s</span></span>
+        </div>
+        <canvas id="scopeAdjCanvas"></canvas>
+        <div class="cap"><strong>Live Running Scope · Loop Adj Equivalents:</strong> <code>AGCAdj</code> (sustain drive &prop; 1/Q), <code>PLLAdj</code> (eigenmode freq pull), <code>CLQAdj</code> (quad ellipticity), &amp; <code>FTRAdj</code> (Coriolis + pinning torque).</div>
       </div>
     </div>
   </section>
@@ -207,23 +238,33 @@
 <script>
 const N_PROBES = 64;
 const AG = 0.40;
-const F0 = 11000.0, W0 = 2 * Math.PI * F0, Q_MEAN = 45000.0;
-const GAMMA0 = W0 / Q_MEAN;
+const F0 = 11000.0, W0 = 2 * Math.PI * F0, Q_REF = 45000.0;
+const GAMMA0 = W0 / Q_REF; // reference for bottom Plotly study
 
 let paused = false;
 let simT = 0;
 let axR = 0.08, axI = 0.0, ayR = 0.0, ayI = 0.0;
-let params = { pinDeg: 28, initDeg: 4, dqPct: 30, dfHz: 0.08, omDps: 0 };
+let params = { pinDeg: 28, initDeg: 4, qMean: 45000, dqPct: 30, dfHz: 0.08, omDps: 0 };
+
+const SCOPE_LEN = 220;
+let hist = { dx: [], dy: [], sx: [], sy: [], agc: [], pll: [], clq: [], ftr: [] };
+let lastAdj = { agc: 0, pll: 0, clq: 0, ftr: 0 };
+
+function clearHist() {
+  hist = { dx: [], dy: [], sx: [], sy: [], agc: [], pll: [], clq: [], ftr: [] };
+}
 
 function readParams() {
   params.pinDeg  = parseFloat(document.getElementById('slPin').value);
   params.initDeg = parseFloat(document.getElementById('slInit').value);
+  params.qMean   = parseFloat(document.getElementById('slQ').value) * 1000.0;
   params.dqPct   = parseFloat(document.getElementById('slDq').value);
   params.dfHz    = parseFloat(document.getElementById('slDf').value);
   params.omDps   = parseFloat(document.getElementById('slOm').value);
 
   document.getElementById('vPin').textContent  = params.pinDeg.toFixed(0) + '°';
   document.getElementById('vInit').textContent = params.initDeg.toFixed(0) + '°';
+  document.getElementById('vQ').textContent    = (params.qMean / 1000).toFixed(0) + 'k';
   document.getElementById('vDq').textContent   = params.dqPct.toFixed(0) + '%';
   document.getElementById('vDf').textContent   = params.dfHz.toFixed(2) + ' Hz';
   document.getElementById('vOm').textContent   = (params.omDps >= 0 ? '+' : '') + params.omDps.toFixed(0) + ' °/s';
@@ -236,13 +277,15 @@ function kickRingup() {
   axR = 0.08 * Math.cos(a0); axI = 0.0;
   ayR = 0.08 * Math.sin(a0); ayI = 0.0;
   simT = 0;
+  clearHist();
   paused = false;
   document.getElementById('btnPause').textContent = 'Pause';
 }
 
-function applyMode(pinDeg, initDeg, dqPct, dfHz, omDps, doKick) {
+function applyMode(pinDeg, initDeg, qK, dqPct, dfHz, omDps) {
   document.getElementById('slPin').value = pinDeg;
   document.getElementById('slInit').value = initDeg;
+  document.getElementById('slQ').value = qK;
   document.getElementById('slDq').value = dqPct;
   document.getElementById('slDf').value = dfHz;
   document.getElementById('slOm').value = omDps;
@@ -256,21 +299,21 @@ function togglePause() {
 }
 
 function stepPhysics(dt) {
-  const dGamma = GAMMA0 * (params.dqPct / 100.0);
+  const gamma0 = W0 / params.qMean;
+  const dGamma = gamma0 * (params.dqPct / 100.0);
   const dw = 2 * Math.PI * params.dfHz;
   const aPin = (2 * params.pinDeg) * Math.PI / 180;
   const c2 = Math.cos(2 * aPin), s2 = Math.sin(2 * aPin);
 
-  const gxx = GAMMA0 - 0.5 * dGamma * c2;
-  const gyy = GAMMA0 + 0.5 * dGamma * c2;
+  const gxx = gamma0 - 0.5 * dGamma * c2;
+  const gyy = gamma0 + 0.5 * dGamma * c2;
   const gxy = -0.5 * dGamma * s2;
   const wxx = -0.5 * dw * c2, wyy = 0.5 * dw * c2, wxy = -0.5 * dw * s2;
   const cor = AG * (params.omDps * Math.PI / 180);
 
   function deriv(xr, xi, yr, yi) {
     const E = xr*xr + xi*xi + yr*yr + yi*yi;
-    const gs = 0.5 * GAMMA0 + 1.8 * (1.0 - E);
-    // dux = (gs - 0.5*gxx)*ux - 0.5*gxy*uy - j*(wxx*ux + wxy*uy) + 2*cor*uy
+    const gs = 0.5 * gamma0 + 1.8 * (1.0 - E);
     const dxr = (gs - 0.5*gxx)*xr - 0.5*gxy*yr + (wxx*xi + wxy*yi) + 2*cor*yr;
     const dxi = (gs - 0.5*gxx)*xi - 0.5*gxy*yi - (wxx*xr + wxy*yr) + 2*cor*yi;
     const dyr = (gs - 0.5*gyy)*yr - 0.5*gxy*xr + (wxy*xi + wyy*yi) - 2*cor*xr;
@@ -290,6 +333,24 @@ function stepPhysics(dt) {
     ayI += (h/6)*(k1[3]+2*k2[3]+2*k3[3]+k4[3]);
   }
   simT += dt;
+
+  // Record live demodulated pickoffs & equivalent loop adjustments
+  const E = axR*axR + axI*axI + ayR*ayR + ayI*ayI;
+  const C = (axR*axR + axI*axI) - (ayR*ayR + ayI*ayI);
+  const S = 2 * (axR*ayR + axI*ayI);
+  const Ql = 2 * (axI*ayR - axR*ayI);
+  const thRad = 0.25 * Math.atan2(S, C);
+  const pinRad = params.pinDeg * Math.PI / 180;
+
+  const agcVal = 0.5 * gamma0 + 1.8 * (1.0 - E); // rad/s sustaining drive
+  const pllHz  = -0.5 * params.dfHz * Math.cos(4 * (thRad - pinRad)); // Hz eigenmode freq pull
+  const clqVal = Ql / Math.max(E, 0.05); // normalized quadrature ellipticity
+  const ftrDps = params.omDps - (dGamma / (2 * AG)) * (180 / Math.PI) * Math.sin(4 * (thRad - pinRad));
+  lastAdj = { agc: agcVal, pll: pllHz, clq: clqVal, ftr: ftrDps };
+
+  const push = (arr, v) => { arr.push(v); if (arr.length > SCOPE_LEN) arr.shift(); };
+  push(hist.dx, axR); push(hist.dy, axI); push(hist.sx, ayR); push(hist.sy, ayI);
+  push(hist.agc, agcVal); push(hist.pll, pllHz); push(hist.clq, clqVal); push(hist.ftr, ftrDps);
 }
 
 function sizeCanvas(canvas, cssH) {
@@ -315,7 +376,8 @@ function render() {
   if (thetaDeg < 0) thetaDeg += 90;
   const amp = Math.sqrt(E);
 
-  const dGamma = GAMMA0 * (params.dqPct / 100.0);
+  const gamma0 = W0 / params.qMean;
+  const dGamma = gamma0 * (params.dqPct / 100.0);
   const omLockDps = (dGamma / (2 * AG)) * 180 / Math.PI;
 
   document.getElementById('rdTheta').textContent = thetaDeg.toFixed(1) + '°';
@@ -455,6 +517,74 @@ function render() {
   g2.fillText('64 Die ADC Probes (#0..#63 around 360°)', pad.l + pw / 2, h2 - 5);
   g2.fillStyle = '#cbd5e1'; g2.textAlign = 'left';
   g2.fillText('Live Probe Envelope |ADC_k|', pad.l + 4, pad.t - 6);
+
+  // --- 3. Live Running Scope: DX / DY / SX / SY ---
+  document.getElementById('vDX').textContent = (axR >= 0 ? '+' : '') + axR.toFixed(2);
+  document.getElementById('vDY').textContent = (axI >= 0 ? '+' : '') + axI.toFixed(2);
+  document.getElementById('vSX').textContent = (ayR >= 0 ? '+' : '') + ayR.toFixed(2);
+  document.getElementById('vSY').textContent = (ayI >= 0 ? '+' : '') + ayI.toFixed(2);
+
+  drawScope('scopeDxyCanvas', [
+    { data: hist.dx, color: '#38bdf8', lw: 2.1, scale: 1.0 },
+    { data: hist.dy, color: '#c084fc', lw: 1.7, scale: 1.0 },
+    { data: hist.sx, color: '#34d399', lw: 2.1, scale: 1.0 },
+    { data: hist.sy, color: '#f87171', lw: 1.7, scale: 1.0 },
+  ], -1.15, 1.15, 'Norm [−1.15 .. +1.15]');
+
+  // --- 4. Live Running Scope: LoopAdj (AGC, PLL, CLQ, FTR) ---
+  document.getElementById('vAGC').textContent = lastAdj.agc.toFixed(2);
+  document.getElementById('vPLL').textContent = (lastAdj.pll >= 0 ? '+' : '') + lastAdj.pll.toFixed(3) + 'Hz';
+  document.getElementById('vCLQ').textContent = (lastAdj.clq >= 0 ? '+' : '') + lastAdj.clq.toFixed(2);
+  document.getElementById('vFTR').textContent = (lastAdj.ftr >= 0 ? '+' : '') + lastAdj.ftr.toFixed(1) + '°/s';
+
+  drawScope('scopeAdjCanvas', [
+    { data: hist.agc, color: '#fbbf24', lw: 2.0, scale: 1.0 / 2.2 },    // ~2.2 rad/s -> +1.0
+    { data: hist.pll, color: '#c084fc', lw: 1.8, scale: 1.0 / 0.22 },   // +/-0.22 Hz -> +/-1.0
+    { data: hist.clq, color: '#f87171', lw: 1.8, scale: 1.0 },          // +/-1.0 norm
+    { data: hist.ftr, color: '#34d399', lw: 2.2, scale: 1.0 / 25.0 },   // +/-25 dps -> +/-1.0
+  ], -1.15, 1.15, 'Scaled Loop Commands (±1 FS)');
+}
+
+function drawScope(canvasId, traces, yMin, yMax, yLabel) {
+  const cv = document.getElementById(canvasId);
+  const { ctx, w, h } = sizeCanvas(cv, 175);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 34, r: 8, t: 10, b: 18 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+  const yOf = (v) => pad.t + ph * (1 - (Math.max(yMin, Math.min(yMax, v)) - yMin) / (yMax - yMin));
+
+  // Horizontal grid + zero line
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+  for (const v of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
+    const yp = yOf(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp);
+    ctx.strokeStyle = v === 0 ? '#334155' : '#1e293b';
+    ctx.stroke();
+    if (v === -1.0 || v === 0.0 || v === 1.0) {
+      ctx.fillStyle = '#64748b'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+      ctx.fillText(v.toFixed(0), pad.l - 4, yp + 3);
+    }
+  }
+
+  for (const tr of traces) {
+    const arr = tr.data;
+    if (arr.length < 2) continue;
+    ctx.beginPath();
+    const xStart = pad.l + ((SCOPE_LEN - arr.length) / (SCOPE_LEN - 1)) * pw;
+    for (let i = 0; i < arr.length; i++) {
+      const x = xStart + (i / (SCOPE_LEN - 1)) * pw;
+      const y = yOf(arr[i] * tr.scale);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = tr.color;
+    ctx.lineWidth = tr.lw;
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.1;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#64748b'; ctx.font = '9.5px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText(yLabel + ' · rolling ~10 s', pad.l + pw - 2, h - 4);
 }
 
 function loop() {
