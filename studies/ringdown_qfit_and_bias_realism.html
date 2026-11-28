@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gyro Ringdown, Q-Fit, 100V ±20V Tuning &amp; Real-World Bias Drivers</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.56; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #27152e 0%, #122139 55%, #0e2a23 100%);
+    border: 1px solid #3c3a69; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.5vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h3 { margin: 0 0 6px; font-size: 15.8px; color: #fff; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--amber);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #fde68a; overflow-x: auto;
+  }
+
+  /* Interactive Bench Controls */
+  .presets { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.pbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 11px; border-radius: 8px; font-size: 12.8px; font-weight: 600; cursor: pointer;
+  }
+  button.pbtn:hover { border-color: var(--blue); }
+  button.pbtn.best { border-color: var(--green); color: #a7f3d0; background: rgba(52,211,153,0.12); }
+  button.pbtn.warn { border-color: var(--red); color: #fecaca; background: rgba(248,113,113,0.10); }
+
+  .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+  @media (max-width: 740px) { .ctrl-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 500px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 9px 11px; }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 12.4px; font-weight: 700; color: #cbd8ec; margin-bottom: 5px; }
+  .ctrl input[type="range"] { width: 100%; accent-color: var(--blue); }
+
+  .readouts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 760px) { .readouts { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 480px) { .readouts { grid-template-columns: repeat(2, 1fr); } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .rd .l { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .rd .v { font-size: 14.5px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  .canvas-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 740px) { .canvas-pair { grid-template-columns: 1fr; } }
+  .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  .cbox canvas { width: 100%; display: block; border-radius: 8px; }
+  .cap { font-size: 12.2px; color: var(--muted); margin-top: 7px; text-align: center; }
+
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .driver { background: var(--card2); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: 12px; padding: 12px 13px; }
+  .driver.red { border-left-color: var(--red); }
+  .driver.amber { border-left-color: var(--amber); }
+  .driver.blue { border-left-color: var(--blue); }
+  .driver p { margin: 5px 0 0; font-size: 13.9px; color: #cbd8ec; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.3px; margin-top: 8px; }
+  th, td { padding: 8px 9px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: #93a4be; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; background: #0e1420; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">Live Bench Characterization &amp; Model Realism Roadmap</div>
+    <h1>Gyro Ringdown, Q-Fit, 100 V &plusmn; 20 V Tuning &amp; Real-World Bias Drivers</h1>
+    <p>Interactive DRG ringdown &amp; semi-log Q-fitting bench simulator with <code>100 V</code> DC bias + <code>&plusmn;20 V</code> bipolar electrostatic mode-matching, plus a complete engineering checklist of the next real-world physics effects (<code>g</code>-sensitivity, quad setpoint error, 100 V dielectric charging, Ohmic tuning damping, and thermal hysteresis).</p>
+  </header>
+
+  <section>
+    <h2><span class="badge green">Interactive Demo</span> DRG Ringdown, 100 V &plusmn; 20 V Tuning &amp; Semi-Log Q-Fit Bench</h2>
+    <p style="font-size:14.1px; color:var(--muted); margin-top:0;">Dial <strong><code>V<sub>tune</sub></code></strong> to collapse the mode split <code>&Delta;f &rarr; 0 Hz</code> and watch the energy-sloshing beating flatten into a pure exponential! Then drag the <strong>Fit End Window</strong> into the noise floor to see Rician Q-inflation live, or crank up <strong><code>R<sub>tune</sub></code></strong> to see unbypassed 100 V resistor damping kill your Q!</p>
+
+    <div class="presets">
+      <button class="pbtn warn" onclick="setBench(100, 0.0, 100, 0.90, 0, 4.0, 9.0)">1. Untrimmed DRG (Beating!)</button>
+      <button class="pbtn best" onclick="autoMatch()">2. Auto Mode-Match (&Delta;f = 0, Clean Q-Fit!)</button>
+      <button class="pbtn warn" onclick="setBench(100, -11.07, 100, 0.0, 0, 5.0, 22.0)">3. Noise-Floor Q-Inflation Trap!</button>
+      <button class="pbtn warn" onclick="setBench(100, -11.07, 800, 0.0, 120, 2.0, 16.0)">4. Unbypassed 120 k&Omega; R_tune Kills Q!</button>
+      <button class="pbtn" onclick="setBench(100, -11.07, 800, 0.0, 0, 1.5, 42.0)">5. High-Q 800k Clean Ringdown</button>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label><span>DC Bias V<sub>bias</sub></span><span id="vBias" style="color:var(--amber)">100 V</span></label>
+        <input type="range" id="slBias" min="20" max="120" step="5" value="100" oninput="runBench()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Tuning Voltage V<sub>tune</sub></span><span id="vTune" style="color:var(--green)">&minus;11.1 V</span></label>
+        <input type="range" id="slTune" min="-20" max="20" step="0.1" value="-11.1" oninput="runBench()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Intrinsic Q<sub>mech</sub></span><span id="vQ" style="color:var(--blue)">100k</span></label>
+        <input type="range" id="slQ" min="50" max="1000" step="10" value="100" oninput="runBench()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Residual Quad k<sub>xy</sub> (Hz)</span><span id="vKxy" style="color:var(--purple)">0.00 Hz</span></label>
+        <input type="range" id="slKxy" min="0" max="1.5" step="0.05" value="0.0" oninput="runBench()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Unbypassed R<sub>tune</sub> (k&Omega;)</span><span id="vR" style="color:var(--red)">0 k&Omega;</span></label>
+        <input type="range" id="slR" min="0" max="300" step="5" value="0" oninput="runBench()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Noise (mV) &amp; Fit Window End (s)</span><span id="vFit" style="color:var(--blue)">4.0 · 8.5 s</span></label>
+        <div style="display:flex; gap:6px;">
+          <input type="range" id="slNoise" min="0.2" max="10.0" step="0.2" value="4.0" oninput="runBench()" style="flex:1;" />
+          <input type="range" id="slTend" min="2.0" max="50.0" step="0.5" value="8.5" oninput="runBench()" style="flex:1.2;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">Mode Split &Delta;f</div><div class="v" id="rdDf" style="color:var(--green)">0.00 Hz</div></div>
+      <div class="rd"><div class="l">True Loaded Q</div><div class="v" id="rdQtrue" style="color:var(--blue)">100,000</div></div>
+      <div class="rd"><div class="l">Fitted Q<sub>fit</sub></div><div class="v" id="rdQfit" style="color:var(--green)">100,040</div></div>
+      <div class="rd"><div class="l">Q-Fit Error</div><div class="v" id="rdErr" style="color:var(--green)">+0.04%</div></div>
+      <div class="rd"><div class="l">Fitted &tau;</div><div class="v" id="rdTau" style="color:var(--amber)">2.89 s</div></div>
+      <div class="rd"><div class="l">Semi-Log R&sup2;</div><div class="v" id="rdR2" style="color:var(--purple)">0.9994</div></div>
+    </div>
+
+    <div class="canvas-pair">
+      <div class="cbox">
+        <canvas id="linCanvas"></canvas>
+        <div class="cap"><strong>Linear Envelope |a(t)|:</strong> Drive X (cyan) &amp; Sense Y (amber). Mode-matching kills the beating!</div>
+      </div>
+      <div class="cbox">
+        <canvas id="logCanvas"></canvas>
+        <div class="cap"><strong>Semi-Log Q-Fit (dB):</strong> Shaded green = fit window; dashed green = OLS slope <code>&minus;8.686 / &tau;</code>.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">100 V &plusmn; 20 V Physics</span> Electrostatic Mode-Matching &amp; Its Two Hidden Traps</h2>
+    <p>Biasing the resonator proof mass at <code>V<sub>bias</sub> = 100 V</code> and driving tuning electrodes with <code>V<sub>tune</sub> &isin; [&minus;20 V, +20 V]</code> is a classic high-authority DRG/HRG technique because the cross-term <code>&minus;2 V<sub>bias</sub> V<sub>tune</sub></code> gives <strong>bipolar, nearly linear frequency &amp; quadrature control</strong>:</p>
+    <div class="eq">
+      k<sub>elec</sub>(V<sub>t</sub>) = &minus;(&epsilon;<sub>0</sub>A / d<sub>0</sub>&sup3;) &middot; (V<sub>bias</sub> &minus; V<sub>tune</sub>)&sup2; &nbsp;&nbsp;&rarr;&nbsp;&nbsp; (100 &mp; 20)&sup2; = 6,400 to 14,400 V&sup2; (2.25&times; span!)<br/>
+      V<sub>tune</sub> &gt; 0 reduces softening (pushes f UP) &nbsp;|&nbsp; V<sub>tune</sub> &lt; 0 increases softening (pulls f DOWN)
+    </div>
+    <div class="grid2">
+      <div class="driver red">
+        <h3>Trap 1 at 100 V: Dielectric Charging &amp; HV Reference Drift</h3>
+        <p>At <code>100 V</code> across micron gaps/anchors, trapped oxide charges slowly drift <code>V<sub>eff</sub>(t) = V<sub>bias</sub> &minus; V<sub>trap</sub>(t)</code> over minutes to days, causing turn-on bias transients and long-&tau; RRW. Meanwhile, <code>&part;k<sub>e</sub>/&part;V &prop; 2(V<sub>bias</sub>&minus;V<sub>t</sub>) &approx; 200 V</code> means even <code>1 mV</code> (10 ppm) of HV supply ripple shifts mode split &amp; quadrature! <strong>Fix:</strong> ultra-low-noise HV reference + periodic bipolar <code>&plusmn;V<sub>bias</sub></code> reversal.</p>
+      </div>
+      <div class="driver amber">
+        <h3>Trap 2 at 100 V: Tuning-Resistor Ohmic Q-Loading</h3>
+        <p>Adding a <code>100 k&Omega;&ndash;1 M&Omega;</code> HV protection resistor on a tuning pin without an AC bypass capacitor to ground dissipates motional current as <code>I&sup2;R</code> heat: <code>Q<sub>elec</sub><sup>&minus;1</sup> = R<sub>ser</sub>&eta;&sup2; / (m&omega;<sub>0</sub>)</code>. Worse, if <code>V<sub>tx</sub> &ne; V<sub>ty</sub></code>, one axis gets damped harder than the other &mdash; <strong>injecting artificial anisodamping bias <code>&Delta;(1/&tau;)</code>!</strong> <strong>Fix:</strong> low-ESR shunt cap right at the package pin.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge purple">Next Realism Upgrades</span> Major Real-World Bias Processes Not Yet in Our Modal Sim</h2>
+    <p style="font-size:14.2px; color:var(--muted); margin-top:0;">Our current ZUBoard 1CG HIL covers Brownian ARW, ADC quantization, quadrature stiffness, anisodamping, TCF thermal drift, and slow RRW. Here are the <strong>6 biggest remaining real-world bias mechanisms</strong> to add when hardening the model toward real flight hardware:</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Bias / Realism Mechanism</th>
+            <th>Physical Cause</th>
+            <th>ADEV / Bias Signature</th>
+            <th>How to Model in Python / HIL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Linear <code>g</code> &amp; Quadratic <code>g&sup2;</code> Sensitivity (VRE)</strong></td>
+            <td>Acceleration shifts gaps (<code>d<sub>0</sub> &plusmn; g/&omega;<sub>n=1</sub>&sup2;</code>) &amp; modulates <code>k<sub>e</sub> &prop; d<sup>&minus;3</sup></code>; high-freq vib rectifies via <code>1/(d<sub>0</sub>&minus;x)&sup2;</code>.</td>
+            <td>Orientation-dependent static bias (<code>0.05&ndash;5 °/hr/g</code>) + sudden bias jump under random vibration!</td>
+            <td>Wrap <code>d<sub>&plusmn;</sub> = d<sub>0</sub>(1&plusmn;&delta;) &mp; (x + x<sub>g</sub>(t))</code> around modal plant + inject <code>g(t)</code> PSD.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Quadrature Setpoint Error + Feedthrough-Fooled CLQ</strong></td>
+            <td>Non-zero <code>SY<sub>ref</sub></code> or feedthrough <code>S<sub>ft</sub></code> forces CLQ to hold <em>real</em> mechanical quad <code>SY<sub>mech</sub> = &minus;S<sub>ft</sub> &ne; 0</code>, which leaks via <code>&Delta;&phi;(T)</code> into rate!</td>
+            <td>Mid-&tau; Bias Instability floor + strong bias vs. temperature slope.</td>
+            <td>Add <code>y<sub>meas</sub> = y + k<sub>ft</sub>&middot;u<sub>x</sub></code> before demodulator + demod phase drift <code>&Delta;&phi;(T)</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>3. 100 V Dielectric Charging &amp; HV Noise</strong></td>
+            <td>Stretched-exponential charge trapping in isolation oxides shifts local <code>V<sub>eff</sub>(t)</code> &amp; <code>&Delta;f(t), k<sub>xy</sub>(t)</code>.</td>
+            <td>Turn-on warmup drift (exponential over 10&ndash;1800 s) + long-&tau; RRW.</td>
+            <td>Add multi-time-constant <code>V<sub>trap</sub>(t) = &Sigma; c<sub>i</sub>(1 &minus; e<sup>&minus;t/&tau;<sub>i</sub></sup>)</code> into <code>&Delta;f, k<sub>xy</sub></code>.</td>
+          </tr>
+          <tr>
+            <td><strong>4. Thermal Stress Hysteresis &amp; Die-Attach Creep</strong></td>
+            <td>AuSn solder / epoxy package stress relaxes irreversibly across thermal cycles (<code>&minus;40 &leftrightarrow; +85 °C</code>).</td>
+            <td>Bias fails to return to same value after temp cycle (uncompensated by <code>f<sub>0</sub>(T)</code> alone!).</td>
+            <td>Add Preisach / Maxwell viscoelastic stress state driving <code>k<sub>xy</sub></code> &amp; <code>g<sub>xy</sub></code>.</td>
+          </tr>
+          <tr>
+            <td><strong>5. AGC Amplitude &rarr; Bias Coupling (Duffing + Quad)</strong></td>
+            <td>TIA gain or <code>DX<sub>ref</sub></code> drift changes <code>x<sub>drive</sub></code>, pulling <code>f<sub>0</sub></code> via Duffing <code>&beta;<sub>3</sub>x&sup2;</code> &amp; shifting nonlinear bias/SF.</td>
+            <td>Scale-factor drift + corrupts <code>PLLAdj</code> self-thermometry calibration!</td>
+            <td>Include <code>&beta;<sub>3</sub>x&sup3;</code> + slow <code>1/f</code> gain drift on <code>DX</code> pickoff channel.</td>
+          </tr>
+          <tr>
+            <td><strong>6. Magnetic (Lorentz) &amp; Acoustic Cross-Axis Coupling</strong></td>
+            <td><code>F = I &times; B</code> on conductive rings/bondwires in Earth/motor B-fields; neighboring gyro tones near <code>f<sub>0</sub></code> or <code>2f<sub>0</sub></code>.</td>
+            <td>Heading-dependent bias (<code>°/hr/Gauss</code>) or coherent beat spurs in ADEV.</td>
+            <td>Add <code>u<sub>mag</sub> &prop; B(t)&middot;i<sub>drive</sub></code> + narrowband tone near <code>f<sub>0</sub></code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Python Reference Study</span> 4-Panel Bench Characterization Plot</h2>
+    <div class="plot">
+      <img src="ringdown_qfit_and_tuning.png" alt="4-panel plot of 100V +/-20V tuning, untrimmed vs trimmed ringdown, semi-log Q-fit trap, and Ohmic resistor Q-loading" />
+      <div class="cap">Generated by <code>model/demo_ringdown_qfit.py</code>: (A) 100 V &plusmn; 20 V bipolar electrostatic mode-matching (V<sub>tune</sub> = &minus;11.07 V), (B) Untrimmed energy-beating ringdown vs. tuned pure exponential, (C) Windowed semi-log Q-fit (<code>&minus;0.02%</code> error) vs. noise-floor Rician trap (<code>+18.1%</code> inflation!), and (D) Unbypassed tuning-resistor Ohmic Q-loading at 100 V.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const F_MECH_X = 11032.0, F_MECH_Y = 11039.5, ALPHA_T = 3.2e-3;
+const M_EFF = 2.0e-6, C0_T = 0.45e-12, D0_T = 10.0e-6;
+
+// Deterministic pseudo-random generator so noise doesn't strobe wildly on unrelated slider drags
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function randn(rng) {
+  const u1 = Math.max(1e-9, rng()), u2 = rng();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function sizeCanvas(canvas, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(250, Math.floor(canvas.parentElement.clientWidth - 16));
+  canvas.style.width = w + 'px';
+  canvas.style.height = cssH + 'px';
+  if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h: cssH };
+}
+
+function setBench(vb, vt, qk, kxy, rk, noiseMv, tEnd) {
+  document.getElementById('slBias').value = vb;
+  document.getElementById('slTune').value = vt;
+  document.getElementById('slQ').value = qk;
+  document.getElementById('slKxy').value = kxy;
+  document.getElementById('slR').value = rk;
+  document.getElementById('slNoise').value = noiseMv;
+  document.getElementById('slTend').value = tEnd;
+  runBench();
+}
+
+function autoMatch() {
+  const vb = parseFloat(document.getElementById('slBias').value);
+  const fx = Math.sqrt(Math.max(1e4, F_MECH_X * F_MECH_X - 2 * F_MECH_X * ALPHA_T * vb * vb));
+  const vEffReq = Math.sqrt(Math.max(0, (F_MECH_Y * F_MECH_Y - fx * fx) / (2 * F_MECH_Y * ALPHA_T)));
+  const vtMatch = Math.max(-20, Math.min(20, vb - vEffReq));
+  document.getElementById('slTune').value = vtMatch.toFixed(1);
+  document.getElementById('slKxy').value = 0.0;
+  document.getElementById('slR').value = 0;
+  const qk = parseFloat(document.getElementById('slQ').value);
+  const tauEst = (qk * 1e3) / (Math.PI * fx);
+  document.getElementById('slTend').value = Math.min(50, Math.max(2.5, (2.7 * tauEst))).toFixed(1);
+  runBench();
+}
+
+function runBench() {
+  const vb = parseFloat(document.getElementById('slBias').value);
+  const vt = parseFloat(document.getElementById('slTune').value);
+  const qMech = parseFloat(document.getElementById('slQ').value) * 1e3;
+  const kxy = parseFloat(document.getElementById('slKxy').value);
+  const rSer = parseFloat(document.getElementById('slR').value) * 1e3;
+  const noiseRms = parseFloat(document.getElementById('slNoise').value) * 1e-3;
+  const tEndFit = parseFloat(document.getElementById('slTend').value);
+
+  document.getElementById('vBias').textContent = vb.toFixed(0) + ' V';
+  document.getElementById('vTune').textContent = (vt >= 0 ? '+' : '−') + Math.abs(vt).toFixed(1) + ' V';
+  document.getElementById('vQ').textContent = (qMech / 1e3).toFixed(0) + 'k';
+  document.getElementById('vKxy').textContent = kxy.toFixed(2) + ' Hz';
+  document.getElementById('vR').textContent = (rSer / 1e3).toFixed(0) + ' kΩ';
+  document.getElementById('vFit').textContent = (noiseRms * 1e3).toFixed(1) + ' · ' + tEndFit.toFixed(1) + ' s';
+
+  // Frequencies under 100V +/-20V electrostatic softening
+  const fx = Math.sqrt(Math.max(1e4, F_MECH_X * F_MECH_X - 2 * F_MECH_X * ALPHA_T * vb * vb));
+  const vEffY = vb - vt;
+  const fy = Math.sqrt(Math.max(1e4, F_MECH_Y * F_MECH_Y - 2 * F_MECH_Y * ALPHA_T * vEffY * vEffY));
+  const df = fy - fx;
+  const f0 = 0.5 * (fx + fy);
+  const w0 = 2 * Math.PI * f0;
+
+  // Ohmic tuning-resistor damping on both/sense axes
+  const etaX = vb * C0_T / D0_T;
+  const etaY = vEffY * C0_T / D0_T;
+  const qx = 1.0 / (1.0 / qMech + (rSer * etaX * etaX) / (M_EFF * w0));
+  const qy = 1.0 / (1.0 / qMech + (rSer * etaY * etaY) / (M_EFF * w0));
+  const tauX = qx / (Math.PI * f0);
+
+  // Simulation horizon scales smoothly with tauX (clamped 12..60 s)
+  const T_TOT = Math.max(tEndFit + 2.0, Math.min(60.0, Math.max(12.0, 5.5 * tauX)));
+  const N = 450;
+  const dt = T_TOT / (N - 1);
+
+  // Integrate exact coupled 2-DOF slow envelope via 4th-order Runge-Kutta
+  const gx = w0 / qx, gy = w0 / qy;
+  const dw = 2 * Math.PI * df, wxy = 2 * Math.PI * kxy;
+
+  function deriv(ar, ai, br, bi) {
+    // d(ax)/dt = (-gx/2)*ax + j*(dw/2)*ax - j*(wxy/2)*ay
+    // d(ay)/dt = (-gy/2)*ay - j*(dw/2)*ay - j*(wxy/2)*ax
+    const dar = -0.5 * gx * ar - 0.5 * dw * ai + 0.5 * wxy * bi;
+    const dai = -0.5 * gx * ai + 0.5 * dw * ar - 0.5 * wxy * br;
+    const dbr = -0.5 * gy * br + 0.5 * dw * bi + 0.5 * wxy * ai;
+    const dbi = -0.5 * gy * bi - 0.5 * dw * br - 0.5 * wxy * ar;
+    return [dar, dai, dbr, dbi];
+  }
+
+  let ar = 1.0, ai = 0.0, br = 0.0, bi = 0.0;
+  const tArr = new Float64Array(N);
+  const envX = new Float64Array(N);
+  const envY = new Float64Array(N);
+  const rng = mulberry32(1337);
+
+  for (let i = 0; i < N; i++) {
+    tArr[i] = i * dt;
+    const nxr = randn(rng) * noiseRms / Math.SQRT2;
+    const nxi = randn(rng) * noiseRms / Math.SQRT2;
+    const nyr = randn(rng) * noiseRms / Math.SQRT2;
+    const nyi = randn(rng) * noiseRms / Math.SQRT2;
+    envX[i] = Math.hypot(ar + nxr, ai + nxi);
+    envY[i] = Math.hypot(br + nyr, bi + nyi);
+
+    // RK4 substep (4 substeps per output sample for rock-solid accuracy even at high df)
+    const sub = 6, h = dt / sub;
+    for (let s = 0; s < sub; s++) {
+      const k1 = deriv(ar, ai, br, bi);
+      const k2 = deriv(ar + 0.5*h*k1[0], ai + 0.5*h*k1[1], br + 0.5*h*k1[2], bi + 0.5*h*k1[3]);
+      const k3 = deriv(ar + 0.5*h*k2[0], ai + 0.5*h*k2[1], br + 0.5*h*k2[2], bi + 0.5*h*k2[3]);
+      const k4 = deriv(ar + h*k3[0], ai + h*k3[1], br + h*k3[2], bi + h*k3[3]);
+      ar += (h / 6) * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+      ai += (h / 6) * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+      br += (h / 6) * (k1[2] + 2*k2[2] + 2*k3[2] + k4[2]);
+      bi += (h / 6) * (k1[3] + 2*k2[3] + 2*k3[3] + k4[3]);
+    }
+  }
+
+  // Semi-log OLS fit on [tStartFit, tEndFit]
+  const tStartFit = Math.min(0.4, tEndFit * 0.15);
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, cnt = 0;
+  for (let i = 0; i < N; i++) {
+    if (tArr[i] >= tStartFit && tArr[i] <= tEndFit && envX[i] > 1e-8) {
+      const x = tArr[i], y = Math.log(envX[i]);
+      sx += x; sy += y; sxx += x * x; sxy += x * y; cnt++;
+    }
+  }
+  const mx = sx / cnt, my = sy / cnt;
+  const slope = (sxy - cnt * mx * my) / Math.max(sxx - cnt * mx * mx, 1e-12);
+  const intercept = my - slope * mx;
+  let ssRes = 0, ssTot = 0;
+  for (let i = 0; i < N; i++) {
+    if (tArr[i] >= tStartFit && tArr[i] <= tEndFit && envX[i] > 1e-8) {
+      const y = Math.log(envX[i]);
+      const yh = intercept + slope * tArr[i];
+      ssRes += (y - yh) ** 2;
+      ssTot += (y - my) ** 2;
+    }
+  }
+  const r2 = Math.max(0, 1 - ssRes / Math.max(ssTot, 1e-12));
+  const tauFit = -1.0 / Math.min(slope, -1e-6);
+  const qFit = Math.PI * f0 * tauFit;
+  const errPct = ((qFit / qx) - 1.0) * 100.0;
+
+  // Update readouts
+  const dfEl = document.getElementById('rdDf');
+  dfEl.textContent = (df >= 0 ? '+' : '−') + Math.abs(df).toFixed(2) + ' Hz';
+  dfEl.style.color = Math.abs(df) < 0.15 ? 'var(--green)' : (Math.abs(df) < 1.0 ? 'var(--amber)' : 'var(--red)');
+
+  document.getElementById('rdQtrue').textContent = Math.round(qx).toLocaleString();
+  document.getElementById('rdQfit').textContent = Math.round(qFit).toLocaleString();
+
+  const errEl = document.getElementById('rdErr');
+  errEl.textContent = (errPct >= 0 ? '+' : '') + errPct.toFixed(1) + '%';
+  errEl.style.color = Math.abs(errPct) < 2.0 ? 'var(--green)' : (Math.abs(errPct) < 10.0 ? 'var(--amber)' : 'var(--red)');
+
+  document.getElementById('rdTau').textContent = tauFit.toFixed(2) + ' s';
+  const r2El = document.getElementById('rdR2');
+  r2El.textContent = r2.toFixed(4);
+  r2El.style.color = r2 > 0.99 ? 'var(--green)' : (r2 > 0.92 ? 'var(--amber)' : 'var(--red)');
+
+  drawLinear(tArr, envX, envY, T_TOT);
+  drawLog(tArr, envX, T_TOT, tStartFit, tEndFit, intercept, slope, noiseRms);
+}
+
+function drawLinear(tArr, envX, envY, tTot) {
+  const canvas = document.getElementById('linCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 250);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 40, r: 12, t: 16, b: 30 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+  const xOf = (t) => pad.l + (t / tTot) * pw;
+  const yOf = (v) => pad.t + ph * (1 - Math.max(0, Math.min(1.08, v)) / 1.08);
+
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+  for (const v of [0, 0.25, 0.5, 0.75, 1.0]) {
+    const yp = yOf(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(2), pad.l - 5, yp + 3);
+  }
+  const plotArr = (arr, col, lw) => {
+    ctx.beginPath();
+    for (let i = 0; i < tArr.length; i++) {
+      const x = xOf(tArr[i]), y = yOf(arr[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke();
+  };
+  plotArr(envY, '#fbbf24', 1.5);
+  plotArr(envX, '#38bdf8', 2.2);
+
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10.5px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Ringdown Time t (0 – ' + tTot.toFixed(0) + ' s)', pad.l + pw / 2, h - 6);
+}
+
+function drawLog(tArr, envX, tTot, tStart, tEnd, intercept, slope, noiseRms) {
+  const canvas = document.getElementById('logCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 250);
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 42, r: 12, t: 16, b: 30 };
+  const pw = w - pad.l - pad.r, ph = h - pad.t - pad.b;
+  const dbMin = -65, dbMax = 4;
+  const xOf = (t) => pad.l + (t / tTot) * pw;
+  const yOf = (db) => pad.t + ph * (1 - (Math.max(dbMin, Math.min(dbMax, db)) - dbMin) / (dbMax - dbMin));
+
+  // Shaded fit window
+  const x0 = xOf(tStart), x1 = xOf(Math.min(tEnd, tTot));
+  ctx.fillStyle = 'rgba(52,211,153,0.14)';
+  ctx.fillRect(x0, pad.t, Math.max(2, x1 - x0), ph);
+
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+  for (const db of [-60, -45, -30, -15, 0]) {
+    const yp = yOf(db);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(String(db), pad.l - 5, yp + 3);
+  }
+
+  // Noise floor dashed line
+  const nfDb = 20 * Math.log10(Math.max(1e-6, noiseRms * 0.886));
+  const yNf = yOf(nfDb);
+  ctx.strokeStyle = 'rgba(248,113,113,0.65)';
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(pad.l, yNf); ctx.lineTo(pad.l + pw, yNf); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Measured dB curve
+  ctx.beginPath();
+  for (let i = 0; i < tArr.length; i++) {
+    const db = 20 * Math.log10(Math.max(1e-6, envX[i]));
+    const x = xOf(tArr[i]), y = yOf(db);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.7; ctx.stroke();
+
+  // OLS fit line
+  const dbAt = (t) => (20 / Math.LN10) * (intercept + slope * t);
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(dbAt(0)));
+  ctx.lineTo(xOf(tTot), yOf(dbAt(tTot)));
+  ctx.strokeStyle = '#34d399'; ctx.setLineDash([6, 4]); ctx.lineWidth = 2.3; ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10.5px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Fit Window [' + tStart.toFixed(1) + ' – ' + Math.min(tEnd, tTot).toFixed(1) + ' s]  (dB)', pad.l + pw / 2, h - 6);
+}
+
+window.addEventListener('resize', runBench);
+runBench();
+</script>
+</body>
+</html>
