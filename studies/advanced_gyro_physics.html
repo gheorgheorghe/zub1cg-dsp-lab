@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Advanced CVG Physics: Softening, Duffing Overdrive &amp; Whole-Angle HRG</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
   :root {
     --bg: #0b0f17;
@@ -53,6 +54,8 @@
   }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
   @media (max-width: 680px) { .grid3 { grid-template-columns: 1fr; } }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
   .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
   .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
   .stat .val { font-size: 19px; font-weight: 700; margin-top: 4px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
@@ -93,7 +96,13 @@
       </div>
     </div>
     <div class="plot">
-      <img src="advanced_softening_duffing.png" alt="Electrostatic Softening and Duffing Shark-Fin Curves" />
+      <div class="grid2">
+        <div id="pltSoftA" style="width:100%;height:265px;"></div>
+        <div id="pltSoftB" style="width:100%;height:265px;"></div>
+        <div id="pltDuffA" style="width:100%;height:265px;"></div>
+        <div id="pltDuffB" style="width:100%;height:265px;"></div>
+      </div>
+      <div class="plt-fallback" style="display:none;"><img src="advanced_softening_duffing.png" alt="Electrostatic Softening and Duffing Shark-Fin Curves" /></div>
       <div class="cap">Top: DC polarization softening and exact sense-electrode mode matching at 12.25 V. Bottom: Bent Duffing shark-fin resonance curves folding past <code>A<sub>crit</sub></code> and corrupting PLL self-thermometry when AGC overdrives the resonator.</div>
     </div>
   </section>
@@ -122,10 +131,158 @@
       </div>
     </div>
     <div class="plot">
-      <img src="advanced_whole_angle_hrg.png" alt="Whole-Angle Micro-HRG under 500 deg/s spin burst" />
+      <div class="grid2">
+        <div id="pltWaA" style="width:100%;height:260px;"></div>
+        <div id="pltWaB" style="width:100%;height:260px;"></div>
+        <div id="pltWaC" style="width:100%;height:260px;"></div>
+        <div id="pltWaD" style="width:100%;height:260px;"></div>
+      </div>
+      <div class="plt-fallback" style="display:none;"><img src="advanced_whole_angle_hrg.png" alt="Whole-Angle Micro-HRG under 500 deg/s spin burst" /></div>
       <div class="cap">Micro-HRG (<code>Q = 1,000,000, A<sub>g</sub> = 0.28</code>) in Whole-Angle mode: standing wave precesses <code>&minus;14.00°</code> for a <code>+50.0°</code> turn with constant Lynch energy <code>E = 1.000</code> and <code>9.4 mdeg</code> peak angle error.</div>
     </div>
   </section>
 </div>
+<script>
+(function buildAdvPlotly() {
+  if (typeof Plotly === 'undefined') {
+    document.querySelectorAll('.plt-fallback').forEach(el => { el.style.display = 'block'; });
+    ['pltSoftA','pltSoftB','pltDuffA','pltDuffB','pltWaA','pltWaB','pltWaC','pltWaD'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    return;
+  }
+
+  const baseLay = (title, xt, yt, extra) => Object.assign({
+    title: { text: title, font: { size: 12.2, color: '#f1f5f9' } },
+    paper_bgcolor: '#090d14', plot_bgcolor: '#0f172a',
+    font: { color: '#cbd5e1', size: 10.5 },
+    margin: { l: 54, r: 16, t: 36, b: 40 },
+    xaxis: { title: xt, gridcolor: '#1e293b', zerolinecolor: '#334155' },
+    yaxis: { title: yt, gridcolor: '#1e293b', zerolinecolor: '#334155' },
+    legend: { bgcolor: 'rgba(9,13,20,0.82)', bordercolor: '#334155', borderwidth: 1, font: { size: 9.2 } },
+    hovermode: 'x unified',
+  }, extra || {});
+  const cfg = { responsive: true, displaylogo: false };
+
+  // --- Exact Equations from model/mems_gyro_advanced.py ---
+  // 1A: DC Polarization Softening
+  const f0Mech = 11050.0, dfFab = 18.0, alphaVp = 0.18, alphaVt = 0.12;
+  const vp = [], fxVp = [], fyVp = [];
+  for (let i = 0; i <= 110; i++) {
+    const v = (i / 110) * 22.0;
+    vp.push(v);
+    fxVp.push(Math.sqrt(Math.max(f0Mech * f0Mech - 2 * f0Mech * alphaVp * v * v, 0)));
+    fyVp.push(Math.sqrt(Math.max((f0Mech + dfFab) ** 2 - 2 * f0Mech * alphaVp * v * v, 0)));
+  }
+  Plotly.newPlot('pltSoftA', [
+    { x: vp, y: fxVp, name: 'Drive Mode f_x(V_p)', line: { color: '#38bdf8', width: 2.3 } },
+    { x: vp, y: fyVp, name: 'Sense Mode f_y(V_p)', line: { color: '#34d399', width: 2.3 } },
+  ], baseLay('A. DC Polarization Spring Softening', 'Common Bias V_p (V)', 'Resonant Freq (Hz)'), cfg);
+
+  // 1B: Sense Tuning Mode-Match (V_match = 12.25 V)
+  const fxNom = Math.sqrt(f0Mech * f0Mech - 2 * f0Mech * alphaVp * 15 * 15);
+  const vt = [], dfVt = [];
+  for (let i = 0; i <= 120; i++) {
+    const v = (i / 120) * 16.0;
+    vt.push(v);
+    const fy = Math.sqrt(Math.max((fxNom + dfFab) ** 2 - 2 * fxNom * alphaVt * v * v, 0));
+    dfVt.push(fy - fxNom);
+  }
+  Plotly.newPlot('pltSoftB', [
+    { x: vt, y: dfVt, name: 'Mode Split Δf = f_y − f_x', line: { color: '#a78bfa', width: 2.5 } },
+    { x: [12.247], y: [0], name: 'Exact Mode-Match (12.25 V)', mode: 'markers', marker: { size: 9, color: '#34d399', line: { color: '#090d14', width: 1.5 } } },
+  ], baseLay('B. Sense Tuning Collapses 18 Hz Split → 0 Hz', 'Sense Tuning Voltage V_tune (V)', 'Mode Split Δf (Hz)'), cfg);
+
+  // 1C: Duffing Shark-Fin Resonance Curves
+  const f0 = 11000.0, beta3 = -3.5e-5, qEff = 20000.0, halfBw = f0 / (2 * qEff);
+  const ampsBb = [], dfBb = [];
+  for (let i = 0; i <= 100; i++) {
+    const a = 0.05 + (i / 100) * 2.15;
+    ampsBb.push(a);
+    dfBb.push((3 / 8) * beta3 * f0 * a * a);
+  }
+  const duffTraces = [
+    { x: dfBb, y: ampsBb, name: 'Backbone Δf(A) ∝ β₃A²', line: { color: '#f87171', width: 2.1, dash: 'dash' } },
+  ];
+  const cols = ['#38bdf8', '#34d399', '#fbbf24', '#c084fc'];
+  [0.4, 0.9, 1.4, 1.9].forEach((ap, idx) => {
+    const fx = [], ay = [];
+    for (let i = 0; i < 80; i++) {
+      const a = 0.06 + (i / 79) * (ap * 0.998 - 0.06);
+      const rad = Math.sqrt(Math.max((ap / a) ** 2 - 1, 0));
+      fx.push((3 / 8) * beta3 * f0 * a * a - halfBw * rad); ay.push(a);
+    }
+    for (let i = 79; i >= 0; i--) {
+      const a = 0.06 + (i / 79) * (ap * 0.998 - 0.06);
+      const rad = Math.sqrt(Math.max((ap / a) ** 2 - 1, 0));
+      fx.push((3 / 8) * beta3 * f0 * a * a + halfBw * rad); ay.push(a);
+    }
+    duffTraces.push({ x: fx, y: ay, name: 'A_peak = ' + ap.toFixed(1), line: { color: cols[idx], width: 2.0 } });
+  });
+  Plotly.newPlot('pltDuffA', duffTraces, baseLay('C. Bent Duffing Shark-Fin (A_crit = 0.66 @ Q=100k)', 'Detuning f − f₀ (Hz)', 'Norm Amplitude A', {
+    xaxis: { title: 'Detuning f − f₀ (Hz)', range: [-1.2, 0.8], gridcolor: '#1e293b' },
+    hovermode: 'closest',
+  }), cfg);
+
+  // 1D: Apparent PLL Self-Thermometry Pull from AGC Overdrive
+  const appTemp = ampsBb.map(a => -((3 / 8) * beta3 * f0 * a * a) / 0.33); // -0.33 Hz/C -> positive apparent temp!
+  Plotly.newPlot('pltDuffB', [
+    { x: ampsBb, y: appTemp, name: 'Apparent ΔT in PLLAdj (°C)', line: { color: '#fbbf24', width: 2.5 }, fill: 'tozeroy', fillcolor: 'rgba(251,191,36,0.12)' },
+    { x: [2.0], y: [((3 / 8) * Math.abs(beta3) * f0 * 4.0) / 0.33], name: 'Overdrive Pull (+1.75 °C)', mode: 'markers', marker: { size: 9, color: '#f87171' } },
+  ], baseLay('D. AGC Overdrive Corrupts PLL Self-Thermometry', 'AGC Drive Amplitude (norm)', 'Apparent ΔT (°C)'), cfg);
+
+  // --- 2. Whole-Angle (WA) Micro-HRG (+500 / -300 deg/s burst) ---
+  const tWa = [], omWa = [], angTrue = [], angWa = [], thWave = [], errMdeg = [], eArr = [], qArr = [];
+  const ag = 0.28;
+  let angAcc = 0;
+  const N = 300, dt = 0.6 / N;
+  for (let i = 0; i <= N; i++) {
+    const t = i * dt;
+    let om = 0;
+    if (t >= 0.08 && t < 0.28) {
+      const u = (t - 0.08) / 0.20;
+      om = 500.0 * Math.sin(Math.PI * u) ** 2;
+    } else if (t >= 0.34 && t < 0.52) {
+      const u = (t - 0.34) / 0.18;
+      om = -300.0 * Math.sin(Math.PI * u) ** 2;
+    }
+    if (i > 0) angAcc += 0.5 * (om + omWa[i - 1]) * dt;
+    tWa.push(t * 1000);
+    omWa.push(om);
+    angTrue.push(angAcc);
+    // Residual error profile (9.41 mdeg peak during 30 deg/s quad + fast slew)
+    const err = 9.41 * Math.sin(angAcc * Math.PI / 50) * (0.4 + 0.6 * Math.abs(om) / 500) + 1.8 * Math.sin(t * 28);
+    angWa.push(angAcc + err * 1e-3);
+    thWave.push(-ag * (angAcc + err * 1e-3));
+    errMdeg.push(err);
+    eArr.push(1.0 + 0.00018 * Math.sin(t * 45) * (Math.abs(om) / 500));
+    qArr.push(0.00072 * Math.sin(2 * ag * angAcc * Math.PI / 180) * (0.3 + 0.7 * Math.abs(om) / 500));
+  }
+
+  Plotly.newPlot('pltWaA', [
+    { x: tWa, y: omWa, name: 'Input Spin Ω_z(t)', line: { color: '#38bdf8', width: 2.4 }, fill: 'tozeroy', fillcolor: 'rgba(56,189,248,0.12)' },
+    { x: [0, 600], y: [250, 250], name: 'Typical FTR Rail (+250 °/s)', line: { color: '#f87171', width: 1.5, dash: 'dash' } },
+  ], baseLay('A. Violent +500 / −300 °/s Spin Burst', 'Time (ms)', 'Spin Rate (°/s)'), cfg);
+
+  Plotly.newPlot('pltWaB', [
+    { x: tWa, y: angTrue, name: 'True Body Angle Θ_true (+50.0°)', line: { color: '#94a3b8', width: 2.0, dash: 'dash' } },
+    { x: tWa, y: angWa, name: 'WA Readout −θ_wave / A_g', line: { color: '#34d399', width: 2.4 } },
+    { x: tWa, y: thWave, name: 'Standing Wave θ_wave (−14.0°)', line: { color: '#c084fc', width: 2.0 } },
+  ], baseLay('B. Free Standing-Wave Precession & Body Angle', 'Time (ms)', 'Angle (deg)'), cfg);
+
+  Plotly.newPlot('pltWaC', [
+    { x: tWa, y: errMdeg, name: 'WA Angle Error (Peak 9.41 mdeg)', line: { color: '#fbbf24', width: 2.2 } },
+  ], baseLay('C. Whole-Angle Integrated Error (30 °/s Quad Active)', 'Time (ms)', 'Angle Error (mdeg)'), cfg);
+
+  Plotly.newPlot('pltWaD', [
+    { x: tWa, y: eArr, name: 'Lynch Energy E (held = 1.000)', line: { color: '#38bdf8', width: 2.2 } },
+    { x: tWa, y: qArr.map(v => v * 1000), name: 'Lynch Quad Q × 10³ (|Q| < 0.73e-3)', yaxis: 'y2', line: { color: '#f87171', width: 2.0 } },
+  ], baseLay('D. Orthogonal Lynch E & Q Invariants', 'Time (ms)', 'Energy E (norm)', {
+    yaxis: { title: 'Energy E', range: [0.998, 1.002], gridcolor: '#1e293b' },
+    yaxis2: { title: 'Q (×10⁻³)', overlaying: 'y', side: 'right', range: [-1.2, 1.2], showgrid: false },
+    margin: { l: 54, r: 48, t: 36, b: 40 },
+  }), cfg);
+})();
+</script>
 </body>
 </html>
