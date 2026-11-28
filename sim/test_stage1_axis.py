@@ -88,9 +88,9 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     dut.aresetn.value = 1
     await RisingEdge(dut.aclk)
 
-    # 1. Verify Stage 1 v2 High-Q VERSION register (0xEC)
+    # 1. Verify Stage 1 v3 VERSION register (0xEC)
     ver = await axil_read(dut, 0xEC)
-    assert ver == 0x5A550102, f"Unexpected VERSION: 0x{ver:08X}"
+    assert ver == 0x5A550103, f"Unexpected VERSION: 0x{ver:08X}"
 
     # 2. Program DRG 11 kHz Q=100k parameters over AXI-Lite (fs = 1 MHz)
     fs = 1_000_000.0
@@ -196,6 +196,28 @@ async def tb_stage1_axil_and_axis_telemetry(dut):
     cocotb.log.info(f"Stage 1.5 PRNG noise OK: DX_mean={sum(dx_noisy)/8:.4f}, FTR_span={max(ftr_noisy)-min(ftr_noisy):.4f}")
     assert 0.5 < (sum(dx_noisy) / 8.0) < 1.5
     assert (max(ftr_noisy) - min(ftr_noisy)) > 0.0
+
+    # 5. Verify Stage 1 v3 Turbo TICK_DIV=58 (reg 0x04[31:24]) + Free Ringdown (enable_agc=0)
+    # Program faster Q=500 damping temporarily so 400 us shows an unmistakable ~3% free decay!
+    lo_q, hi_q = to_s36(0.5 * (w0 / 500.0) * dt, 42)
+    await axil_write(dut, 0x74, lo_q)
+    await axil_write(dut, 0x78, hi_q)
+    await axil_write(dut, 0x04, (58 << 24) | (6 << 16) | 50)
+    await axil_write(dut, 0xA4, 0)  # noiseless ringdown check
+    await axil_write(dut, 0x00, 0x0401)  # raw_host_mode=1, run=1, PLL=AGC=CLQ=FTR=0 (pure free decay!)
+    clk_start = cocotb.utils.get_sim_time(units="ns")
+    rd_words = []
+    while len(rd_words) < 64:  # 8 frames = 400 physics ticks
+        await RisingEdge(dut.aclk)
+        if dut.m_axis_tvalid.value and dut.m_axis_tready.value:
+            rd_words.append(from_s32(int(dut.m_axis_tdata.value)))
+    clk_elapsed_ns = cocotb.utils.get_sim_time(units="ns") - clk_start
+    # 400 ticks * 58 clocks/tick * 10 ns/clk = 232,000 ns (vs 400,000 ns at default 100!)
+    assert clk_elapsed_ns < 255_000, f"Turbo TICK_DIV=58 did not accelerate! elapsed={clk_elapsed_ns} ns"
+    amp_rd0 = math.hypot(rd_words[0], rd_words[1]) / float(1 << 22)
+    amp_rd7 = math.hypot(rd_words[56], rd_words[57]) / float(1 << 22)
+    cocotb.log.info(f"Stage 1 v3 Turbo+Ringdown OK: elapsed={clk_elapsed_ns/1e3:.1f} us, |a| decay {amp_rd0:.5f} -> {amp_rd7:.5f}")
+    assert amp_rd7 < amp_rd0 * 0.992, f"Expected >0.8% free ringdown decay! {amp_rd0:.5f} -> {amp_rd7:.5f}"
 
 
 def test_runner():

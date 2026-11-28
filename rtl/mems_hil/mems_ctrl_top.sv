@@ -33,6 +33,7 @@ module mems_ctrl_top (
     input  logic               enable_agc,
     input  logic               enable_clq,
     input  logic               enable_ftr,
+    input  logic               mode_swap,      // 1 = Mode-Reversal (Virtual Carouseling: Drive Y, Sense X)
 
     input  logic signed [23:0] dx_setpoint,    // Q2.22 (default 1.0 = 24'sd4194304)
     input  logic signed [23:0] sx_setpoint,    // Q2.22 (default 0)
@@ -118,15 +119,20 @@ module mems_ctrl_top (
 
     // ------------------------------------------------------------------------
     // 2. Dual 3-Stage I/Q Lock-In Demodulators (24-bit Q2.22 pickoff -> Q2.22)
+    //    mode_swap = 0: Drive = X, Sense = Y (normal)
+    //    mode_swap = 1: Drive = Y, Sense = X (Mode-Reversal chops anisodamping!)
     // ------------------------------------------------------------------------
     logic lockin_valid_d, lockin_valid_s;
+    logic signed [23:0] drive_pickoff, sense_pickoff;
+    assign drive_pickoff = mode_swap ? y_q22 : x_q22;
+    assign sense_pickoff = mode_swap ? x_q22 : y_q22;
 
     sv_lockin #(.IN_W(24), .OUT_W(24)) u_lockin_drive (
         .clk       (clk),
         .rst_n     (rst_n),
         .tick_en   (tick_en),
         .lpf_shift (lpf_shift),
-        .sig_in    (x_q22),
+        .sig_in    (drive_pickoff),
         .cos_in    (cos_q15),
         .sin_in    (sin_q15),
         .out_i     (dx_out),
@@ -139,7 +145,7 @@ module mems_ctrl_top (
         .rst_n     (rst_n),
         .tick_en   (tick_en),
         .lpf_shift (lpf_shift),
-        .sig_in    (y_q22),
+        .sig_in    (sense_pickoff),
         .cos_in    (cos_q15),
         .sin_in    (sin_q15),
         .out_i     (sx_out),
@@ -262,6 +268,12 @@ module mems_ctrl_top (
     assign ux_k1_rnd = (ux_k1_prod + 48'sd16384) >>> 15;
     assign uy_k1_rnd = (uy_k1_sum  + 48'sd16384) >>> 15;
 
+    logic signed [31:0] u_drv_k, u_sns_k, u_drv_k1, u_sns_k1;
+    assign u_drv_k  = enable_agc ? ux_k_rnd[31:0] : 32'sd0;
+    assign u_sns_k  = (enable_ftr || enable_clq) ? uy_k_rnd[31:0] : 32'sd0;
+    assign u_drv_k1 = enable_agc ? ux_k1_rnd[31:0] : 32'sd0;
+    assign u_sns_k1 = (enable_ftr || enable_clq) ? uy_k1_rnd[31:0] : 32'sd0;
+
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             u_x_k_out   <= 32'sd0;
@@ -272,12 +284,12 @@ module mems_ctrl_top (
         end else begin
             plant_start <= 1'b0;
             if (remod_k_en) begin
-                u_x_k_out <= enable_agc ? ux_k_rnd[31:0] : 32'sd0;
-                u_y_k_out <= (enable_ftr || enable_clq) ? uy_k_rnd[31:0] : 32'sd0;
+                u_x_k_out <= mode_swap ? u_sns_k : u_drv_k;
+                u_y_k_out <= mode_swap ? u_drv_k : u_sns_k;
             end
             if (nco_tvalid) begin
-                u_x_k1_out  <= enable_agc ? ux_k1_rnd[31:0] : 32'sd0;
-                u_y_k1_out  <= (enable_ftr || enable_clq) ? uy_k1_rnd[31:0] : 32'sd0;
+                u_x_k1_out  <= mode_swap ? u_sns_k1 : u_drv_k1;
+                u_y_k1_out  <= mode_swap ? u_drv_k1 : u_sns_k1;
                 plant_start <= 1'b1;
             end
         end

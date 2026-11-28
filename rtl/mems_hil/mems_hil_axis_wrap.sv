@@ -55,7 +55,7 @@ module mems_hil_axis_wrap #(
     output logic        m_axis_tlast
 );
 
-    localparam logic [31:0] VERSION_ID = 32'h5A55_0102; // "ZU" Stage 1 v2 (High-Q Precision)
+    localparam logic [31:0] VERSION_ID = 32'h5A55_0103; // "ZU" Stage 1 v3 (High-Q + Turbo + Mode-Reversal)
     localparam int NUM_RW_REGS = 44;                   // Byte offsets 0x00 .. 0xAC
 
     logic [31:0] rw_regs [0:NUM_RW_REGS-1];
@@ -237,6 +237,7 @@ module mems_hil_axis_wrap #(
         .clk            (aclk),
         .rst_n          (core_rst_n),
         .run_enable     (run_en),
+        .tick_div_cfg   (rw_regs[1][31:24]),
 
         .state_load     (state_load_pulse),
         .x_init         (signed'({rw_regs[18][15:0], rw_regs[17]})),
@@ -269,6 +270,7 @@ module mems_hil_axis_wrap #(
         .enable_agc     (rw_regs[0][2]),
         .enable_clq     (rw_regs[0][3]),
         .enable_ftr     (rw_regs[0][4]),
+        .mode_swap      (rw_regs[0][9]),
 
         .dx_setpoint    (signed'(rw_regs[4][23:0])),
         .sx_setpoint    (signed'(rw_regs[5][23:0])),
@@ -375,7 +377,7 @@ module mems_hil_axis_wrap #(
 
     logic unused_ok;
     assign unused_ok = &{1'b0, wr_addr_eff[1:0], s_axi_araddr[1:0], s_axis_tlast, tick_pulse,
-                         rw_regs[0][31:9], rw_regs[1][31:20],
+                         rw_regs[0][31:10], rw_regs[1][23:20],
                          rw_regs[4][31:24], rw_regs[5][31:24], rw_regs[6][31:24],
                          rw_regs[7][31:24], rw_regs[8][31:24], rw_regs[9][31:24],
                          rw_regs[10][31:24], rw_regs[11][31:24], rw_regs[12][31:24],

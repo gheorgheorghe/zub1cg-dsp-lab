@@ -15,6 +15,7 @@ module mems_hil_top #(
     input  logic               clk,
     input  logic               rst_n,
     input  logic               run_enable,
+    input  logic [7:0]         tick_div_cfg, // 0 = use TICK_DIV param; >=34 = runtime Turbo divider!
 
     // Preload controls
     input  logic               state_load,
@@ -39,6 +40,7 @@ module mems_hil_top #(
     input  logic [31:0]        base_freq_word,
     input  logic [3:0]         lpf_shift,
     input  logic               enable_pll, enable_agc, enable_clq, enable_ftr,
+    input  logic               mode_swap,
     input  logic signed [23:0] dx_setpoint, sx_setpoint, sy_setpoint,
     input  logic signed [23:0] pll_kp, pll_ki,
     input  logic signed [23:0] agc_kp, agc_ki,
@@ -53,17 +55,22 @@ module mems_hil_top #(
     output logic signed [31:0] pll_adj_out, agc_adj_out, clq_adj_out, ftr_adj_out
 );
 
-    // Tick divider
-    logic [$clog2(TICK_DIV+1)-1:0] div_cnt;
+    // Runtime-programmable Turbo tick divider (clamped >= 58 so 20-cyc NCO + 32-cyc plant = 52 cyc never overruns!)
+    logic [7:0] eff_tick_div;
+    logic [7:0] div_cnt;
+    assign eff_tick_div = (tick_div_cfg == 8'd0)  ? 8'(TICK_DIV) :
+                          (tick_div_cfg < 8'd58)  ? 8'd58        :
+                                                    tick_div_cfg;
+
     always_ff @(posedge clk) begin
         if (!rst_n || !run_enable) begin
-            div_cnt    <= '0;
+            div_cnt    <= 8'd0;
             tick_pulse <= 1'b0;
-        end else if (div_cnt == ($clog2(TICK_DIV+1))'(TICK_DIV - 1)) begin
-            div_cnt    <= '0;
+        end else if (div_cnt >= (eff_tick_div - 8'd1)) begin
+            div_cnt    <= 8'd0;
             tick_pulse <= 1'b1;
         end else begin
-            div_cnt    <= div_cnt + 1'b1;
+            div_cnt    <= div_cnt + 8'd1;
             tick_pulse <= 1'b0;
         end
     end
@@ -84,6 +91,7 @@ module mems_hil_top #(
         .enable_agc     (enable_agc),
         .enable_clq     (enable_clq),
         .enable_ftr     (enable_ftr),
+        .mode_swap      (mode_swap),
         .dx_setpoint    (dx_setpoint),
         .sx_setpoint    (sx_setpoint),
         .sy_setpoint    (sy_setpoint),

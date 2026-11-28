@@ -45,6 +45,8 @@
 #define CTRL_CLQ            (1U << 3)
 #define CTRL_FTR            (1U << 4)
 #define CTRL_SOFT_RST       (1U << 5)
+#define CTRL_MODE_SWAP      (1U << 9)
+#define CTRL_RAW_HOST       (1U << 10) /* Host owns ringdown/sweep; R5F monitors passively */
 
 /* Fixed-point thresholds in Q2.22 (1.0 = 4,194,304) */
 #define Q22_ONE             4194304
@@ -193,6 +195,10 @@ int main(void) {
             case ST_IDLE:
                 /* Wait for host/preset to assert RUN, then either join active loop or sweep */
                 if ((ctrl & CTRL_RUN) && !(ctrl & CTRL_SOFT_RST)) {
+                    if (ctrl & CTRL_RAW_HOST) {
+                        /* Host running open-loop free ringdown / Q-fit: stay passive! */
+                        break;
+                    }
                     if ((ctrl & (CTRL_PLL | CTRL_AGC)) == (CTRL_PLL | CTRL_AGC)) {
                         /* Host already armed PLL+AGC (e.g., step/quad/adev test): monitor without overriding */
                         state = (ctrl & CTRL_FTR) ? ST_FTR_ACTIVE : ST_PLL_ACQUIRE;
@@ -282,7 +288,7 @@ int main(void) {
 
             case ST_FTR_ACTIVE:
                 /* Continuous real-time fault supervision */
-                if (!(ctrl & CTRL_RUN) || (ctrl & CTRL_SOFT_RST)) {
+                if (!(ctrl & CTRL_RUN) || (ctrl & CTRL_SOFT_RST) || (ctrl & CTRL_RAW_HOST)) {
                     state = ST_IDLE;
                     break;
                 }

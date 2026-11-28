@@ -45,6 +45,7 @@ async def tb_drg_closed_loop_rtl(dut):
 
     dut.rst_n.value = 0
     dut.run_enable.value = 0
+    dut.tick_div_cfg.value = 0
     dut.state_load.value = 0
     dut.pi_load.value = 0
 
@@ -70,6 +71,7 @@ async def tb_drg_closed_loop_rtl(dut):
     dut.enable_agc.value = 1
     dut.enable_clq.value = 1
     dut.enable_ftr.value = 1
+    dut.mode_swap.value = 0
 
     dut.dx_setpoint.value = 1 << 22  # 1.0 in Q2.22
     dut.sx_setpoint.value = 0
@@ -167,6 +169,123 @@ async def tb_drg_closed_loop_rtl(dut):
     assert abs(rate_mean - 100.0) < 1.5
     assert abs(quad_mean - 120.0) < 1.5
     assert peak_ff_err < peak_ftr_err / 5.0
+
+
+@cocotb.test()
+async def tb_v3_mode_reversal_cancels_anisodamping(dut):
+    """Verify Stage 1 v3 hardware mode_swap=0 vs 1 chops huge anisodamping bias to zero!"""
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+
+    fs = 200_000.0
+    dt = 1.0 / fs
+    f0 = 11_000.0
+    w0 = 2.0 * math.pi * f0
+    ag = 0.40
+    q_res = 100_000.0
+    true_rate_dps = 50.0
+    bias_dps = 5.0  # 5.0 deg/s (= 18,000 deg/hr) anisodamping bias for crisp short-sim proof!
+
+    dut.rst_n.value = 0
+    dut.run_enable.value = 0
+    dut.tick_div_cfg.value = 58  # Exercise Turbo TICK_DIV=58 (max safe: 20-cyc NCO + 32-cyc plant)!
+    dut.state_load.value = 0
+    dut.pi_load.value = 0
+
+    dut.cos_tx.value = to_fixed(math.cos(w0 * dt), 36, C_FRAC)
+    dut.sin_tx.value = to_fixed(math.sin(w0 * dt), 36, C_FRAC)
+    dut.cos_ty.value = to_fixed(math.cos(w0 * dt), 36, C_FRAC)
+    dut.sin_ty.value = to_fixed(math.sin(w0 * dt), 36, C_FRAC)
+    dut.half_gx_dt.value = to_fixed(0.5 * (w0 / q_res) * dt, 36, SMALL_FRAC)
+    dut.half_gy_dt.value = to_fixed(0.5 * (w0 / q_res) * dt, 36, SMALL_FRAC)
+    dut.half_kxy_dt.value = 0
+    dut.half_gxy_dt.value = to_fixed(0.5 * (2.0 * ag * bias_dps * math.pi / 180.0) * dt, 36, SMALL_FRAC)
+    dut.half_cor_dt.value = to_fixed(0.5 * (2.0 * ag * true_rate_dps * math.pi / 180.0) * dt, 36, SMALL_FRAC)
+    dut.half_dt_q36.value = to_fixed(0.5 * dt, 36, DT_FRAC)
+    dut.force_noise_amp.value = 0
+    dut.adc_noise_amp.value = 0
+    dut.rrw_step_amp.value = 0
+    dut.noise_seed.value = 0xA5A51337
+
+    dut.base_freq_word.value = int(round((f0 / fs) * (2**32)))
+    dut.lpf_shift.value = 6
+    dut.enable_pll.value = 1
+    dut.enable_agc.value = 1
+    dut.enable_clq.value = 1
+    dut.enable_ftr.value = 1
+    dut.mode_swap.value = 0
+    dut.dx_setpoint.value = 1 << 22
+    dut.sx_setpoint.value = 0
+    dut.sy_setpoint.value = 0
+
+    pll_scale = (2**40 / (2.0 * math.pi * fs)) / (2**22)
+    dut.pll_kp.value = to_fixed(600.0 * pll_scale, 24, 14)
+    dut.pll_ki.value = to_fixed(150_000.0 * dt * pll_scale, 24, 14)
+    dut.agc_kp.value = to_fixed(160.0, 24, 14)
+    dut.agc_ki.value = to_fixed(5_000.0 * dt, 24, 14)
+    dut.clq_kp.value = to_fixed(240.0, 24, 14)
+    dut.clq_ki.value = to_fixed(12_000.0 * dt, 24, 14)
+    dut.ftr_kp.value = to_fixed(240.0, 24, 14)
+    dut.ftr_ki.value = to_fixed(12_000.0 * dt, 24, 14)
+
+    async def run_phase(swap: int) -> float:
+        dut.rst_n.value = 0
+        dut.run_enable.value = 0
+        dut.mode_swap.value = swap
+        dut.x_init.value = 0
+        dut.vx_init.value = (1 << S_FRAC) if swap == 0 else 0
+        dut.y_init.value = 0
+        dut.vy_init.value = (1 << S_FRAC) if swap == 1 else 0
+        dut.pll_init.value = 0
+        dut.agc_init.value = to_fixed(w0 / q_res, 32, 22)
+        for _ in range(4):
+            await RisingEdge(dut.clk)
+        dut.rst_n.value = 1
+        await RisingEdge(dut.clk)
+        dut.half_cor_dt.value = 0
+        dut.state_load.value = 1
+        dut.pi_load.value = 1
+        await RisingEdge(dut.clk)
+        dut.state_load.value = 0
+        dut.pi_load.value = 0
+        dut.run_enable.value = 1
+
+        ftr_vals = []
+        steps = 0
+        while steps < 18_000:  # 20 ms AGC settle + 70 ms FTR settle at 200 kHz
+            await RisingEdge(dut.clk)
+            if dut.step_done.value:
+                steps += 1
+                if steps == 4_000:
+                    dut.half_cor_dt.value = to_fixed(
+                        0.5 * (2.0 * ag * true_rate_dps * math.pi / 180.0) * dt, 36, SMALL_FRAC
+                    )
+                if steps > 16_000:
+                    dx_v = from_signed(int(dut.dx_out.value), 24) / float(1 << 22)
+                    dy_v = from_signed(int(dut.dy_out.value), 24) / float(1 << 22)
+                    ftr_v = from_signed(int(dut.ftr_adj_out.value), 32) / float(1 << 22)
+                    clq_v = from_signed(int(dut.clq_adj_out.value), 32) / float(1 << 22)
+                    amp = max(math.hypot(dx_v, dy_v), 0.1)
+                    ftr_aligned = (ftr_v * dx_v - clq_v * dy_v) / amp
+                    ftr_vals.append(ftr_aligned / amp)
+        return sum(ftr_vals) / len(ftr_vals)
+
+    ftr_0 = await run_phase(0)  # Normal:  +2*Ag*Omega + g_xy  (~ +55 deg/s)
+    ftr_1 = await run_phase(1)  # Swapped: -2*Ag*Omega + g_xy  (~ -45 deg/s)
+
+    scale = 180.0 / (math.pi * 2.0 * ag)
+    omega_0 = ftr_0 * scale
+    omega_1 = ftr_1 * scale
+    omega_mr = 0.5 * (omega_0 - omega_1)
+    bias_est = 0.5 * (omega_0 + omega_1)
+
+    cocotb.log.info(
+        f"Mode-Reversal RTL PASS: mode0={omega_0:+.3f} dps, mode1={omega_1:+.3f} dps -> "
+        f"MR_rate={omega_mr:.3f} dps (true {true_rate_dps}), est_bias={bias_est:.3f} dps (true {bias_dps})"
+    )
+    assert abs(omega_0 - (true_rate_dps + bias_dps)) < 1.0
+    assert abs(omega_1 - (-true_rate_dps + bias_dps)) < 1.0
+    assert abs(omega_mr - true_rate_dps) < 1.0, f"Mode-reversal rate error: {omega_mr}"
+    assert abs(bias_est - bias_dps) < 0.10, f"Anisodamping bias extraction error: {bias_est}"
 
 
 def test_runner():
