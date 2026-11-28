@@ -11,64 +11,178 @@
     background: #0b0f17;
     color: #e6edf7;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: 20px 16px 48px;
+    padding: 20px 16px 56px;
   }
-  .wrap { max-width: 740px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 6px; }
-  p.sub { color: #93a4be; margin: 0 0 20px; font-size: 14.5px; }
-  .study-list {
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 25px; margin: 0 0 6px; }
+  p.sub { color: #93a4be; margin: 0 0 18px; font-size: 14.5px; }
+
+  /* Search & Sort Toolbar */
+  .toolbar {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  a.card {
-    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     align-items: center;
-    gap: 14px;
-    text-decoration: none;
-    color: inherit;
     background: #131a26;
     border: 1px solid #26334a;
     border-radius: 14px;
     padding: 12px 14px;
-    transition: border-color 0.15s ease, transform 0.12s ease;
+    margin-bottom: 14px;
   }
-  a.card:hover { border-color: #38bdf8; transform: translateY(-1px); }
-  .thumb {
-    width: 128px;
-    height: 82px;
-    border-radius: 9px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: #090d14;
-    border: 1px solid #2a3952;
+  .search-wrap {
+    flex: 1 1 260px;
+    position: relative;
   }
-  .thumb img {
+  .search-wrap input {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+    background: #0b0f17;
+    color: #e6edf7;
+    border: 1px solid #2e3f5c;
+    border-radius: 10px;
+    padding: 9px 12px 9px 34px;
+    font-size: 14px;
+    outline: none;
   }
-  @media (max-width: 500px) {
-    a.card { gap: 11px; padding: 11px; }
-    .thumb { width: 96px; height: 64px; }
+  .search-wrap input:focus { border-color: #38bdf8; }
+  .search-wrap svg {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    pointer-events: none;
   }
-  .body { flex: 1; min-width: 0; }
-  .tag {
-    display: inline-block;
-    font-size: 10.8px;
+  .sort-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button.sbtn {
+    background: #192233;
+    border: 1px solid #2a3a55;
+    color: #cbd5e1;
+    padding: 7px 11px;
+    border-radius: 9px;
+    font-size: 12.6px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.sbtn:hover { border-color: #38bdf8; color: #fff; }
+  button.sbtn.active {
+    background: rgba(56,189,248,0.16);
+    border-color: #38bdf8;
+    color: #bae6fd;
+  }
+  .count {
+    font-size: 12px;
+    color: #93a4be;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    margin-left: auto;
+  }
+
+  /* Table-like single-column list header */
+  .list-hdr {
+    display: grid;
+    grid-template-columns: 126px 1fr 142px 96px;
+    gap: 14px;
+    padding: 6px 14px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #38bdf8;
-    margin-bottom: 3px;
+    color: #64748b;
+    align-items: center;
   }
-  .tag.gold   { color: #fbbf24; }
-  .tag.green  { color: #34d399; }
-  .tag.purple { color: #c084fc; }
-  .tag.red    { color: #f87171; }
-  h2 { margin: 0 0 4px; font-size: 16.8px; color: #fff; line-height: 1.25; }
-  .desc { margin: 0; color: #93a4be; font-size: 13.4px; line-height: 1.42; }
+  .list-hdr span.sortable { cursor: pointer; user-select: none; }
+  .list-hdr span.sortable:hover { color: #38bdf8; }
+
+  .study-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  a.card {
+    display: grid;
+    grid-template-columns: 126px 1fr 142px 96px;
+    gap: 14px;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    background: #131a26;
+    border: 1px solid #26334a;
+    border-radius: 13px;
+    padding: 11px 14px;
+    transition: border-color 0.15s ease, transform 0.12s ease;
+  }
+  a.card:hover { border-color: #38bdf8; transform: translateY(-1px); }
+  a.card.featured-green { border-color: #34d399; background: linear-gradient(135deg,#0f241f 0%,#131a26 100%); }
+  a.card.featured-blue  { border-color: #38bdf8; background: linear-gradient(135deg,#0d1e33 0%,#131a26 100%); }
+  a.card.featured-purple{ border-color: #c084fc; background: linear-gradient(135deg,#1d1433 0%,#131a26 100%); }
+
+  .thumb {
+    width: 126px;
+    height: 80px;
+    border-radius: 9px;
+    overflow: hidden;
+    background: #090d14;
+    border: 1px solid #2a3952;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .body { min-width: 0; }
+  h2 { margin: 0 0 4px; font-size: 16px; color: #fff; line-height: 1.25; }
+  .desc { margin: 0; color: #93a4be; font-size: 13.1px; line-height: 1.4; }
+
+  .col-cat { display: flex; justify-content: flex-start; }
+  .cat-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: rgba(56,189,248,0.14);
+    color: #38bdf8;
+    border: 1px solid rgba(56,189,248,0.34);
+  }
+  .cat-pill.green  { background: rgba(52,211,153,0.14); color: #34d399; border-color: rgba(52,211,153,0.36); }
+  .cat-pill.gold   { background: rgba(251,191,36,0.14); color: #fbbf24; border-color: rgba(251,191,36,0.36); }
+  .cat-pill.purple { background: rgba(192,132,252,0.14); color: #c084fc; border-color: rgba(192,132,252,0.36); }
+  .cat-pill.red    { background: rgba(248,113,113,0.14); color: #f87171; border-color: rgba(248,113,113,0.36); }
+
+  .col-date {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12.6px;
+    color: #93a4be;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 36px 16px;
+    color: #93a4be;
+    background: #131a26;
+    border: 1px dashed #26334a;
+    border-radius: 14px;
+    display: none;
+  }
+
+  @media (max-width: 740px) {
+    .list-hdr { display: none; }
+    a.card {
+      grid-template-columns: 98px 1fr;
+      grid-template-rows: auto auto;
+      gap: 8px 12px;
+      padding: 11px;
+    }
+    .thumb { width: 98px; height: 64px; grid-row: 1 / span 2; }
+    .body { grid-column: 2; grid-row: 1; }
+    .col-cat { grid-column: 2; grid-row: 2; }
+    .col-date { grid-column: 2; grid-row: 2; justify-self: end; align-self: center; }
+  }
 </style>
 </head>
 <body>
@@ -76,142 +190,194 @@
   <h1>ZUBoard 1CG Study Notes</h1>
   <p class="sub">Interactive offline engineering explainers, physics labs &amp; live silicon reports for Stage 1 CVG / DRG / HRG.</p>
 
-  <div class="study-list">
-    <a class="card" href="gyro_land_summary.html" style="border-color:#34d399; background:linear-gradient(135deg,#0f241f 0%,#131a26 100%);">
-      <div class="thumb" style="border-color:#34d399;"><img src="thumbs/summary.png" alt="Live Stage 1 v3 Silicon Results" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag green">Start Here · Overall Progress Summary</div>
-        <h2>Gyro-Land Master Summary (Stage 0 &amp; Stage 1 Sign-Off)</h2>
-        <p class="desc">One-page executive summary of the entire ZUBoard 1CG gyro journey: system architecture SVG, live silicon KPIs, v1 &rarr; v2/v3 breakthroughs, bring-up bugs slayed, and live plots.</p>
-      </div>
-    </a>
-
-    <a class="card" href="cvg_crash_course.html" style="border-color:#38bdf8; background:linear-gradient(135deg,#0d1e33 0%,#131a26 100%);">
-      <div class="thumb" style="border-color:#38bdf8;"><img src="thumbs/cvg_crash.png" alt="2D n=2 Wineglass Standing Wave" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag">Newcomer Primer · Interactive Wineglass</div>
-        <h2>CVG Crash Course: 2D Resonator Physics, DX/DY/SX/SY &amp; ADEV</h2>
-        <p class="desc">Zero-jargon intuition for DRG/HRG wineglass standing waves (animated), strobe-light demodulation (DX, DY, SX, SY), the 4 loop forces, and how to read an ADEV bathtub &amp; where bias lives.</p>
-      </div>
-    </a>
-
-    <a class="card" href="cloverleaf_64probe_pinning.html" style="border-color:#c084fc; background:linear-gradient(135deg,#1d1433 0%,#131a26 100%);">
-      <div class="thumb" style="border-color:#c084fc;"><img src="thumbs/cloverleaf64.png" alt="64-Probe Polar Cloverleaf Pinning" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag purple">64-Probe HITL Station · Animated Cloverleaf</div>
-        <h2>64-Probe Cloverleaf Ring-Up &amp; Fabrication Mode Pinning</h2>
-        <p class="desc">Watch all 64 perimeter die ADC probes track an n=2 cloverleaf ringing up, wobbling, and locking onto the fab pinning angle &theta;<sub>pin</sub> &mdash; plus Whole-Angle Adler dead-band and electrostatic un-pinning.</p>
-      </div>
-    </a>
-
-    <a class="card" href="ringdown_qfit_and_bias_realism.html">
-      <div class="thumb"><img src="thumbs/ringdown.png" alt="Free Ringdown Beating vs Tuned Decay" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag gold">Bench Demo · Ringdown, Q-Fit &amp; 100V Tuning</div>
-        <h2>Gyro Ringdown, Semi-Log Q-Fit, 100 V &plusmn; 20 V Tuning &amp; Bias Realism</h2>
-        <p class="desc">Interactive DRG ringdown bench simulator (dial V<sub>tune</sub> to kill beating, see Rician noise-floor Q-inflation &amp; 100 V resistor Ohmic Q-loading) + g-sensitivity, quad setpoint error &amp; dielectric charging.</p>
-      </div>
-    </a>
-
-    <a class="card" href="pi_vs_pid_cvg_explainer.html">
-      <div class="thumb"><img src="thumbs/pi_vs_pid.png" alt="PI vs PID Noise Blowup" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag">Control Theory · Interactive Lab</div>
-        <h2>Wait: PI, but no D?</h2>
-        <p class="desc">Why demodulation turns a 2nd-order 11 kHz resonator into a 1st-order plant, live PI vs. PID noise blowup simulator, Feedforward rate/angle cancellation, and noise-gain Bode plot.</p>
-      </div>
-    </a>
-
-    <a class="card" href="drg_quadrature_and_vacuum_explainer.html">
-      <div class="thumb"><img src="thumbs/quad_vacuum.png" alt="LCC NEG Getter Q(P) Vacuum Curve" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag gold">MEMS Physics &amp; Packaging · Animated</div>
-        <h2>100+ °/s Quadrature &amp; Gold Getter Vacuum Packages</h2>
-        <p class="desc">Animated n=2 wineglass DRG with DC quad-trim &amp; FPGA CLQ toggles, I/Q phase-leakage vs. anisodamping phasor diagram, and LCC NEG getter Q(P) vacuum curve.</p>
-      </div>
-    </a>
-
-    <a class="card" href="nav_grade_drg_hurdles.html">
-      <div class="thumb"><img src="thumbs/nav_hurdles.png" alt="Nav-Grade DRG ADEV Waterfall" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag gold">Inertial Roadmap · Interactive ADEV Lab</div>
-        <h2>Biggest Hurdles to Nav-Grade MEMS DRG Bias Stability (&le; 0.01 °/hr)</h2>
-        <p class="desc">Why Silicon DRGs stall at ~0.2 °/hr (TED, quad phase leakage, anisodamping, package stress, 1/f &amp; quantization) + interactive ADEV bathtub lab toggling Quartz, CLQ, Mode Reversal &amp; Self-Thermometry.</p>
-      </div>
-    </a>
-
-    <a class="card" href="silicon_drg_improvement_paths.html">
-      <div class="thumb"><img src="thumbs/silicon_paths.png" alt="Zener TED Quality Factor Curves" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag green">MEMS Material &amp; Geometry · Interactive TED Lab</div>
-        <h2>Improving Silicon MEMS DRGs: Is Quartz the Only Way?</h2>
-        <p class="desc">No! Interactive Zener TED Debye-peak explorer showing how lumped-mass &lt;111&gt; Silicon (12 &mu;m, 3 kHz) reaches Q<sub>TED</sub>=1.57M (&tau;&approx;80 s) &amp; &le;0.01 °/hr without Quartz, plus Si vs. Quartz/SiC/Diamond.</p>
-      </div>
-    </a>
-
-    <a class="card" href="drg_electrode_pin_trades.html">
-      <div class="thumb"><img src="thumbs/electrode_pins.png" alt="Sense vs Drive Pin ARW Sweet Spot" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag">Transducer Design · Interactive Pin-Budget Lab</div>
-        <h2>More Resonator Contact Points &amp; Sense vs. Drive Pin Trades</h2>
-        <p class="desc">Why scaling 8 &rarr; 16 &rarr; 32 electrodes helps, why ~75% Sense / 25% Drive wins on high-Q DRGs (plus the DAC noise bonus), the C<sub>pad</sub> saturation &amp; X/Y softening traps, and an interactive DRG ring.</p>
-      </div>
-    </a>
-
-    <a class="card" href="differential_electrode_pairs.html">
-      <div class="thumb"><img src="thumbs/diff_pairs.png" alt="2f0 Harmonic Cancellation Spectrum" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag purple">Transducer Physics · Interactive Push-Pull Lab</div>
-        <h2>Differential Electrode Pairs (Push-Pull &amp; 4-Quadrant Cancellation)</h2>
-        <p class="desc">Why opposing +/&minus; electrode pairs crush 2f<sub>0</sub> distortion, v<sub>FTR</sub>&sup2; scale bow, and feedthrough &mdash; why 4-quadrant wiring kills n=1 shock, how DRIE gap mismatch (&delta;) sets CMRR, and current sim status.</p>
-      </div>
-    </a>
-
-    <a class="card" href="adev_presets_comparison.png">
-      <div class="thumb"><img src="thumbs/adev_compare.png" alt="5-Preset Gyro ADEV Bathtub Comparison" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag">Noise &amp; Stability · Plot</div>
-        <h2>Gyro ADEV Comparison (°/hr)</h2>
-        <p class="desc">Overlapping Allan Deviation bathtub curves across Consumer MEMS, Silicon DRG (Q=100k), Quartz MEMS DRG (Q=800k), Micro-HRG (Q=1M), and Space HRG (Q=5M).</p>
-      </div>
-    </a>
-
-    <a class="card" href="fpga_fixed_point_vs_float64.html">
-      <div class="thumb"><img src="thumbs/fpga_v2.png" alt="Live XCZU1CG 30s ADEV Floor Drop" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag green">Live Silicon Results · v1 &rarr; v2 Upgrade</div>
-        <h2>Live ZUBoard 1CG: Fixed-Point Rounding, High-Q v2 &amp; +30 °C Thermal Ramp</h2>
-        <p class="desc">Before/After live XCZU1CG measurements (40-bit NCO + Q10.22 PI + 24-bit ADC + Q-6.42): 100&times; lower ADEV floor (0.027 °/hr), 229 dB quad rejection, Space HRG bias resolved &amp; 0.006 °C RMS self-thermometry.</p>
-      </div>
-    </a>
-
-    <a class="card" href="advanced_gyro_physics.html">
-      <div class="thumb"><img src="thumbs/advanced_phys.png" alt="Duffing Shark-Fin Bifurcation Curve" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag purple">Advanced Physics · Golden Model</div>
-        <h2>Electrostatic Softening, Duffing Overdrive &amp; Whole-Angle HRG Mode</h2>
-        <p class="desc">DC mode-matching tuning curve (12.25 V), bent Duffing shark-fin bifurcation &amp; thermometry pull, plus Lynch E/Q Whole-Angle Micro-HRG surviving a +500 / &minus;300 °/s spin burst at 9.4 mdeg peak error.</p>
-      </div>
-    </a>
-
-    <a class="card" href="bugs/bug02_ksz9131_rgmii_txc_dll.html">
-      <div class="thumb"><img src="thumbs/bug02_rgmii.png" alt="RGMII TXC 2ns DLL Eye Diagram" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag gold">Bring-Up Postmortem · Bug #02</div>
-        <h2>KSZ9131RNX PHY &amp; RGMII TXC 2 ns DLL Bypass</h2>
-        <p class="desc">How JTAG forensics caught an unsupported PHY OUI (0x0022) in lwip220 and the asymmetric MMD2 0x4D TXC DLL bypass (0x16D1 &rarr; 0x06D1), with an interactive RGMII eye diagram.</p>
-      </div>
-    </a>
-
-    <a class="card" href="bugs/bug01_a53_r5f_ddr_collision.html">
-      <div class="thumb"><img src="thumbs/bug01_ddr.png" alt="A53 and R5F LPDDR4 Partition Map" loading="lazy" /></div>
-      <div class="body">
-        <div class="tag red">Bring-Up Postmortem · Bug #01</div>
-        <h2>A53 / R5F LPDDR4 Memory Collision &amp; Fix</h2>
-        <p class="desc">Visual Before/After memory map, interactive JTAG boot-crash timeline, and the exact Vitis lscript.ld partition + lwIP IRQ fix.</p>
-      </div>
-    </a>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="searchInput" placeholder="Search studies (e.g., ADEV, cloverleaf, ringdown, Quartz, 100V, bug)..." oninput="renderList()" />
+    </div>
+    <div class="sort-group">
+      <button class="sbtn active" id="sortCurated" onclick="setSort('curated')">Curated</button>
+      <button class="sbtn" id="sortDateDesc" onclick="setSort('date_desc')">Date &darr;</button>
+      <button class="sbtn" id="sortDateAsc" onclick="setSort('date_asc')">Date &uarr;</button>
+      <button class="sbtn" id="sortCat" onclick="setSort('cat')">Category A&ndash;Z</button>
+    </div>
+    <div class="count" id="countBadge">15 / 15</div>
   </div>
+
+  <div class="list-hdr">
+    <span>Figure</span>
+    <span>Study</span>
+    <span class="sortable" onclick="setSort('cat')">Category &#x21C5;</span>
+    <span class="sortable" style="text-align:right;" onclick="toggleDateSort()">Date &#x21C5;</span>
+  </div>
+
+  <div class="study-list" id="studyList"></div>
+  <div class="empty" id="emptyMsg">No studies match your search. Try clearing the search box.</div>
 </div>
+
+<script>
+const STUDIES = [
+  {
+    order: 1, href: "gyro_land_summary.html", thumb: "thumbs/summary.png",
+    title: "Gyro-Land Master Summary (Stage 0 & Stage 1 Sign-Off)",
+    desc: "One-page executive summary of the ZUBoard 1CG gyro journey: plant & control block diagrams, live silicon KPIs, v1 → v3 breakthroughs, and live plots.",
+    category: "Start Here", catClass: "green", date: "2026-11-27", featured: "featured-green",
+    keywords: "summary overview stage0 stage1 v2 v3 architecture silicon kpi block diagram hysteresis"
+  },
+  {
+    order: 2, href: "cvg_crash_course.html", thumb: "thumbs/cvg_crash.png",
+    title: "CVG Crash Course: 2D Resonator Physics, DX/DY/SX/SY & ADEV",
+    desc: "Zero-jargon intuition for DRG/HRG wineglass standing waves (animated), strobe-light demodulation, 4 loop forces, block diagrams, and ADEV bathtub.",
+    category: "Fundamentals", catClass: "", date: "2026-11-26", featured: "featured-blue",
+    keywords: "newcomer primer crash course wineglass dx dy sx sy pll agc clq ftr adev bias"
+  },
+  {
+    order: 3, href: "cloverleaf_64probe_pinning.html", thumb: "thumbs/cloverleaf64.png",
+    title: "64-Probe Cloverleaf Ring-Up & Fabrication Mode Pinning",
+    desc: "Watch all 64 perimeter die ADC probes track an n=2 cloverleaf ringing up, wobbling, and locking onto the fab pinning angle θ_pin — plus interactive Plotly reference plots.",
+    category: "Bench & HITL", catClass: "purple", date: "2026-11-27", featured: "featured-purple",
+    keywords: "64 probe adc die cloverleaf ring up pinning fab asymmetry adler deadband plotly"
+  },
+  {
+    order: 4, href: "ringdown_qfit_and_bias_realism.html", thumb: "thumbs/ringdown.png",
+    title: "Gyro Ringdown, Semi-Log Q-Fit, 100 V ± 20 V Tuning & Bias Realism",
+    desc: "Interactive DRG ringdown bench simulator (dial V_tune to kill beating, Rician Q-inflation trap & 100V resistor Ohmic Q-loading) + g-sensitivity, quad setpoint error & dielectric charging.",
+    category: "Bench & HITL", catClass: "purple", date: "2026-11-27", featured: "",
+    keywords: "ringdown q-fit q factor 100v 20v electrostatic tuning beating rician g-sensitivity hysteresis plotly"
+  },
+  {
+    order: 5, href: "pi_vs_pid_cvg_explainer.html", thumb: "thumbs/pi_vs_pid.png",
+    title: "Wait: PI, but no D?",
+    desc: "Why demodulation turns a 2nd-order 11 kHz resonator into a 1st-order plant, live PI vs. PID noise blowup simulator, Feedforward cancellation, and noise-gain Bode plot.",
+    category: "Control Theory", catClass: "", date: "2026-11-24", featured: "",
+    keywords: "control theory pi pid derivative noise demodulation feedforward bode bandwidth"
+  },
+  {
+    order: 6, href: "drg_quadrature_and_vacuum_explainer.html", thumb: "thumbs/quad_vacuum.png",
+    title: "100+ °/s Quadrature & Gold Getter Vacuum Packages",
+    desc: "Animated n=2 wineglass DRG with DC quad-trim & FPGA CLQ toggles, I/Q phase-leakage vs. anisodamping phasor diagram, and LCC NEG getter Q(P) vacuum curve.",
+    category: "MEMS Physics", catClass: "gold", date: "2026-11-24", featured: "",
+    keywords: "quadrature vacuum gold getter neg lcc pressure anisodamping phase leakage"
+  },
+  {
+    order: 7, href: "nav_grade_drg_hurdles.html", thumb: "thumbs/nav_hurdles.png",
+    title: "Biggest Hurdles to Nav-Grade MEMS DRG Bias Stability (≤ 0.01 °/hr)",
+    desc: "Why Silicon DRGs stall at ~0.2 °/hr (TED, quad phase leakage, anisodamping, package stress, 1/f & quantization) + interactive ADEV bathtub upgrade lab.",
+    category: "Noise & Roadmap", catClass: "gold", date: "2026-11-26", featured: "",
+    keywords: "nav grade bias stability 0.01 hurdles adev waterfall mode reversal self thermometry"
+  },
+  {
+    order: 8, href: "silicon_drg_improvement_paths.html", thumb: "thumbs/silicon_paths.png",
+    title: "Improving Silicon MEMS DRGs: Is Quartz the Only Way?",
+    desc: "Interactive Zener TED Debye-peak explorer showing how lumped-mass <111> Silicon (12 µm, 3 kHz) reaches Q_TED=1.57M (τ≈80 s) & ≤0.01 °/hr without Quartz, plus Si/Quartz/SiC/Diamond matrix.",
+    category: "MEMS Physics", catClass: "gold", date: "2026-11-27", featured: "",
+    keywords: "silicon quartz sic diamond zener ted lumped mass 111 isotropic plotly"
+  },
+  {
+    order: 9, href: "drg_electrode_pin_trades.html", thumb: "thumbs/electrode_pins.png",
+    title: "More Resonator Contact Points & Sense vs. Drive Pin Trades",
+    desc: "Why scaling 8 → 16 → 32 electrodes helps, why ~75% Sense / 25% Drive wins on high-Q DRGs (plus DAC noise bonus), C_pad saturation & X/Y softening traps.",
+    category: "Transducer Design", catClass: "", date: "2026-11-26", featured: "",
+    keywords: "electrode contact points sense pins drive pins c_pad saturation softening mode reversal plotly"
+  },
+  {
+    order: 10, href: "differential_electrode_pairs.html", thumb: "thumbs/diff_pairs.png",
+    title: "Differential Electrode Pairs (Push-Pull & 4-Quadrant Cancellation)",
+    desc: "Why opposing +/- pairs crush 2f0 distortion, v_FTR² scale bow, and feedthrough — why 4-quadrant wiring kills n=1 shock, DRIE gap mismatch CMRR, and current sim status.",
+    category: "Transducer Design", catClass: "", date: "2026-11-27", featured: "",
+    keywords: "differential electrode pairs push pull 4 quadrant shock cmrr gap mismatch 2f0 plotly"
+  },
+  {
+    order: 11, href: "adev_presets_comparison.png", thumb: "thumbs/adev_compare.png",
+    title: "Gyro ADEV Comparison (°/hr) — 5 Presets",
+    desc: "Overlapping Allan Deviation bathtub curves across Consumer MEMS, Silicon DRG (Q=100k), Quartz MEMS DRG (Q=800k), Micro-HRG (Q=1M), and Space HRG (Q=5M).",
+    category: "Noise & Roadmap", catClass: "gold", date: "2026-11-26", featured: "",
+    keywords: "adev allan deviation comparison consumer silicon quartz micro hrg space hrg"
+  },
+  {
+    order: 12, href: "fpga_fixed_point_vs_float64.html", thumb: "thumbs/fpga_v2.png",
+    title: "Live ZUBoard 1CG: Fixed-Point Rounding, High-Q v2 & +30 °C Thermal Ramp",
+    desc: "Before/After live XCZU1CG measurements (40-bit NCO + Q10.22 PI + 24-bit ADC + Q-6.42): 100× lower ADEV floor (0.027 °/hr), 229 dB quad rejection & 0.006 °C RMS self-thermometry.",
+    category: "Live Silicon", catClass: "green", date: "2026-11-24", featured: "",
+    keywords: "fpga zuboard xczu1cg fixed point float64 quantization thermal ramp v2"
+  },
+  {
+    order: 13, href: "advanced_gyro_physics.html", thumb: "thumbs/advanced_phys.png",
+    title: "Electrostatic Softening, Duffing Overdrive & Whole-Angle HRG Mode",
+    desc: "DC mode-matching tuning curve (12.25 V), bent Duffing shark-fin bifurcation & thermometry pull, plus Lynch E/Q Whole-Angle Micro-HRG surviving +500 / −300 °/s.",
+    category: "MEMS Physics", catClass: "gold", date: "2026-11-24", featured: "",
+    keywords: "electrostatic softening duffing shark fin bifurcation whole angle lynch hrg"
+  },
+  {
+    order: 14, href: "bugs/bug02_ksz9131_rgmii_txc_dll.html", thumb: "thumbs/bug02_rgmii.png",
+    title: "KSZ9131RNX PHY & RGMII TXC 2 ns DLL Bypass (Bug #02)",
+    desc: "How JTAG forensics caught an unsupported PHY OUI (0x0022) in lwip220 and the asymmetric MMD2 0x4D TXC DLL bypass (0x16D1 → 0x06D1), with interactive RGMII eye.",
+    category: "Bring-Up Bug", catClass: "red", date: "2026-11-24", featured: "",
+    keywords: "bug02 ksz9131 rgmii ethernet phy lwip220 dll mmd2 jtag postmortem"
+  },
+  {
+    order: 15, href: "bugs/bug01_a53_r5f_ddr_collision.html", thumb: "thumbs/bug01_ddr.png",
+    title: "A53 / R5F LPDDR4 Memory Collision & Fix (Bug #01)",
+    desc: "Visual Before/After memory map, interactive JTAG boot-crash timeline, and the exact Vitis lscript.ld partition + lwIP IRQ fix.",
+    category: "Bring-Up Bug", catClass: "red", date: "2026-11-24", featured: "",
+    keywords: "bug01 a53 r5f lpddr4 memory collision linker lscript vitis jtag postmortem"
+  }
+];
+
+let sortMode = 'curated';
+
+function setSort(mode) {
+  sortMode = mode;
+  ['sortCurated', 'sortDateDesc', 'sortDateAsc', 'sortCat'].forEach(id => document.getElementById(id).classList.remove('active'));
+  const map = { curated: 'sortCurated', date_desc: 'sortDateDesc', date_asc: 'sortDateAsc', cat: 'sortCat' };
+  document.getElementById(map[mode]).classList.add('active');
+  renderList();
+}
+
+function toggleDateSort() {
+  setSort(sortMode === 'date_desc' ? 'date_asc' : 'date_desc');
+}
+
+function renderList() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let items = STUDIES.filter(s => {
+    if (!q) return true;
+    const hay = (s.title + ' ' + s.desc + ' ' + s.category + ' ' + s.date + ' ' + s.keywords).toLowerCase();
+    return q.split(/\s+/).every(tok => hay.includes(tok));
+  });
+
+  items = items.slice().sort((a, b) => {
+    if (sortMode === 'date_desc') return b.date.localeCompare(a.date) || (a.order - b.order);
+    if (sortMode === 'date_asc')  return a.date.localeCompare(b.date) || (a.order - b.order);
+    if (sortMode === 'cat')       return a.category.localeCompare(b.category) || b.date.localeCompare(a.date) || (a.order - b.order);
+    return a.order - b.order;
+  });
+
+  const listEl = document.getElementById('studyList');
+  const emptyEl = document.getElementById('emptyMsg');
+  document.getElementById('countBadge').textContent = `${items.length} / ${STUDIES.length}`;
+
+  if (items.length === 0) {
+    listEl.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = items.map(s => `
+    <a class="card ${s.featured}" href="${s.href}">
+      <div class="thumb"><img src="${s.thumb}" alt="${s.title}" loading="lazy" /></div>
+      <div class="body">
+        <h2>${s.title}</h2>
+        <p class="desc">${s.desc}</p>
+      </div>
+      <div class="col-cat"><span class="cat-pill ${s.catClass}">${s.category}</span></div>
+      <div class="col-date">${s.date}</div>
+    </a>
+  `).join('');
+}
+
+renderList();
+</script>
 </body>
 </html>

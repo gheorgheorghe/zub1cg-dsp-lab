@@ -44,6 +44,34 @@ def init_fig() -> tuple[plt.Figure, plt.Axes]:
     return fig, ax
 
 
+def make_summary_thumb() -> None:
+    """Clean dark-mode ZUBoard 1CG Master Summary figure (SoC + Live Step + KPIs)."""
+    fig, ax = init_fig()
+    # Clean 100 deg/s closed-loop FTR + Feedforward step curve + KPI banner
+    t = np.linspace(0, 400, 260)
+    u = np.where(t >= 180, 100.0, 0.0)
+    dt_step = np.maximum(t - 180.0, 0.0)
+    ftr = np.where(t >= 180, 100.0 * (1.0 - np.exp(-dt_step / 14.0) * (np.cos(dt_step / 14.0) - 0.6 * np.sin(dt_step / 14.0))), 0.0)
+    ff = np.where(t >= 180, 100.0 * (1.0 + 0.06 * np.exp(-dt_step / 10.0)), 0.0)
+
+    ax.fill_between(t, 0, ff, color="#34d399", alpha=0.11)
+    ax.plot(t, u, ":", color="#94a3b8", lw=1.2)
+    ax.plot(t, ftr, color="#38bdf8", lw=1.9, label="FTR")
+    ax.plot(t, ff, color="#34d399", lw=2.3, label="FF")
+
+    # Sleek header pills inside thumbnail (well clear of the step curve!)
+    ax.text(14, 134, "ZUBoard 1CG · Stage 1 v3", color="#34d399", fontsize=7.3, fontweight="bold")
+    ax.text(14, 46, "0.027 °/hr\nQ = 100,003\n0.006 °C", color="#cbd5e1", fontsize=6.4, fontweight="bold")
+    ax.text(290, 30, "+100 °/s\nLive Step", color="#bae6fd", fontsize=6.8, fontweight="bold", ha="center")
+
+    ax.set_xlim(0, 400); ax.set_ylim(-8, 154)
+    ax.grid(True, color="#1e293b", ls="--", lw=0.6)
+    ax.set_xticks([]); ax.set_yticks([])
+    plt.subplots_adjust(0.04, 0.06, 0.96, 0.94)
+    fig.savefig(THUMBS_DIR / "summary.png", dpi=100, facecolor=fig.get_facecolor())
+    plt.close(fig)
+
+
 def make_cvg_crash_thumb() -> None:
     """n=2 wineglass breathing + Coriolis mode mini-figure."""
     fig, ax = init_fig()
@@ -147,8 +175,8 @@ def make_bug01_ddr_thumb() -> None:
 
 
 def main() -> None:
-    # 1. Crop flagship panels from the 10 existing high-res PNGs
-    crop_panel("fpga_v3_demos_live.png",       (0.35, 0.14, 0.66, 0.96), "summary.png")
+    # 1. Crop flagship panels from the 9 existing high-res PNGs + dedicated Master Summary thumb
+    make_summary_thumb()
     crop_panel("cloverleaf_64probe_pinning.png", (0.04, 0.08, 0.48, 0.54), "cloverleaf64.png")
     crop_panel("ringdown_qfit_and_tuning.png", (0.50, 0.08, 0.99, 0.53), "ringdown.png")
     crop_panel("nav_grade_drg_hurdles_adev.png", (0.01, 0.08, 0.65, 0.96), "nav_hurdles.png")
