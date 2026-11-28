@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Improving Silicon MEMS DRG Performance (Is Quartz the Only Way?)</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --card2: #192233;
+    --border: #26334a;
+    --text: #e6edf7;
+    --muted: #93a4be;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.56; font-size: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 18px 14px 56px; }
+  a.back { display: inline-block; color: var(--blue); text-decoration: none; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  header {
+    padding: 20px 18px;
+    background: linear-gradient(135deg, #0d2238 0%, #161c34 55%, #0e2c24 100%);
+    border: 1px solid #2b4a69; border-radius: 18px; margin-bottom: 16px;
+  }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+  h1 { margin: 0 0 8px; font-size: clamp(22px, 5.6vw, 32px); line-height: 1.15; }
+  header p { margin: 0; color: #c7d5e8; font-size: 15px; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 19px; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  h3 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: rgba(56,189,248,0.16); color: var(--blue); border: 1px solid rgba(56,189,248,0.38);
+  }
+  .badge.green { background: rgba(52,211,153,0.16); color: var(--green); border-color: rgba(52,211,153,0.38); }
+  .badge.amber { background: rgba(251,191,36,0.16); color: var(--amber); border-color: rgba(251,191,36,0.38); }
+  .badge.red { background: rgba(248,113,113,0.16); color: var(--red); border-color: rgba(248,113,113,0.38); }
+  .badge.purple { background: rgba(192,132,252,0.16); color: var(--purple); border-color: rgba(192,132,252,0.38); }
+  code { background: rgba(56,189,248,0.12); color: #bae6fd; padding: 1px 5px; border-radius: 5px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88em; }
+  .verdict {
+    background: linear-gradient(135deg, rgba(52,211,153,0.12), rgba(56,189,248,0.08));
+    border: 1px solid rgba(52,211,153,0.42); border-radius: 14px; padding: 14px 16px;
+  }
+  .verdict p { margin: 6px 0; font-size: 14.9px; color: #e6f7f0; }
+  .eq {
+    background: #090d14; border: 1px solid var(--border); border-left: 3px solid var(--blue);
+    border-radius: 10px; padding: 10px 12px; margin: 10px 0;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #bae6fd; overflow-x: auto;
+  }
+
+  /* Interactive Controls */
+  .presets { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  button.pbtn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 11px; border-radius: 8px; font-size: 12.8px; font-weight: 600; cursor: pointer;
+  }
+  button.pbtn:hover { border-color: var(--blue); }
+  button.pbtn.best { border-color: var(--green); color: #a7f3d0; background: rgba(52,211,153,0.1); }
+  .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 680px) { .ctrl-grid { grid-template-columns: 1fr; } }
+  .ctrl { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #cbd8ec; margin-bottom: 6px; }
+  .ctrl select, .ctrl input[type="range"] { width: 100%; }
+  .ctrl select {
+    background: #0b0f17; color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 8px; font-size: 13.5px;
+  }
+  .ctrl input[type="range"] { accent-color: var(--blue); }
+
+  .readouts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media (max-width: 720px) { .readouts { grid-template-columns: 1fr 1fr; } }
+  .rd { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 9px; text-align: center; }
+  .rd .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .rd .v { font-size: 15px; font-weight: 800; margin-top: 3px; font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  .cbox { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  .cbox canvas { width: 100%; display: block; border-radius: 8px; }
+  .cap { font-size: 12.3px; color: var(--muted); margin-top: 7px; text-align: center; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .path-card { background: var(--card2); border: 1px solid var(--border); border-radius: 13px; padding: 13px; }
+  .path-card p { margin: 6px 0 0; font-size: 14px; color: #cbd8ec; }
+  .gain {
+    display: inline-block; margin-top: 7px; font-size: 12px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px; background: rgba(52,211,153,0.12); color: #a7f3d0; border: 1px solid rgba(52,211,153,0.32);
+  }
+
+  .plot { background: #090d14; border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 10px 0; }
+  .plot img { width: 100%; height: auto; border-radius: 8px; display: block; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: #93a4be; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; background: #0e1420; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to ZUBoard 1CG Study Notes</a>
+
+  <header>
+    <div class="kicker">MEMS Material &amp; Geometry Roadmap · Beyond the Q=100k Wall</div>
+    <h1>Paths to High-Performance Silicon DRGs (Is Quartz the Only Way?)</h1>
+    <p>Why single-crystal Silicon is <strong>far from dead</strong> for navigation-grade DRGs, how moving off Zener's TED Debye peak pushes pure Silicon past <code>Q = 750k</code> and <code>&tau; = 80 s</code>, and an honest trade table comparing Silicon, Quartz/Fused Silica, SiC, and Boron-Doped Diamond.</p>
+  </header>
+
+  <section>
+    <h2><span class="badge green">Direct Answer</span> Is Quartz the Only Way a DRG Can Work?</h2>
+    <div class="verdict">
+      <p><strong>Emphatically NO.</strong> Some of the best planar MEMS DRGs ever demonstrated (sub-<code>0.01 °/hr</code> lab demos from Stanford, JPL, and Boeing) are <strong>single-crystal Silicon</strong>.</p>
+      <p>Quartz / fused silica wins primarily on one material parameter &mdash; lower <strong>Thermoelastic Damping (TED)</strong> (&alpha; &approx; 0.55 vs. 2.6 ppm/K) &mdash; which makes it the undisputed king of <strong>3D shells (HRG / micro-HRG)</strong>. For <em>planar multi-ring DRGs</em>, however, insulating quartz/silica is harder to deep-etch and requires conformal metallization inside micron-wide trenches (where metal surface loss can erase much of the theoretical Q advantage!).</p>
+      <p><strong>The Silicon Superpower:</strong> Using <strong><code>&lt;111&gt;</code> isotropic Silicon</strong> + <strong>lumped-mass low-f<sub>0</sub> thin flexures</strong> (<code>b = 12 &mu;m, f<sub>0</sub> = 3 kHz</code>) slides Silicon far down the isothermal flank of Zener's TED curve to <strong><code>Q<sub>TED</sub> = 1.57M</code></strong> (net <code>Q &approx; 750k</code>, <code>&tau; &approx; 80 s</code>!) &mdash; while keeping conductive DRIE, wafer-level Epi-Seal vacuum, and built-in <code>PLLAdj</code> self-thermometry.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge blue">Interactive Lab</span> Zener TED Debye-Peak Explorer: Geometry vs. Material</h2>
+    <p style="font-size:14.2px; color:var(--muted); margin-top:0;">Drag ring width <code>b</code> and frequency <code>f<sub>0</sub></code> to move Silicon off Zener's TED loss valley &mdash; notice how <code>Q<sub>TED</sub> &prop; 1/(f<sub>0</sub>&middot;b&sup2;)</code> in the isothermal left flank lets pure Silicon match or beat Quartz in ringdown time <code>&tau;</code>!</p>
+
+    <div class="presets">
+      <button class="pbtn" onclick="applyPreset('si', 25, 11.0, 1.0, 1.5)">Baseline Si DRG (25 &mu;m, 11 kHz)</button>
+      <button class="pbtn best" onclick="applyPreset('si', 12, 3.0, 3.0, 1.5)">Lumped-Mass &lt;111&gt; Si (12 &mu;m, 3 kHz!)</button>
+      <button class="pbtn" onclick="applyPreset('si', 45, 45.0, 1.0, 1.5)">Adiabatic Thick Si (45 &mu;m, 45 kHz)</button>
+      <button class="pbtn" onclick="applyPreset('qtz', 25, 12.0, 1.0, 1.8)">Quartz DRG (25 &mu;m, 12 kHz)</button>
+      <button class="pbtn" onclick="applyPreset('dia', 25, 15.0, 1.0, 2.5)">B-Doped Diamond (25 &mu;m, 15 kHz)</button>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label><span>Selected Material</span><span id="valMat" style="color:var(--blue)">Silicon (&lt;111&gt;)</span></label>
+        <select id="selMat" onchange="update()">
+          <option value="si" selected>Single-Crystal Silicon (&lt;111&gt;)</option>
+          <option value="qtz">Fused Silica / Quartz (SiO₂)</option>
+          <option value="sic">Doped 4H-SiC (Epitaxial)</option>
+          <option value="dia">Boron-Doped Diamond</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label><span>Flexural Ring Width b (&mu;m)</span><span id="valB" style="color:var(--green)">12 &mu;m</span></label>
+        <input type="range" id="slB" min="6" max="50" step="1" value="12" oninput="update()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Resonant Frequency f<sub>0</sub> (kHz)</span><span id="valF" style="color:var(--amber)">3.0 kHz</span></label>
+        <input type="range" id="slF" min="1.0" max="60.0" step="0.5" value="3.0" oninput="update()" />
+      </div>
+      <div class="ctrl">
+        <label><span>Modal Mass Scale (m / 2 mg) &amp; Q<sub>anchor+surf</sub></span><span id="valMQ" style="color:var(--purple)">3.0&times; · 1.5M</span></label>
+        <div style="display:flex; gap:8px;">
+          <input type="range" id="slM" min="0.5" max="5.0" step="0.5" value="3.0" oninput="update()" style="flex:1;" />
+          <input type="range" id="slQo" min="0.3" max="5.0" step="0.1" value="1.5" oninput="update()" style="flex:1;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="rd"><div class="l">Zener Q<sub>TED</sub></div><div class="v" id="rdQted" style="color:var(--blue)">1.57M</div></div>
+      <div class="rd"><div class="l">Net Q<sub>tot</sub></div><div class="v" id="rdQtot" style="color:var(--green)">767k</div></div>
+      <div class="rd"><div class="l">Ringdown &tau;</div><div class="v" id="rdTau" style="color:var(--amber)">81.4 s</div></div>
+      <div class="rd"><div class="l">Brownian ARW</div><div class="v" id="rdArw" style="color:var(--green)">0.0059 °/&radic;hr</div></div>
+      <div class="rd"><div class="l">TED Regime</div><div class="v" id="rdReg" style="color:var(--purple)">ISOTHERMAL</div></div>
+    </div>
+
+    <div class="cbox">
+      <canvas id="tedCanvas"></canvas>
+      <div class="cap">Live exact Zener <code>Q<sub>TED</sub>(f<sub>0</sub>, b)</code> curves for all 4 materials at your chosen beam width <code>b</code>. Glowing dot = active material &amp; <code>f<sub>0</sub></code>; dashed line = <code>Q<sub>anchor+surf</sub></code> vacuum/anchor ceiling.</div>
+    </div>
+
+    <div class="eq">
+      Q<sub>TED</sub><sup>&minus;1</sup> = (E&alpha;&sup2;T / C<sub>v</sub>) &middot; (&omega;<sub>0</sub>&tau;<sub>th</sub>) / [1 + (&omega;<sub>0</sub>&tau;<sub>th</sub>)&sup2;], &nbsp;&nbsp; &tau;<sub>th</sub> = b&sup2; / (&pi;&sup2;&chi;)<br/>
+      Isothermal flank (&omega;<sub>0</sub>&tau;<sub>th</sub> &ll; 1, Silicon): &nbsp; Q<sub>TED</sub> &prop; 1 / (f<sub>0</sub> &middot; b&sup2;) &nbsp;&rarr;&nbsp; thinner beams + lumped mass = 10&ndash;15&times; higher Q!
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge purple">The 6 Silicon Paths</span> How Pure Silicon DRGs Break Into Navigation Grade</h2>
+    <div class="grid2">
+      <div class="path-card">
+        <h3>1. Lumped-Mass Low-f<sub>0</sub> Rings (Beat TED!)</h3>
+        <p>Hang large silicon mass blocks on thin (<code>10&ndash;15 &mu;m</code>) flexural rings to lower <code>f<sub>0</sub></code> from <code>11 kHz &rarr; 2&ndash;4 kHz</code>. Pushes Silicon far into the isothermal TED flank while boosting both <code>m<sub>eff</sub></code> and ringdown time <code>&tau; = Q/(&pi;f<sub>0</sub>)</code>.</p>
+        <span class="gain">Q: 100k &rarr; 750k+ · &tau;: 3 s &rarr; 80 s</span>
+      </div>
+      <div class="path-card">
+        <h3>2. &lt;111&gt; Isotropic Silicon + H<sub>2</sub> Anneal</h3>
+        <p>Standard <code>&lt;100&gt;</code> wafers have ~30% in-plane elastic anisotropy. Switching to <code>&lt;111&gt;</code> silicon gives perfectly isotropic in-plane stiffness (like glass!), while high-temp H<sub>2</sub> annealing smooths DRIE scallops to slash surface loss and gap mismatch <code>&delta;</code>.</p>
+        <span class="gain">5&ndash;10&times; lower as-fab &Delta;f &amp; k<sub>xy</sub></span>
+      </div>
+      <div class="path-card">
+        <h3>3. Thicker SOI + Duffing Cancellation</h3>
+        <p>Scale SOI device thickness (<code>100 &rarr; 300&ndash;500 &mu;m</code>) and diameter (<code>4 &rarr; 10 mm</code>) for 4&ndash;10&times; higher modal mass. Balance positive mechanical hardening against negative parallel-plate electrostatic softening (<code>&beta;<sub>3,mech</sub> + &beta;<sub>3,elec</sub> &approx; 0</code>) to double linear <code>x<sub>max</sub></code>.</p>
+        <span class="gain">3&ndash;5&times; lower Brownian ARW</span>
+      </div>
+      <div class="path-card">
+        <h3>4. Higher-Order n=3 Mode (on &lt;100&gt; Si)</h3>
+        <p>If staying on lower-cost <code>&lt;100&gt;</code> wafers, the <code>n=3</code> wineglass mode (6 antinodes) is naturally frequency-degenerate by crystal symmetry, rejects <code>n=1</code> vibration better, and decouples well from central anchor stress.</p>
+        <span class="gain">Zero crystal mode-split on &lt;100&gt;</span>
+      </div>
+      <div class="path-card">
+        <h3>5. Symmetric 75/25 Diff. Pins + Mode Reversal</h3>
+        <p>Keep Axis 1 and Axis 2 symmetric (75% Pickoff / 25% Forcer on each, on-die combined + 4-quadrant differential) so you can run <strong>Mode Reversal</strong> &mdash; chopping Silicon's residual anisodamping bias <code>&Delta;(1/&tau;)</code> to AC zero!</p>
+        <span class="gain">10&ndash;30&times; lower Bias Instability</span>
+      </div>
+      <div class="path-card">
+        <h3>6. Turn Silicon's TCF Into Self-Thermometry</h3>
+        <p>Silicon's strong <code>&minus;30 ppm/°C</code> TCF is a superpower when measured via a 40-bit NCO PLL (<code>0.006 °C RMS</code> live on our ZUBoard 1CG!). Zero-lag internal die thermometry + stress-decoupled anchors crush long-&tau; thermal RRW.</p>
+        <span class="gain">10&ndash;20&times; lower thermal RRW</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge amber">Quantitative 4-Panel Study</span> All-Silicon Stack vs. Quartz DRG</h2>
+    <div class="plot">
+      <img src="silicon_drg_paths.png" alt="4-panel comparison of Zener TED curves, Silicon DRG 6-step upgrade ladder, ADEV vs Quartz, and Material Fab Readiness" />
+      <div class="cap">Generated by <code>model/plot_silicon_drg_paths.py</code>: (A) Exact Zener Q<sub>TED</sub> curves showing 12 &mu;m / 3 kHz Silicon reaching 1.57M, (B) Pure-Silicon 6-stage ladder crossing 0.01 °/hr, (C) ADEV comparison vs. standard Quartz DRG, and (D) Ringdown time &tau; vs. wafer-scale MEMS fab readiness.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="badge green">Material Trade Matrix</span> Silicon vs. Quartz vs. SiC vs. Diamond</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Conductive? (No Metal Loss!)</th>
+            <th>Typical DRG Q &amp; &tau;</th>
+            <th>TCF (ppm/°C)</th>
+            <th>Key Strength</th>
+            <th>Main Hurdle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>&lt;111&gt; Lumped-Mass Si</strong></td>
+            <td style="color:var(--green)">Yes (doped Si)</td>
+            <td><code>500k&ndash;1M</code> · <code>30&ndash;100 s</code></td>
+            <td><code>&minus;30</code> (great self-T!)</td>
+            <td>Mature DRIE, Epi-Seal vacuum, lowest cost, huge &tau;</td>
+            <td>Needs lumped-mass design to avoid TED peak; stronger TCF</td>
+          </tr>
+          <tr>
+            <td><strong>Fused Silica / Quartz</strong></td>
+            <td style="color:var(--red)">No (needs metal coat)</td>
+            <td><code>800k&ndash;5M</code> · <code>20&ndash;400 s</code></td>
+            <td><code>+80</code> (fused) / <code>~0</code> (XTAL)</td>
+            <td>52&times; lower TED; undisputed king of 3D HRG shells</td>
+            <td>Harder deep etch; sidewall metallization adds surface damping</td>
+          </tr>
+          <tr>
+            <td><strong>Doped Epitaxial SiC</strong></td>
+            <td style="color:var(--green)">Yes (doped SiC)</td>
+            <td><code>400k&ndash;800k</code> · <code>10&ndash;25 s</code></td>
+            <td><code>&minus;15</code></td>
+            <td>2&times; stiffer, high shock &amp; radiation hardness, conductive</td>
+            <td>Slower/harder plasma etching &amp; pricier epi wafers than Si</td>
+          </tr>
+          <tr>
+            <td><strong>B-Doped Diamond</strong></td>
+            <td style="color:var(--green)">Yes (B-doped)</td>
+            <td><code>1M&ndash;2M+</code> · <code>25&ndash;60 s</code></td>
+            <td><code>&minus;5</code></td>
+            <td>Ultra-low TED + 12&times; higher thermal diffusivity + conductive</td>
+            <td>Expensive wafers &amp; niche MEMS foundry ecosystem</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const T_K = 300.0, K_B = 1.380649e-23, RAD2DEG = 180.0 / Math.PI;
+const MATS = {
+  si:  { name: 'Silicon (<111>)',       E: 169e9,  alpha: 2.60e-6, Cv: 1.63e6, kappa: 148.0,  color: '#38bdf8' },
+  qtz: { name: 'Fused Silica / Quartz', E: 73e9,   alpha: 0.55e-6, Cv: 1.63e6, kappa: 1.38,   color: '#34d399' },
+  sic: { name: '4H-SiC (Doped)',        E: 410e9,  alpha: 2.80e-6, Cv: 2.22e6, kappa: 450.0,  color: '#fbbf24' },
+  dia: { name: 'Diamond (B-doped)',     E: 1050e9, alpha: 1.00e-6, Cv: 1.79e6, kappa: 2000.0, color: '#c084fc' },
+};
+
+function calcQted(key, fHz, bUm) {
+  const m = MATS[key];
+  const b = bUm * 1e-6;
+  const deltaE = m.E * m.alpha * m.alpha * T_K / m.Cv;
+  const chi = m.kappa / m.Cv;
+  const tauTh = (b * b) / (Math.PI * Math.PI * chi);
+  const wt = 2 * Math.PI * fHz * tauTh;
+  return { qTed: (1 + wt * wt) / (deltaE * wt), wt };
+}
+
+function fmtQ(q) {
+  if (q >= 1e6) return (q / 1e6).toFixed(2) + 'M';
+  if (q >= 1e3) return (q / 1e3).toFixed(0) + 'k';
+  return q.toFixed(0);
+}
+
+function sizeCanvas(canvas, cssH) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(260, Math.floor(canvas.parentElement.clientWidth - 16));
+  canvas.style.width = w + 'px';
+  canvas.style.height = cssH + 'px';
+  if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h: cssH };
+}
+
+function applyPreset(mat, bUm, fKhz, mScale, qOtherM) {
+  document.getElementById('selMat').value = mat;
+  document.getElementById('slB').value = bUm;
+  document.getElementById('slF').value = fKhz;
+  document.getElementById('slM').value = mScale;
+  document.getElementById('slQo').value = qOtherM;
+  update();
+}
+
+function update() {
+  const mat = document.getElementById('selMat').value;
+  const bUm = parseFloat(document.getElementById('slB').value);
+  const fKhz = parseFloat(document.getElementById('slF').value);
+  const mScale = parseFloat(document.getElementById('slM').value);
+  const qOther = parseFloat(document.getElementById('slQo').value) * 1e6;
+
+  document.getElementById('valMat').textContent = MATS[mat].name;
+  document.getElementById('valB').textContent = bUm.toFixed(0) + ' µm';
+  document.getElementById('valF').textContent = fKhz.toFixed(1) + ' kHz';
+  document.getElementById('valMQ').textContent = `${mScale.toFixed(1)}× · ${(qOther/1e6).toFixed(1)}M`;
+
+  const fHz = fKhz * 1e3;
+  const { qTed, wt } = calcQted(mat, fHz, bUm);
+  const qTot = 1.0 / (1.0 / qTed + 1.0 / qOther);
+  const tauS = qTot / (Math.PI * fHz);
+
+  // Calibrated Brownian ARW (at baseline m=2mg, f0=11kHz, Q=100k, x_max=0.3um -> 0.0157 deg/sqrt(hr))
+  const mEff = 2.0e-6 * mScale;
+  const w0 = 2 * Math.PI * fHz;
+  const xMax = 0.30e-6;
+  const ag = 0.40;
+  const corF = 2 * mEff * ag * w0 * xMax;
+  const sF = 4 * K_B * T_K * mEff * w0 / qTot;
+  const arw = (Math.sqrt(2 * sF) / corF) * RAD2DEG / Math.SQRT2 * 60.0;
+
+  document.getElementById('rdQted').textContent = fmtQ(qTed);
+  document.getElementById('rdQtot').textContent = fmtQ(qTot);
+  document.getElementById('rdQtot').style.color = qTot >= 500000 ? 'var(--green)' : (qTot >= 150000 ? 'var(--amber)' : 'var(--red)');
+  document.getElementById('rdTau').textContent = tauS.toFixed(1) + ' s';
+  document.getElementById('rdArw').textContent = arw.toFixed(4) + ' °/√hr';
+  document.getElementById('rdArw').style.color = arw <= 0.007 ? 'var(--green)' : (arw <= 0.015 ? 'var(--amber)' : 'var(--red)');
+
+  const regEl = document.getElementById('rdReg');
+  if (wt < 0.25) {
+    regEl.textContent = 'ISOTHERMAL';
+    regEl.style.color = 'var(--green)';
+  } else if (wt > 4.0) {
+    regEl.textContent = 'ADIABATIC';
+    regEl.style.color = 'var(--blue)';
+  } else {
+    regEl.textContent = 'DEBYE PEAK!';
+    regEl.style.color = 'var(--red)';
+  }
+
+  drawTed(mat, bUm, fKhz, qOther, qTed, qTot);
+}
+
+function drawTed(activeMat, bUm, fKhz, qOther, qTedCur, qTotCur) {
+  const canvas = document.getElementById('tedCanvas');
+  const { ctx, w, h } = sizeCanvas(canvas, 300);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = { l: 54, r: 16, t: 22, b: 38 };
+  const pw = w - pad.l - pad.r;
+  const ph = h - pad.t - pad.b;
+
+  const logFmin = Math.log10(0.7), logFmax = Math.log10(1500);
+  const logQmin = Math.log10(5e3), logQmax = Math.log10(2e7);
+
+  const xOf = (fK) => pad.l + ((Math.log10(fK) - logFmin) / (logFmax - logFmin)) * pw;
+  const yOf = (q) => pad.t + ph * (1 - (Math.log10(Math.max(5e3, Math.min(2e7, q))) - logQmin) / (logQmax - logQmin));
+
+  // Grid
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for (const fk of [1, 3, 10, 30, 100, 300, 1000]) {
+    const xp = xOf(fk);
+    ctx.beginPath(); ctx.moveTo(xp, pad.t); ctx.lineTo(xp, pad.t + ph); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(fk >= 1000 ? '1M' : (fk + 'k'), xp, pad.t + ph + 14);
+  }
+  for (const qv of [1e4, 1e5, 1e6, 1e7]) {
+    const yp = yOf(qv);
+    ctx.beginPath(); ctx.moveTo(pad.l, yp); ctx.lineTo(pad.l + pw, yp); ctx.stroke();
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtQ(qv), pad.l - 6, yp + 3);
+  }
+
+  // Q_other ceiling dashed line
+  const yQo = yOf(qOther);
+  ctx.strokeStyle = 'rgba(192,132,252,0.7)';
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(pad.l, yQo); ctx.lineTo(pad.l + pw, yQo); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#d8b4fe';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('Q_anchor+surf ceiling = ' + fmtQ(qOther), pad.l + pw - 5, yQo - 5);
+
+  // Plot all 4 materials' Q_TED curves
+  for (const key of ['si', 'qtz', 'sic', 'dia']) {
+    const m = MATS[key];
+    const isAct = (key === activeMat);
+    ctx.beginPath();
+    for (let i = 0; i <= 180; i++) {
+      const lf = logFmin + (i / 180) * (logFmax - logFmin);
+      const fk = Math.pow(10, lf);
+      const { qTed } = calcQted(key, fk * 1e3, bUm);
+      const x = xOf(fk), y = yOf(qTed);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = m.color;
+    ctx.globalAlpha = isAct ? 1.0 : 0.42;
+    ctx.lineWidth = isAct ? 3.0 : 1.7;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1.0;
+
+  // Plot active material's NET Q_tot (dashed bright)
+  ctx.beginPath();
+  for (let i = 0; i <= 180; i++) {
+    const lf = logFmin + (i / 180) * (logFmax - logFmin);
+    const fk = Math.pow(10, lf);
+    const { qTed } = calcQted(activeMat, fk * 1e3, bUm);
+    const qTot = 1 / (1 / qTed + 1 / qOther);
+    const x = xOf(fk), y = yOf(qTot);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#ffffff';
+  ctx.setLineDash([3, 3]);
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Active markers (Q_TED hollow + Q_tot filled)
+  const xm = xOf(fKhz);
+  const ymTed = yOf(qTedCur);
+  const ymTot = yOf(qTotCur);
+
+  ctx.beginPath(); ctx.arc(xm, ymTed, 5.5, 0, 2 * Math.PI);
+  ctx.fillStyle = MATS[activeMat].color; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(xm, ymTot, 6.5, 0, 2 * Math.PI);
+  ctx.fillStyle = '#34d399'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Legend row at top left
+  let lx = pad.l + 8;
+  ctx.font = 'bold 10.5px sans-serif';
+  ctx.textAlign = 'left';
+  for (const key of ['si', 'qtz', 'sic', 'dia']) {
+    const m = MATS[key];
+    ctx.fillStyle = m.color;
+    ctx.fillRect(lx, pad.t + 6, 10, 4);
+    ctx.fillStyle = key === activeMat ? '#fff' : '#94a3b8';
+    const shortLbl = key === 'si' ? 'Si' : (key === 'qtz' ? 'Quartz' : (key === 'sic' ? 'SiC' : 'Diamond'));
+    ctx.fillText(shortLbl, lx + 13, pad.t + 11);
+    lx += (shortLbl.length * 7 + 26);
+  }
+
+  // Frame & axis labels
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Resonant Frequency f₀ (Hz, log) — Ring Width b = ' + bUm.toFixed(0) + ' µm', pad.l + pw / 2, h - 6);
+}
+
+window.addEventListener('resize', update);
+update();
+</script>
+</body>
+</html>
