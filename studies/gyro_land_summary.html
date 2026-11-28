@@ -203,7 +203,164 @@
         <!-- Internal AXI arrow -->
         <line x1="502" y1="168" x2="518" y2="168" stroke="#fbbf24" stroke-width="2.2"/>
       </svg>
-      <div class="cap">End-to-end ZUBoard 1CG Stage 1 v2 architecture: 29.8% LUTs (11,154), 15.8% FFs (11,864), 2.8% BRAM (3), 21.3% DSP48E2 (46).</div>
+      <div class="cap">End-to-end ZUBoard 1CG Stage 1 v2/v3 architecture: 30.2% LUTs (11,325), 16.0% FFs (11,993), 2.8% BRAM (3), 21.3% DSP48E2 (46).</div>
+    </div>
+
+    <!-- Physics Plant Block Diagram -->
+    <div class="fig">
+      <svg viewBox="0 0 780 285" xmlns="http://www.w3.org/2000/svg">
+        <rect width="780" height="285" fill="#090d14" rx="10"/>
+        <text x="16" y="23" fill="#38bdf8" font-size="12" font-weight="700">BLOCK DIAGRAM 1 · 2-DOF RESONATOR PHYSICS PLANT (mems_plant_2dof.sv · 48-bit Strang-Split)</text>
+
+        <!-- External Inputs (left) -->
+        <rect x="14" y="42" width="132" height="58" rx="8" fill="#182234" stroke="#38bdf8" stroke-width="1.4"/>
+        <text x="80" y="64" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Drive Force u_x(t)</text>
+        <text x="80" y="80" fill="#93a4be" font-size="10" text-anchor="middle">AGCAdj · cos(&phi;) + F_th,x</text>
+
+        <rect x="14" y="182" width="132" height="58" rx="8" fill="#182234" stroke="#34d399" stroke-width="1.4"/>
+        <text x="80" y="204" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Sense Force u_y(t)</text>
+        <text x="80" y="220" fill="#93a4be" font-size="10" text-anchor="middle">FTR·cos + CLQ·sin + F_th,y</text>
+
+        <!-- Top environmental box -->
+        <rect x="176" y="34" width="424" height="32" rx="7" fill="#1d182d" stroke="#a78bfa" stroke-width="1.2"/>
+        <text x="388" y="54" fill="#ddd6fe" font-size="10.8" font-weight="700" text-anchor="middle">Environment: Spin &Omega;_z(t) · Temp T(t) [TCF &Delta;f(T)] · Stress Hysteresis · V_bias (100V &plusmn;20V)</text>
+
+        <!-- Drive Axis X Oscillator -->
+        <rect x="176" y="80" width="196" height="68" rx="10" fill="#10253a" stroke="#38bdf8" stroke-width="1.8"/>
+        <text x="274" y="102" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">Drive Mode X (0°/90°)</text>
+        <text x="274" y="119" fill="#bae6fd" font-size="10.5" text-anchor="middle">x'' + (&omega;_x/Q_x)x' + &omega;_x²x = u_x</text>
+        <text x="274" y="135" fill="#93a4be" font-size="9.8" text-anchor="middle">States: x, v_x (Q4.44 · 48-bit)</text>
+
+        <!-- Sense Axis Y Oscillator -->
+        <rect x="176" y="196" width="196" height="68" rx="10" fill="#0f2822" stroke="#34d399" stroke-width="1.8"/>
+        <text x="274" y="218" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">Sense Mode Y (45°/135°)</text>
+        <text x="274" y="235" fill="#a7f3d0" font-size="10.5" text-anchor="middle">y'' + (&omega;_y/Q_y)y' + &omega;_y²y = u_y</text>
+        <text x="274" y="251" fill="#93a4be" font-size="9.8" text-anchor="middle">States: y, v_y (Q4.44 · 48-bit)</text>
+
+        <!-- 3 Cross-Coupling Channels (center-right) -->
+        <rect x="404" y="84" width="196" height="46" rx="8" fill="#102920" stroke="#34d399" stroke-width="1.5"/>
+        <text x="502" y="103" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">Coriolis Force (Signal!)</text>
+        <text x="502" y="119" fill="#cbd5e1" font-size="10" text-anchor="middle">&plusmn;2 A_g &Omega;_z · v  (velocity-coupled)</text>
+
+        <rect x="404" y="139" width="196" height="46" rx="8" fill="#291f10" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="502" y="158" fill="#fde68a" font-size="11" font-weight="700" text-anchor="middle">Quadrature Stiffness (k_xy)</text>
+        <text x="502" y="174" fill="#cbd5e1" font-size="10" text-anchor="middle">&minus;k_xy · (x, y)  (90° position-coupled)</text>
+
+        <rect x="404" y="194" width="196" height="46" rx="8" fill="#2b141a" stroke="#f87171" stroke-width="1.5"/>
+        <text x="502" y="213" fill="#fecaca" font-size="11" font-weight="700" text-anchor="middle">Anisodamping Bias (g_xy)</text>
+        <text x="502" y="229" fill="#cbd5e1" font-size="10" text-anchor="middle">&minus;g_xy · v  (in-phase bias + RRW walk)</text>
+
+        <!-- Pickoff ADCs (right) -->
+        <rect x="630" y="88" width="136" height="54" rx="8" fill="#182234" stroke="#38bdf8" stroke-width="1.4"/>
+        <text x="698" y="110" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Drive Pickoff x(t)</text>
+        <text x="698" y="126" fill="#93a4be" font-size="10" text-anchor="middle">24-bit Q2.22 + ADC noise</text>
+
+        <rect x="630" y="196" width="136" height="54" rx="8" fill="#182234" stroke="#34d399" stroke-width="1.4"/>
+        <text x="698" y="218" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Sense Pickoff y(t)</text>
+        <text x="698" y="234" fill="#93a4be" font-size="10" text-anchor="middle">24-bit Q2.22 + ADC noise</text>
+
+        <!-- Arrows -->
+        <line x1="146" y1="71" x2="176" y2="104" stroke="#38bdf8" stroke-width="1.8"/>
+        <line x1="146" y1="211" x2="176" y2="225" stroke="#34d399" stroke-width="1.8"/>
+        <line x1="372" y1="112" x2="404" y2="112" stroke="#94a3b8" stroke-width="1.6"/>
+        <line x1="372" y1="226" x2="404" y2="217" stroke="#94a3b8" stroke-width="1.6"/>
+        <line x1="388" y1="112" x2="388" y2="217" stroke="#94a3b8" stroke-width="1.6"/>
+        <line x1="388" y1="162" x2="404" y2="162" stroke="#fbbf24" stroke-width="1.6"/>
+        <line x1="600" y1="115" x2="630" y2="115" stroke="#38bdf8" stroke-width="1.8"/>
+        <line x1="600" y1="223" x2="630" y2="223" stroke="#34d399" stroke-width="1.8"/>
+        <!-- Bidirectional coupling indicator -->
+        <text x="274" y="176" fill="#fbbf24" font-size="10" font-weight="700" text-anchor="middle">&updownarrow; 2-DOF Energy &amp; Coriolis Exchange &updownarrow;</text>
+      </svg>
+      <div class="cap"><strong>Physics Plant Block Diagram:</strong> Two coupled high-Q harmonic modes exchanging energy via true Coriolis rotation (<code>&plusmn;2A_g&Omega;_z v</code>), fabrication spring quadrature (<code>k_xy</code>), and anisodamping bias (<code>g_xy</code>).</div>
+    </div>
+
+    <!-- Control Loop Block Diagram -->
+    <div class="fig">
+      <svg viewBox="0 0 780 315" xmlns="http://www.w3.org/2000/svg">
+        <rect width="780" height="315" fill="#090d14" rx="10"/>
+        <text x="16" y="23" fill="#34d399" font-size="12" font-weight="700">BLOCK DIAGRAM 2 · 4-LOOP CLOSED-LOOP DSP CONTROLLER (mems_ctrl_top.sv · 1 MHz Carrier Rate)</text>
+
+        <!-- Left: Plant Pickoffs & Mode-Swap -->
+        <rect x="14" y="54" width="96" height="196" rx="9" fill="#182234" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="62" y="92" fill="#ddd6fe" font-size="11" font-weight="700" text-anchor="middle">Pickoffs</text>
+        <text x="62" y="110" fill="#38bdf8" font-size="10.5" font-weight="700" text-anchor="middle">x(t), y(t)</text>
+        <text x="62" y="142" fill="#93a4be" font-size="9.5" text-anchor="middle">Mode-Swap</text>
+        <text x="62" y="156" fill="#fbbf24" font-size="9.5" font-weight="700" text-anchor="middle">CTRL[9]</text>
+        <text x="62" y="172" fill="#93a4be" font-size="9" text-anchor="middle">0: Drv X/Sns Y</text>
+        <text x="62" y="185" fill="#93a4be" font-size="9" text-anchor="middle">1: Drv Y/Sns X</text>
+
+        <!-- Dual I/Q Lock-In Demodulators -->
+        <rect x="132" y="48" width="124" height="78" rx="9" fill="#10253a" stroke="#38bdf8" stroke-width="1.6"/>
+        <text x="194" y="70" fill="#fff" font-size="11.2" font-weight="700" text-anchor="middle">Drive Lock-In</text>
+        <text x="194" y="86" fill="#bae6fd" font-size="10" text-anchor="middle">&times; cos(&phi;), sin(&phi;) + LPF</text>
+        <text x="194" y="106" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">&rarr; DX, DY</text>
+
+        <rect x="132" y="170" width="124" height="78" rx="9" fill="#0f2822" stroke="#34d399" stroke-width="1.6"/>
+        <text x="194" y="192" fill="#fff" font-size="11.2" font-weight="700" text-anchor="middle">Sense Lock-In</text>
+        <text x="194" y="208" fill="#a7f3d0" font-size="10" text-anchor="middle">&times; cos(&phi;), sin(&phi;) + LPF</text>
+        <text x="194" y="228" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">&rarr; SX, SY</text>
+
+        <!-- 40-bit CORDIC NCO (bottom-left-center) -->
+        <rect x="132" y="264" width="290" height="38" rx="8" fill="#1f1633" stroke="#a78bfa" stroke-width="1.6"/>
+        <text x="277" y="287" fill="#ddd6fe" font-size="11" font-weight="700" text-anchor="middle">40-bit CORDIC NCO (0.91 &mu;Hz/LSB) &rarr; cos(&phi;), sin(&phi;)</text>
+
+        <!-- 4 Parallel PI Controllers -->
+        <rect x="288" y="42" width="178" height="44" rx="8" fill="#1d182d" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="377" y="60" fill="#ddd6fe" font-size="11" font-weight="700" text-anchor="middle">PLL PI (DY &rarr; 0)</text>
+        <text x="377" y="75" fill="#93a4be" font-size="9.8" text-anchor="middle">PLLAdj &rarr; NCO freq &amp; Temp T</text>
+
+        <rect x="288" y="96" width="178" height="44" rx="8" fill="#261f12" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="377" y="114" fill="#fde68a" font-size="11" font-weight="700" text-anchor="middle">AGC PI (DX &rarr; 1.0)</text>
+        <text x="377" y="129" fill="#93a4be" font-size="9.8" text-anchor="middle">AGCAdj &rarr; Drive Sustain (&omega;0/Q)</text>
+
+        <rect x="288" y="156" width="178" height="44" rx="8" fill="#29141a" stroke="#f87171" stroke-width="1.5"/>
+        <text x="377" y="174" fill="#fecaca" font-size="11" font-weight="700" text-anchor="middle">CLQ PI (SY &rarr; SY_ref)</text>
+        <text x="377" y="189" fill="#93a4be" font-size="9.8" text-anchor="middle">CLQAdj &rarr; Nulls Quad (&gt;200 dB)</text>
+
+        <rect x="288" y="210" width="178" height="44" rx="8" fill="#102920" stroke="#34d399" stroke-width="1.7"/>
+        <text x="377" y="228" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">FTR PI (SX &rarr; 0)</text>
+        <text x="377" y="243" fill="#a7f3d0" font-size="9.8" text-anchor="middle">FTRAdj &rarr; Coriolis Rebalance!</text>
+
+        <!-- Carrier Re-Modulators (right) -->
+        <rect x="498" y="88" width="136" height="58" rx="9" fill="#182234" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="566" y="110" fill="#fff" font-size="11.2" font-weight="700" text-anchor="middle">Drive Re-Mod</text>
+        <text x="566" y="127" fill="#fde68a" font-size="10" text-anchor="middle">u_x = AGC·cos(&phi;)</text>
+
+        <rect x="498" y="176" width="136" height="66" rx="9" fill="#182234" stroke="#34d399" stroke-width="1.5"/>
+        <text x="566" y="198" fill="#fff" font-size="11.2" font-weight="700" text-anchor="middle">Sense Re-Mod</text>
+        <text x="566" y="214" fill="#a7f3d0" font-size="9.8" text-anchor="middle">u_y = FTR·cos(&phi;)</text>
+        <text x="566" y="229" fill="#fecaca" font-size="9.8" text-anchor="middle">+ CLQ·sin(&phi;)</text>
+
+        <!-- Final Outputs (far right) -->
+        <rect x="656" y="54" width="110" height="72" rx="9" fill="#10253a" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="711" y="78" fill="#bae6fd" font-size="10.8" font-weight="700" text-anchor="middle">To Plant</text>
+        <text x="711" y="96" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle">u_x, u_y</text>
+        <text x="711" y="112" fill="#93a4be" font-size="9.5" text-anchor="middle">Q10.22 (32b)</text>
+
+        <rect x="656" y="160" width="110" height="94" rx="9" fill="#0f2920" stroke="#34d399" stroke-width="1.8"/>
+        <text x="711" y="182" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">Gyro Output</text>
+        <text x="711" y="200" fill="#fff" font-size="10.5" font-weight="700" text-anchor="middle">&Omega;_FF, &Theta;_FF</text>
+        <text x="711" y="216" fill="#93a4be" font-size="9.2" text-anchor="middle">FTRAdj &minus; 2 dSX/dt</text>
+        <text x="711" y="232" fill="#ddd6fe" font-size="9.2" text-anchor="middle">+ T_est (PLLAdj)</text>
+
+        <!-- Wiring lines -->
+        <line x1="110" y1="88" x2="132" y2="88" stroke="#38bdf8" stroke-width="1.8"/>
+        <line x1="110" y1="208" x2="132" y2="208" stroke="#34d399" stroke-width="1.8"/>
+        <line x1="256" y1="74" x2="288" y2="64" stroke="#a78bfa" stroke-width="1.6"/>
+        <line x1="256" y1="102" x2="288" y2="118" stroke="#fbbf24" stroke-width="1.6"/>
+        <line x1="256" y1="192" x2="288" y2="178" stroke="#f87171" stroke-width="1.6"/>
+        <line x1="256" y1="224" x2="288" y2="232" stroke="#34d399" stroke-width="1.6"/>
+        <line x1="466" y1="118" x2="498" y2="118" stroke="#fbbf24" stroke-width="1.6"/>
+        <line x1="466" y1="178" x2="498" y2="196" stroke="#f87171" stroke-width="1.6"/>
+        <line x1="466" y1="232" x2="498" y2="220" stroke="#34d399" stroke-width="1.6"/>
+        <line x1="634" y1="110" x2="656" y2="90" stroke="#38bdf8" stroke-width="1.8"/>
+        <line x1="634" y1="205" x2="656" y2="108" stroke="#38bdf8" stroke-width="1.4" stroke-dasharray="3,2"/>
+        <line x1="466" y1="242" x2="656" y2="242" stroke="#34d399" stroke-width="1.6" stroke-dasharray="4,3"/>
+        <!-- NCO feedback line from PLL -->
+        <path d="M 466 64 L 480 64 L 480 283 L 422 283" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4,2"/>
+        <line x1="194" y1="264" x2="194" y2="248" stroke="#a78bfa" stroke-width="1.4"/>
+      </svg>
+      <div class="cap"><strong>4-Loop Control Block Diagram:</strong> Lock-in demodulation converts the 11 kHz carrier into slow DC envelopes (<code>DX, DY, SX, SY</code>) so 4 simple anti-windup PI loops (zero D-kick!) track resonance, hold amplitude, null quadrature, and rebalance Coriolis rotation.</div>
     </div>
   </section>
 
@@ -240,16 +397,50 @@
   <section>
     <h2><span class="badge">Live Gallery</span> Highlights Straight Off XCZU1CG Silicon</h2>
     <div class="fig">
+      <svg viewBox="0 0 780 128" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:10px;">
+        <rect width="780" height="128" fill="#090d14" rx="9"/>
+        <text x="14" y="21" fill="#38bdf8" font-size="11.5" font-weight="700">WHAT'S HAPPENING IN THE 12-PANEL CAPTURE BELOW (0 &rarr; 400 ms LIVE SILICON TIMELINE)</text>
+        <!-- Phase 1: 0-10ms -->
+        <rect x="14" y="34" width="152" height="82" rx="8" fill="#1d182d" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="90" y="52" fill="#ddd6fe" font-size="11" font-weight="700" text-anchor="middle">1. Loops Lock In (0&ndash;10 ms)</text>
+        <text x="90" y="68" fill="#cbd5e1" font-size="9.6" text-anchor="middle">AGC pulls DX &rarr; 1.000</text>
+        <text x="90" y="82" fill="#cbd5e1" font-size="9.6" text-anchor="middle">PLL snaps DY &rarr; 0 (f_0)</text>
+        <text x="90" y="96" fill="#cbd5e1" font-size="9.6" text-anchor="middle">CLQ nulls 120°/s quad!</text>
+        <!-- Arrow -->
+        <text x="178" y="80" fill="#64748b" font-size="15" font-weight="700" text-anchor="middle">&rarr;</text>
+        <!-- Phase 2: 10-200ms -->
+        <rect x="190" y="34" width="168" height="82" rx="8" fill="#10253a" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="274" y="52" fill="#bae6fd" font-size="11" font-weight="700" text-anchor="middle">2. Quiet Hold (10&ndash;200 ms)</text>
+        <text x="274" y="68" fill="#cbd5e1" font-size="9.6" text-anchor="middle">&Omega;_true = 0.0 °/s</text>
+        <text x="274" y="82" fill="#cbd5e1" font-size="9.6" text-anchor="middle">DX=1, DY=SX=SY=0</text>
+        <text x="274" y="96" fill="#cbd5e1" font-size="9.6" text-anchor="middle">FTRAdj = 0.000 °/s</text>
+        <!-- Arrow -->
+        <text x="370" y="80" fill="#fbbf24" font-size="15" font-weight="700" text-anchor="middle">&rarr;</text>
+        <!-- Phase 3: 200-260ms -->
+        <rect x="382" y="34" width="192" height="82" rx="8" fill="#291f10" stroke="#fbbf24" stroke-width="1.7"/>
+        <text x="478" y="52" fill="#fde68a" font-size="11" font-weight="700" text-anchor="middle">3. +100°/s Step! (200&ndash;260 ms)</text>
+        <text x="478" y="68" fill="#cbd5e1" font-size="9.6" text-anchor="middle">Coriolis kicks SX (&minus;0.0041)</text>
+        <text x="478" y="82" fill="#cbd5e1" font-size="9.6" text-anchor="middle">FTR ramps up; FF cancels lag</text>
+        <text x="478" y="96" fill="#a7f3d0" font-size="9.6" font-weight="700" text-anchor="middle">Angle err: 560 &rarr; 60 mdeg!</text>
+        <!-- Arrow -->
+        <text x="586" y="80" fill="#34d399" font-size="15" font-weight="700" text-anchor="middle">&rarr;</text>
+        <!-- Phase 4: 260-400ms -->
+        <rect x="598" y="34" width="168" height="82" rx="8" fill="#0f2822" stroke="#34d399" stroke-width="1.6"/>
+        <text x="682" y="52" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">4. Rebalanced (260&ndash;400 ms)</text>
+        <text x="682" y="68" fill="#cbd5e1" font-size="9.6" text-anchor="middle">SX returns to 0.000</text>
+        <text x="682" y="82" fill="#cbd5e1" font-size="9.6" text-anchor="middle">FTRAdj = +100.0 °/s (0.1%)</text>
+        <text x="682" y="96" fill="#cbd5e1" font-size="9.6" text-anchor="middle">Angle integrates to 20.0°</text>
+      </svg>
       <img src="hw_step_silicon.png" alt="Live 12-panel closed-loop step response" />
-      <div class="cap"><strong>12-Panel Live Hardware Capture:</strong> 100.0 °/s step on ZUBoard 1CG (`0.10%` steady-state error, 10&times; smaller transient angle error via Feedforward rate/angle).</div>
+      <div class="cap"><strong>12-Panel Live Hardware Capture:</strong> 100.0 °/s step at <code>t = 200 ms</code> on ZUBoard 1CG (<code>0.10%</code> steady-state error, ~10&times; smaller transient angle error via Feedforward rate/angle).</div>
     </div>
     <div class="fig">
       <img src="hw_adev_30s_v2.png" alt="Live 30 s ADEV Stage 1 v2" />
-      <div class="cap"><strong>Stage 1 v2 30 s Live ADEV:</strong> Pure fixed-point floor drops to <code>0.0274 °/hr</code> (green), 10&times; below the DRG thermal ARW line!</div>
+      <div class="cap"><strong>Stage 1 v2 30 s Live ADEV:</strong> Pure fixed-point floor drops to <code>0.0274 °/hr</code> (green), 10&times; below the DRG thermal ARW line! <em>Note:</em> This 30 s capture (<code>&tau;<sub>max</sub> &approx; 10 s</code>) intentionally set <code>rrw_step_amp = 0</code> to expose the pure quantization floor &mdash; seeing the classic <code>+1/2</code> RRW right-wall turn-up requires enabling RRW and capturing <strong>1&ndash;3 hours</strong> of gyro time (<code>&tau; &ge; 500&ndash;3,000 s</code>).</div>
     </div>
     <div class="fig">
       <img src="hw_temp_ramp_live.png" alt="Live +30 C thermal ramp self-thermometry" />
-      <div class="cap"><strong>Live +30 °C Thermal Ramp:</strong> 40-bit NCO PLL tracks <code>&minus;9.90 Hz</code> Silicon TCF drift to <strong>0.006 °C RMS</strong> while FTR holds <code>50.08 °/s</code> flat.</div>
+      <div class="cap"><strong>Live +30 °C Thermal Ramp:</strong> 40-bit NCO PLL tracks <code>&minus;9.90 Hz</code> Silicon TCF drift to <strong>0.006 °C RMS</strong> while FTR holds <code>50.08 °/s</code> flat. <em>Real-world caveat:</em> Hardware gyros also experience <strong>thermal stress hysteresis</strong> (die-attach / AuSn solder creep across thermal cycles) where <code>b<sub>up</sub>(T) &ne; b<sub>down</sub>(T)</code>, so subtracting a single-valued <code>b(T)</code> curve alone cannot erase hysteresis &mdash; requiring stress-decoupled anchors, Mode Reversal, or a micro-oven.</div>
     </div>
     <div class="fig">
       <img src="fpga_v3_demos_live.png" alt="Live Stage 1 v3 Silicon Demos: Ringdown Q-Fit, Hardware Mode-Reversal, and +/-1g Tumble" />
